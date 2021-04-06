@@ -20,27 +20,30 @@ class Fabric():
 
     def add_switch(self,
                    host,
-                   username,
-                   password,
-                   napalm_optional_args_telnet=None,
-                   napalm_optional_args_ssh=None):
+                   credentials,
+                   napalm_optional_args=[None])
+
         """
         Try to connect to, and if successful add to fabric, a new switch
 
-        host: str,                   IP or hostname of device to connect to
-        username: str                Username
-        password: str                Password
-        napalm_optional_args_telnet  optional_args to pass to NAPALM for telnet
-        napalm_optional_args_ssh     optional_args to pass to NAPALM for ssh
+        host: str,                        IP or hostname of device to connect to
+        credentials: list(tuple(str,str)) List of (username, password) tuples to try
+        napalm_optional_args: list(dict)  optional_args to pass to NAPALM, as many as you want
         """
 
         thisswitch = Switch(host)
-        try:
-            thisswitch.retrieve_data(username, password,
-                                     napalm_optional_args=napalm_optional_args_ssh)
-        except (ConnectionException, NetMikoAuthenticationException):
-            thisswitch.retrieve_data(
-                username, password, napalm_optional_args=napalm_optional_args_telnet)
+        connected = False
+        for optional_arg in napalm_optional_args:
+            for cred in credentials:
+                try:
+                    thisswitch.retrieve_data(cred[0], cred[1],
+                                             napalm_optional_args=optional_args)
+                    connected = True
+                except (ConnectionException, NetMikoAuthenticationException):
+                    continue
+
+        if not connected:
+            raise ConnectionError("Could not log in with any of the specified methods")
 
         clean_fqdn = thisswitch.facts['fqdn'].replace(".not set", "")
         self.switches[clean_fqdn] = thisswitch
