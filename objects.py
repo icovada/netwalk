@@ -21,7 +21,7 @@ class Fabric():
     def add_switch(self,
                    host,
                    credentials,
-                   napalm_optional_args=[None])
+                   napalm_optional_args=[None]):
 
         """
         Try to connect to, and if successful add to fabric, a new switch
@@ -37,7 +37,7 @@ class Fabric():
             for cred in credentials:
                 try:
                     thisswitch.retrieve_data(cred[0], cred[1],
-                                             napalm_optional_args=optional_args)
+                                             napalm_optional_args=optional_arg)
                     connected = True
                 except (ConnectionException, NetMikoAuthenticationException):
                     continue
@@ -116,10 +116,8 @@ class Fabric():
                                                 "Queueing discover for " + nei['hostname'])
                                             future_switch_data[executor.submit(self.add_switch,
                                                                                nei['ip'],
-                                                                               credentials[0][0],
-                                                                               credentials[0][1],
-                                                                               napalm_optional_args_telnet,
-                                                                               napalm_optional_args_ssh)] = nei['ip']
+                                                                               credentials,
+                                                                               napalm_optional_args)] = nei['ip']
 
         self.refresh_global_information()
 
