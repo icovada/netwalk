@@ -19,6 +19,8 @@ sitename.init_from_seed_device(seed_hosts=["10.10.10.1"],
 This code will start searching from device 10.10.10.1 and will try to log in via SSH with cisco/cisco and then customer/password.
 Once connected to the switch it will pull and parse the running config, the mac address table and the cdp neighbours, then will start cycling through all neighbours recursively until the entire fabric has been discovered
 
+Note: you may also pass a list of `napalm_optional_args`, check the [optional args guide](docs/napalm_optional_args_guide.md) for explanation and examples
+
 ### Manual addition of switches
 You can tell Fabric to discover another switch on its own or you can add a `Switch` object to `.switches`. WHichever way, do not forget to call `refresh_global_information` to recalculate neighborships and global mac address table
 
@@ -29,8 +31,8 @@ sitename.add_switch(seed_hosts=["10.10.10.1"],
                     credentials=[("cisco","cisco"))
 sitename.refresh_global_information()
 ```
-
-### Result
+Note: you may also pass a list of `napalm_optional_args`, check the [optional args guide](docs/napalm_optional_args_guide.md) for explanation and examples
+### Structure
 
 `sitename` will now contain two main attributes:
 * `switches`, a dictionary of `{'hostname': Switch}` where Switch an object defined in the next paragraph
@@ -40,4 +42,39 @@ sitename.refresh_global_information()
 --------------
 
 ## Switch
-This object defines a switch. 
+This object defines a switch. It can be created in two ways:
+
+#### Automatic connection
+``` python
+from netwalk import Switch
+sw01 = Switch(hostname="10.10.10.1")
+sw01.retrieve_data(username="cisco",
+                   password="cisco"})
+```
+Note: you may also pass a list of `napalm_optional_args`, check the [optional args guide](docs/napalm_optional_args_guide.md) for explanation and examples
+
+This will connect to the switch and pull all the data much like `add_switch()` does in `Fabric`
+
+### Init from show run
+You may also generate the Switch device from a show run you have extracted somewhere else. This will not give you mac address table or neighborship discovery but will generate all Interfaces in the switch
+
+``` python
+from netwalk import Switch
+
+showrun = """
+int gi 0/1
+switchport mode access
+...
+int gi 0/24
+switchport mode trunk
+"""
+
+sw01 = Switch(hostname="10.10.10.1", config=showrun)
+```
+
+### Structure
+A `Switch` object has the following attributes:
+* `hostname`: the IP or hostname to connect to
+* `config`: string containing plain text show run
+* `interfaces`: dictionary of `{'interface name', Interface}`} where Interface is an object defines in the next paragraph
+* `mac_table`: a dictionary containing the switch's mac address table 
