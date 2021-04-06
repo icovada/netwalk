@@ -53,8 +53,7 @@ class Fabric():
     def init_from_seed_device(self,
                               seed_hosts: str,
                               credentials: list,
-                              napalm_optional_args_telnet=None,
-                              napalm_optional_args_ssh=None,
+                              napalm_optional_args=[None],
                               parallel_threads=10):
         """
         Initialise entire fabric from a seed device.
@@ -71,14 +70,11 @@ class Fabric():
             for x in seed_hosts:
                 self.discovery_status[x] = "Queued"
 
-            # TODO: cycle over list of credentials
             future_switch_data = {executor.submit(
                 self.add_switch,
                 x,
-                credentials[0][0],
-                credentials[0][1],
-                napalm_optional_args_telnet,
-                napalm_optional_args_ssh): x for x in seed_hosts}
+                credentials,
+                napalm_optional_args): x for x in seed_hosts}
 
             while future_switch_data:
                 done, _ = concurrent.futures.wait(future_switch_data,
