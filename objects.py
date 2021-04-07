@@ -485,61 +485,62 @@ class Interface():
             self.config = self.config.split("\n")
 
         for line in self.config:
+            cleanline = line.strip()
             # Find interface name
-            match = re.search(r"^interface ([A-Za-z\-]*(\/*\d*)+)", line)
+            match = re.search(r"^interface ([A-Za-z\-]*(\/*\d*)+)", cleanline)
             if match is not None:
                 self.name = match.groups()[0]
 
             # Find description
-            match = re.search(r"description (.*)$", line)
+            match = re.search(r"description (.*)$", cleanline)
             if match is not None:
                 self.description = match.groups()[0]
 
             # Find port-channel properties
-            match = re.search(r"channel-group (\d*) mode (\w*)", line)
+            match = re.search(r"channel-group (\d*) mode (\w*)", cleanline)
             if match is not None:
                 self.channel_group = match.groups()[0]
                 self.channel_protocol = match.groups()[1]
 
             # Port mode
-            match = re.search(r"switchport mode (.*)$", line)
+            match = re.search(r"switchport mode (.*)$", cleanline)
             if match is not None:
                 self.mode = match.groups()[0].strip()
                 if self.mode == 'trunk' and len(self.allowed_vlan) == 0:
                     self.allowed_vlan = set([x for x in range(1, 4095)])
 
             # Native vlan
-            match = re.search(r"switchport access vlan (.*)$", line)
+            match = re.search(r"switchport access vlan (.*)$", cleanline)
             if match is not None and self.mode == 'access':
                 self.native_vlan = int(match.groups()[0])
 
             # Trunk native vlan
-            match = re.search(r"switchport trunk native vlan (.*)$", line)
+            match = re.search(r"switchport trunk native vlan (.*)$", cleanline)
             if match is not None and self.mode == 'trunk':
                 self.native_vlan = int(match.groups()[0])
 
             # Trunk allowed vlan
             match = re.search(
-                r"switchport trunk allowed vlan ([0-9\-\,]*)$", line)
+                r"switchport trunk allowed vlan ([0-9\-\,]*)$", cleanline)
             if match is not None:
                 self.allowed_vlan = self._allowed_vlan_to_list(
                     match.groups()[0])
 
             # Trunk allowed vlan add
             match = re.search(
-                r"switchport trunk allowed vlan add ([0-9\-\,]*)$", line)
+                r"switchport trunk allowed vlan add ([0-9\-\,]*)$", cleanline)
             if match is not None:
                 new_vlans = self._allowed_vlan_to_list(match.groups()[0])
                 self.allowed_vlan.update(list(new_vlans))
 
             # Portfast
             match = re.search(
-                r"spanning-tree portfast", line)
+                r"spanning-tree portfast", cleanline)
             if match is not None:
                 self.type_edge = True
 
             match = re.search(
-                r"spanning-tree bpduguard", line)
+                r"spanning-tree bpduguard", cleanline)
             if match is not None:
                 self.bpduguard = True
 
