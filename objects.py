@@ -34,11 +34,15 @@ class Fabric():
         thisswitch = Switch(host)
         connected = False
         for optional_arg in napalm_optional_args:
+            if connected:
+                break
+
             for cred in credentials:
                 try:
                     thisswitch.retrieve_data(cred[0], cred[1],
                                              napalm_optional_args=optional_arg)
                     connected = True
+                    break
                 except (ConnectionException, NetMikoAuthenticationException):
                     continue
 
