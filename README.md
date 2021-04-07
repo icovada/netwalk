@@ -18,7 +18,7 @@ sitename.init_from_seed_device(seed_hosts=["10.10.10.1"],
 This code will start searching from device 10.10.10.1 and will try to log in via SSH with cisco/cisco and then customer/password.
 Once connected to the switch it will pull and parse the running config, the mac address table and the cdp neighbours, then will start cycling through all neighbours recursively until the entire fabric has been discovered
 
-Note: you may also pass a list of `napalm_optional_args`, check the [optional args guide](docs/napalm_optional_args_guide.md) for explanation and examples
+Note: you may also pass a list of `napalm_optional_args`, check the [NAPALM optional args guide](https://napalm.readthedocs.io/en/latest/support/#optional-arguments) for explanation and examples
 
 ### Manual addition of switches
 You can tell Fabric to discover another switch on its own or you can add a `Switch` object to `.switches`. WHichever way, do not forget to call `refresh_global_information` to recalculate neighborships and global mac address table
