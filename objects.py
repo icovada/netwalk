@@ -559,6 +559,17 @@ class Interface():
                 self.bpduguard = True
                 continue
 
+            if "no shutdown" in line:
+                self.is_enabled = True
+                continue
+            elif "shutdown" in line:
+                self.is_enabled = False
+                continue
+
+            # Legacy syntax, ignore
+            if "switchport trunk encapsulation" in line:
+                continue
+
             # Unknown, unparsable line
             self.unparsed_lines.append(cleanline)
 
