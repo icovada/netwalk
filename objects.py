@@ -477,6 +477,7 @@ class Interface():
         self.is_up: bool = kwargs.get('is_up', True)
         self.is_enabled: bool = kwargs.get('is_enabled', True)
         self.config: List[str] = kwargs.get('config', None)
+        self.unparsed_lines = kwargs.get('unparsed_lines', [])
         self.mac_count = 0
         self.type_edge = kwargs.get('type_edge', False)
         self.bpduguard = kwargs.get('bpduguard', False)
@@ -494,17 +495,20 @@ class Interface():
             match = re.search(r"^interface ([A-Za-z\-]*(\/*\d*)+)", cleanline)
             if match is not None:
                 self.name = match.groups()[0]
+                continue
 
             # Find description
             match = re.search(r"description (.*)$", cleanline)
             if match is not None:
                 self.description = match.groups()[0]
+                continue
 
             # Find port-channel properties
             match = re.search(r"channel-group (\d*) mode (\w*)", cleanline)
             if match is not None:
                 self.channel_group = match.groups()[0]
                 self.channel_protocol = match.groups()[1]
+                continue
 
             # Port mode
             match = re.search(r"switchport mode (.*)$", cleanline)
@@ -512,16 +516,19 @@ class Interface():
                 self.mode = match.groups()[0].strip()
                 if self.mode == 'trunk' and len(self.allowed_vlan) == 0:
                     self.allowed_vlan = set([x for x in range(1, 4095)])
+                continue
 
             # Native vlan
             match = re.search(r"switchport access vlan (.*)$", cleanline)
             if match is not None and self.mode == 'access':
                 self.native_vlan = int(match.groups()[0])
+                continue
 
             # Trunk native vlan
             match = re.search(r"switchport trunk native vlan (.*)$", cleanline)
             if match is not None and self.mode == 'trunk':
                 self.native_vlan = int(match.groups()[0])
+                continue
 
             # Trunk allowed vlan
             match = re.search(
@@ -529,6 +536,7 @@ class Interface():
             if match is not None:
                 self.allowed_vlan = self._allowed_vlan_to_list(
                     match.groups()[0])
+                continue
 
             # Trunk allowed vlan add
             match = re.search(
@@ -536,17 +544,24 @@ class Interface():
             if match is not None:
                 new_vlans = self._allowed_vlan_to_list(match.groups()[0])
                 self.allowed_vlan.update(list(new_vlans))
+                continue
 
             # Portfast
             match = re.search(
                 r"spanning-tree portfast", cleanline)
             if match is not None:
                 self.type_edge = True
+                continue
 
             match = re.search(
                 r"spanning-tree bpduguard", cleanline)
             if match is not None:
                 self.bpduguard = True
+                continue
+
+            # Unknown, unparsable line
+            self.unparsed_lines.append(cleanline)
+
 
     def _allowed_vlan_to_list(self, vlanlist: str) -> set:
         """
@@ -605,6 +620,9 @@ class Interface():
                 fullconfig = fullconfig + " trunk\n"
             else:
                 fullconfig = fullconfig + "\n"
+
+        for line in self.unparsed_lines:
+            fullconfig = fullconfig + line + "\n"
 
         if self.is_enabled:
             fullconfig = fullconfig + " no shutdown\n"
