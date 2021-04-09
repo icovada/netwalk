@@ -1,3 +1,4 @@
+import os
 import concurrent.futures
 import datetime as dt
 import re
@@ -378,9 +379,10 @@ class Switch():
         self.session.device.write_channel("\n")
         self.session.device.timeout = 30  # Could take ages...
         neighdetail = self.session.device.read_until_prompt(max_loops=3000)
-        re_table = textfsm.TextFSM(
-            open("textfsm_templates/show_cdp_neigh_detail.textfsm"))
-        fsm_results = re_table.ParseText(neighdetail)
+        fsmpath = os.path.dirname(os.path.realpath(__file__)) + "/textfsm_templates/show_cdp_neigh_detail.textfsm" 
+        with open(fsmpath, 'r') as fsmfile:
+            re_table = textfsm.TextFSM(fsmfile)
+            fsm_results = re_table.ParseText(neighdetail)
 
         for nei in fsm_results:
             if not hasattr(self.interfaces[nei[5]], "neighbors"):
