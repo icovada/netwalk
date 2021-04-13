@@ -634,6 +634,9 @@ class Interface():
             else:
                 fullconfig = fullconfig + "\n"
 
+        if self.bpduguard:
+            fullconfig = fullconfig + " spanning-tree bpduguard enable\n"
+
         for line in self.unparsed_lines:
             fullconfig = fullconfig + line + "\n"
 
