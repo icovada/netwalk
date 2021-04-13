@@ -4,6 +4,7 @@ import datetime as dt
 import re
 from io import StringIO
 from typing import List, Optional
+import logging
 
 import ciscoconfparse
 import napalm
@@ -15,6 +16,7 @@ from netaddr import EUI
 
 class Fabric():
     def __init__(self):
+        self.logger = logging.getLogger(__name__)
         self.switches = {}
         self.discovery_status = {}
         self.mac_table = {}
@@ -187,6 +189,7 @@ class Switch():
                  hostname: str,
                  **kwargs):
 
+        self.logger = logging.getLogger(__name__)
         self.hostname = hostname
         self.interfaces = {}
         self.config = kwargs.get('config', None)
@@ -465,6 +468,7 @@ class Interface():
     """
 
     def __init__(self, **kwargs):
+        self.logger = logging.getLogger(__name__)
         self.name: str = kwargs.get('name', None)
         self.description: Optional[str] = kwargs.get('description', None)
         self.mode: str = kwargs.get('mode', 'access')
