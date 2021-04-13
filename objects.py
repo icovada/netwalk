@@ -483,6 +483,7 @@ class Interface():
         self.mac_count = 0
         self.type_edge = kwargs.get('type_edge', False)
         self.bpduguard = kwargs.get('bpduguard', False)
+        self.routed_port = kwargs.get('routed_port', False)
 
         if self.config is not None:
             self.parse_config()
@@ -573,6 +574,9 @@ class Interface():
                 continue
 
             # Unknown, unparsable line
+            if any([x in cleanline for x in ["vrf forwarding", "ip address"]]):
+                self.routed_port = True
+
             self.unparsed_lines.append(cleanline)
 
 
