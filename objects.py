@@ -44,7 +44,7 @@ class Fabric():
                                              napalm_optional_args=optional_arg)
                     connected = True
                     break
-                except (ConnectionException, NetMikoAuthenticationException):
+                except (ConnectionException, NetMikoAuthenticationException, ConnectionRefusedError):
                     continue
 
         if not connected:
