@@ -77,6 +77,7 @@ class Fabric():
             for x in seed_hosts:
                 self.discovery_status[x] = "Queued"
 
+            self.logger.debug("Adding seed hosts to loop")
             future_switch_data = {executor.submit(
                 self.add_switch,
                 x,
@@ -84,22 +85,26 @@ class Fabric():
                 napalm_optional_args): x for x in seed_hosts}
 
             while future_switch_data:
+                self.logger.debug("Waiting for data from loop")
                 done, _ = concurrent.futures.wait(future_switch_data,
                                                   return_when=concurrent.futures.FIRST_COMPLETED)
 
                 for fut in done:
                     hostname = future_switch_data.pop(fut)
+                    self.logger.debug("Got data for %s", hostname)
+
 
                     try:
                         swobject = fut.result()
                     except Exception as exc:
-                        print('%r generated an exception: %s' %
+                        self.logger.error('%r generated an exception: %s' %
                               (hostname, exc))
                         self.discovery_status[hostname] = "Failed"
                     else:
                         fqdn = swobject.facts['fqdn'].replace(".not set", "")
                         print("Done", fqdn)
                         self.discovery_status[hostname] = "Completed"
+                        self.logger.info("Completed discovery of %s %s", swobject.facts['fqdn'], swobject.hostname)
                         # Check if it has cdp neighbors
 
                         for _, intdata in swobject.interfaces.items():
@@ -111,20 +116,22 @@ class Fabric():
                                                 assert "AIR" not in nei['platform']
                                                 assert "CAP" not in nei['platform']
                                                 assert "N77" not in nei['platform']
-                                                assert "NX" not in nei['hostname']
                                                 assert "axis" not in nei['hostname']
-                                                assert "DATACENTER" not in nei['hostname']
                                             except AssertionError:
+                                                logging.debug("Skipping %s, %s", nei['hostname'], nei['platform'])
                                                 continue
 
                                             self.discovery_status[nei['ip']
                                                                   ] = "Queued"
-                                            print(
-                                                "Queueing discover for " + nei['hostname'])
+
+                                            self.logger.info("Queueing discover for %s", nei['hostname'])
+
                                             future_switch_data[executor.submit(self.add_switch,
                                                                                nei['ip'],
                                                                                credentials,
                                                                                napalm_optional_args)] = nei['ip']
+                                        else:
+                                            self.logger.debug("Skipping %s, already discovered", nei['hostname'])
 
         self.refresh_global_information()
 
@@ -133,10 +140,11 @@ class Fabric():
         Update global information such as mac address position
         and cdp neighbor adjacency
         """
+        self.logger.debug("Refreshing information")
         self._recalculate_macs()
-        self._cdp_neigh_parse()
+        self._find_links()
 
-    def _cdp_neigh_parse(self):
+    def _find_links(self):
         """
         Join switches by CDP neighborship
         """
@@ -160,6 +168,7 @@ class Fabric():
                             try:
                                 peer_device = short_fabric[switch[:40]
                                                            ].interfaces[port]
+                                self.logger.debug("Found link between %s %s and %s %s", intfdata.name, intfdata.switch.facts['fqdn'], peer_device.name, peer_device.switch.facts['fqdn'])
                                 intfdata.neighbors[i] = peer_device
                             except KeyError:
                                 pass
@@ -169,6 +178,7 @@ class Fabric():
             for mac, macdata in swdata.mac_table.items():
                 try:
                     if self.mac_table[mac]['interface'].mac_count > macdata['interface'].mac_count:
+                        self.logger.debug("Found better interface %s %s for %s", macdata['interface'], macdata['interface'].switch.facts['fqdn'], str(mac))
                         self.mac_table[mac] = macdata
                 except KeyError:
                     self.mac_table[mac] = macdata
@@ -189,7 +199,7 @@ class Switch():
                  hostname: str,
                  **kwargs):
 
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(__name__+hostname)
         self.hostname = hostname
         self.interfaces = {}
         self.config = kwargs.get('config', None)
@@ -225,7 +235,7 @@ class Switch():
                               optional_args=self.napalm_optional_args)
 
         # TODO: Use logging not print
-        print("Connecting to ", self.hostname)
+        self.logger.info("Connecting to %s", self.hostname)
         self.session.open()
 
     def get_active_vlans(self):
