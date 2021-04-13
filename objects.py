@@ -611,36 +611,41 @@ class Interface():
         if self.description is not None:
             fullconfig = fullconfig + f" description {self.description}\n"
 
-        fullconfig = fullconfig + f" switchport mode {self.mode}\n"
-
-        if self.mode == "access":
-            fullconfig = fullconfig + f" switchport access vlan {self.native_vlan}\n"
-
-        elif self.mode== "trunk":
-            fullconfig = fullconfig + f" switchport trunk native vlan {self.native_vlan}\n"
-            if len(self.allowed_vlan) != 4094:
-                vlan_str = ",".join(map(str, self.allowed_vlan))
-                fullconfig = fullconfig + f" switchport trunk allowed vlan {vlan_str}\n"
+        if not self.routed_port:
+            fullconfig = fullconfig + f" switchport mode {self.mode}\n"
+    
+            if self.mode == "access":
+                fullconfig = fullconfig + f" switchport access vlan {self.native_vlan}\n"
+    
+            elif self.mode== "trunk":
+                fullconfig = fullconfig + f" switchport trunk native vlan {self.native_vlan}\n"
+                if len(self.allowed_vlan) != 4094:
+                    vlan_str = ",".join(map(str, self.allowed_vlan))
+                    fullconfig = fullconfig + f" switchport trunk allowed vlan {vlan_str}\n"
+                else:
+                    fullconfig = fullconfig + " switchport trunk allowed vlan all\n"
             else:
-                fullconfig = fullconfig + " switchport trunk allowed vlan all\n"
+                raise KeyError("Unknown interface mode")
+    
+    
+            if self.mode == "access" and self.voice_vlan is not None:
+                fullconfig = fullconfig + f" switchport voice vlan {self.voice_vlan}\n"
+    
+            if self.type_edge:
+                fullconfig = fullconfig + " spanning-tree portfast"
+    
+                if self.mode == "trunk":
+                    fullconfig = fullconfig + " trunk\n"
+                else:
+                    fullconfig = fullconfig + "\n"
+    
+            if self.bpduguard:
+                fullconfig = fullconfig + " spanning-tree bpduguard enable\n"
+    
         else:
-            raise KeyError("Unknown interface mode")
-
-
-        if self.mode == "access" and self.voice_vlan is not None:
-            fullconfig = fullconfig + f" switchport voice vlan {self.voice_vlan}\n"
-
-        if self.type_edge:
-            fullconfig = fullconfig + " spanning-tree portfast"
-
-            if self.mode == "trunk":
-                fullconfig = fullconfig + " trunk\n"
-            else:
-                fullconfig = fullconfig + "\n"
-
-        if self.bpduguard:
-            fullconfig = fullconfig + " spanning-tree bpduguard enable\n"
-
+            # TODO: output l3 info
+            pass
+            
         for line in self.unparsed_lines:
             fullconfig = fullconfig + line + "\n"
 
