@@ -35,6 +35,10 @@ class Switch():
         self.napalm_optional_args = kwargs.get('napalm_optional_args', None)
         self.init_time = dt.datetime.now()
         self.mac_table = {}
+        self.vtp = None
+        self.arp_table = {}
+        self.interfaces_ip = {}
+        self.vlans = None
 
         if self.config is not None:
             self._parse_config()
@@ -182,6 +186,17 @@ class Switch():
         result = self.session.cli([command])
 
         self.vtp = result[command]
+
+        # Get VLANs
+        command = "show vlan"
+        result = self.session.cli([command])
+
+        self.vlans = result[command]
+
+        # Get l3 interfaces
+
+        self.interfaces_ip = self.session.get_interfaces_ip()
+        self.arp_table = self.session.get_arp_table()
 
         self.session.close()
 
