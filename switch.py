@@ -39,6 +39,7 @@ class Switch():
         self.arp_table = {}
         self.interfaces_ip = {}
         self.vlans = None
+        self.vlans_set = set()
 
         if self.config is not None:
             self._parse_config()
@@ -101,6 +102,8 @@ class Switch():
 
                 vlans = vlans.union(activevlans)
 
+        # Remove vlans not explicitly configured
+        vlans.intersection_update(self.vlans_set)
         return vlans
 
     def _parse_config(self):
@@ -118,7 +121,6 @@ class Switch():
         for intf in interface_config_list:
             thisint = Interface(config=intf.ioscfg)
             self.interfaces[thisint.name] = thisint
-        #self.interfaces = {x.name: x for x in self.interfaces}
 
     def _get_switch_data(self):
         self.facts = self.session.get_facts()
@@ -188,13 +190,10 @@ class Switch():
         self.vtp = result[command]
 
         # Get VLANs
-        command = "show vlan"
-        result = self.session.cli([command])
-
-        self.vlans = result[command]
+        self.vlans = self.session.get_vlans()
+        self.vlans_set = set([k for k, v in self.vlans.items()])
 
         # Get l3 interfaces
-
         self.interfaces_ip = self.session.get_interfaces_ip()
         self.arp_table = self.session.get_arp_table()
 
