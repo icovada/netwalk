@@ -97,7 +97,6 @@ class Fabric():
                         self.discovery_status[hostname] = "Failed"
                     else:
                         fqdn = swobject.facts['fqdn'].replace(".not set", "")
-                        print("Done", fqdn)
                         self.discovery_status[hostname] = "Completed"
                         self.logger.info("Completed discovery of %s %s", swobject.facts['fqdn'], swobject.hostname)
                         # Check if it has cdp neighbors
