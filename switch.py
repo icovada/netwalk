@@ -191,7 +191,7 @@ class Switch():
 
         # Get VLANs
         self.vlans = self.session.get_vlans()
-        self.vlans_set = set([k for k, v in self.vlans.items()])
+        self.vlans_set = set([int(k) for k, v in self.vlans.items()])
 
         # Get l3 interfaces
         self.interfaces_ip = self.session.get_interfaces_ip()
