@@ -88,7 +88,7 @@ class Switch():
             if intdata.mode == "trunk":
                 try:
                     assert not isinstance(intdata.neighbors[0], Interface)
-                except (KeyError, AssertionError, AttributeError):
+                except (IndexError, AssertionError, AttributeError):
                     # Interface has explicit neighbor, exclude
                     continue
 
