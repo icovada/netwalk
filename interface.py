@@ -34,6 +34,7 @@ class Interface():
         self.type_edge = kwargs.get('type_edge', False)
         self.bpduguard = kwargs.get('bpduguard', False)
         self.routed_port = kwargs.get('routed_port', False)
+        self.neighbors = kwargs.get('neighbors', [])
 
         if self.config is not None:
             self.parse_config()
