@@ -48,6 +48,8 @@ class Fabric():
             raise ConnectionError("Could not log in with any of the specified methods")
 
         clean_fqdn = thisswitch.facts['fqdn'].replace(".not set", "")
+        if clean_fqdn == "Unknown":
+            clean_fqdn = thisswitch.facts['hostname']
         self.switches[clean_fqdn] = thisswitch
 
         return thisswitch
