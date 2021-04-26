@@ -6,6 +6,8 @@ import concurrent.futures
 from napalm.base.exceptions import ConnectionException
 from netmiko.ssh_exception import NetMikoAuthenticationException
 
+from datetime import datetime as dt
+
 from .switch import Switch
 from .interface import Interface
 
@@ -102,7 +104,7 @@ class Fabric():
                         self.discovery_status[hostname] = "Failed"
                     else:
                         fqdn = swobject.facts['fqdn'].replace(".not set", "")
-                        self.discovery_status[hostname] = "Completed"
+                        self.discovery_status[hostname] = dt.now()
                         self.logger.info("Completed discovery of %s %s", swobject.facts['fqdn'], swobject.hostname)
                         # Check if it has cdp neighbors
 
