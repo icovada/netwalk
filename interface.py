@@ -177,7 +177,7 @@ class Interface():
                 else:
                     fullconfig = fullconfig + " switchport trunk allowed vlan all\n"
             else:
-                fullconfig = "! WARNING: UNKNOWN CONFIGURATION\n" + fullconfig
+                raise KeyError("Unknown interface mode")
 
 
             if self.mode == "access" and self.voice_vlan is not None:
@@ -199,7 +199,7 @@ class Interface():
             pass
 
         for line in self.unparsed_lines:
-            fullconfig = fullconfig + line
+            fullconfig = fullconfig + line + "\n"
 
         if self.is_enabled:
             fullconfig = fullconfig + " no shutdown\n"
