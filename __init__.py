@@ -1,10 +1,14 @@
 "Main file for library"
 
-import logging
 from .interface import Interface
 from .switch import Switch
 from .fabric import Fabric
 
 __all__ = ["Interface", "Switch", "Fabric"]
 
-logger = logging.getLogger(__name__)
+
+#Taken from requests library, check their documentation
+import logging
+from logging import NullHandler
+
+logging.getLogger(__name__).addHandler(NullHandler())
