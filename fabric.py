@@ -29,6 +29,7 @@ class Fabric():
         napalm_optional_args: list(dict)  optional_args to pass to NAPALM, as many as you want
         """
 
+        self.logger.info("Creating switch %s", host)
         thisswitch = Switch(host)
         connected = False
         for optional_arg in napalm_optional_args:
@@ -40,16 +41,20 @@ class Fabric():
                     thisswitch.retrieve_data(cred[0], cred[1],
                                              napalm_optional_args=optional_arg)
                     connected = True
+                    self.logger.info("Connection to switch %s successful", host)
                     break
                 except (ConnectionException, NetMikoAuthenticationException, ConnectionRefusedError):
+                    self.logger.error("Login failed")
                     continue
 
         if not connected:
+            self.logger.error("Could not login with any of the specified methods")
             raise ConnectionError("Could not log in with any of the specified methods")
 
         clean_fqdn = thisswitch.facts['fqdn'].replace(".not set", "")
         if clean_fqdn == "Unknown":
             clean_fqdn = thisswitch.facts['hostname']
+        self.logger.info("Finished discovery of switch %s", clean_fqdn)
         self.switches[clean_fqdn] = thisswitch
 
         return thisswitch
@@ -89,8 +94,6 @@ class Fabric():
                 for fut in done:
                     hostname = future_switch_data.pop(fut)
                     self.logger.debug("Got data for %s", hostname)
-
-
                     try:
                         swobject = fut.result()
                     except Exception as exc:
