@@ -89,7 +89,7 @@ class Fabric():
                 napalm_optional_args): x for x in seed_hosts}
 
             while future_switch_data:
-                self.logger.debug("Waiting for data from loop")
+                self.logger.debug("Connecting to switches, %d to go", len(future_switch_data))
                 done, _ = concurrent.futures.wait(future_switch_data,
                                                   return_when=concurrent.futures.FIRST_COMPLETED)
 
@@ -112,6 +112,7 @@ class Fabric():
                             if hasattr(intdata, "neighbors"):
                                 for nei in intdata.neighbors:
                                     if not isinstance(nei, Interface):
+                                        self.logger.debug("Evaluating neighbour %s", nei['hostname'])
                                         if nei['hostname'] not in self.switches and nei['ip'] not in self.discovery_status:
                                             try:
                                                 assert "AIR" not in nei['platform']
@@ -122,10 +123,8 @@ class Fabric():
                                                 logging.debug("Skipping %s, %s", nei['hostname'], nei['platform'])
                                                 continue
 
-                                            self.discovery_status[nei['ip']
-                                                                  ] = "Queued"
-
                                             self.logger.info("Queueing discover for %s", nei['hostname'])
+                                            self.discovery_status[nei['ip']] = "Queued"
 
                                             future_switch_data[executor.submit(self.add_switch,
                                                                                nei['ip'],
@@ -134,6 +133,7 @@ class Fabric():
                                         else:
                                             self.logger.debug("Skipping %s, already discovered", nei['hostname'])
 
+        self.logger.info("Discovery complete, crunching data")
         self.refresh_global_information()
 
     def refresh_global_information(self):
