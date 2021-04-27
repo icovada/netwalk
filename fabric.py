@@ -150,6 +150,7 @@ class Fabric():
         Join switches by CDP neighborship
         """
         short_fabric = {k[:40]: v for k, v in self.switches.items()}
+        hostname_only_fabric = {v.facts['hostname']: v for k, v in self.switches.items()}
 
         for sw, swdata in self.switches.items():
             for intf, intfdata in swdata.interfaces.items():
@@ -164,6 +165,7 @@ class Fabric():
                         try:
                             peer_device = self.switches[switch].interfaces[port]
                             intfdata.neighbors[i] = peer_device
+                            self.logger.debug("Found link between %s %s and %s %s", intfdata.name, intfdata.switch.facts['fqdn'], peer_device.name, peer_device.switch.facts['fqdn'])
                         except KeyError:
                             # Hostname over 40 char
                             try:
@@ -172,7 +174,13 @@ class Fabric():
                                 self.logger.debug("Found link between %s %s and %s %s", intfdata.name, intfdata.switch.facts['fqdn'], peer_device.name, peer_device.switch.facts['fqdn'])
                                 intfdata.neighbors[i] = peer_device
                             except KeyError:
-                                pass
+                                try:
+                                    peer_device = hostname_only_fabric[switch].interfaces[port]
+                                    self.logger.debug("Found link between %s %s and %s %s", intfdata.name, intfdata.switch.facts['fqdn'], peer_device.name, peer_device.switch.facts['fqdn'])
+                                    intfdata.neighbors[i] = peer_device
+                                except KeyError:
+                                    self.logger.debug("Could not find link between %s %s and %s %s", intfdata.name, intfdata.switch.facts['fqdn'], port, switch)
+                                    pass
 
     def _recalculate_macs(self):
         for swname, swdata in self.switches.items():
