@@ -27,7 +27,7 @@ class Switch():
                  hostname: str,
                  **kwargs):
 
-        self.logger = logging.getLogger(__name__+":"+hostname)
+        self.logger = logging.getLogger(__name__)
         self.hostname = hostname
         self.interfaces = {}
         self.config = kwargs.get('config', None)
@@ -67,7 +67,6 @@ class Switch():
                               timeout=self.timeout,
                               optional_args=self.napalm_optional_args)
 
-        # TODO: Use logging not print
         self.logger.info("Connecting to %s", self.hostname)
         self.session.open()
 

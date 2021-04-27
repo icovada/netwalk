@@ -46,7 +46,7 @@ class Fabric():
                     self.logger.info("Connection to switch %s successful", host)
                     break
                 except (ConnectionException, NetMikoAuthenticationException, ConnectionRefusedError):
-                    self.logger.error("Login failed")
+                    self.logger.warning("Login failed, trying next method if available")
                     continue
 
         if not connected:
@@ -89,7 +89,7 @@ class Fabric():
                 napalm_optional_args): x for x in seed_hosts}
 
             while future_switch_data:
-                self.logger.debug("Connecting to switches, %d to go", len(future_switch_data))
+                self.logger.info("Connecting to switches, %d to go", len(future_switch_data))
                 done, _ = concurrent.futures.wait(future_switch_data,
                                                   return_when=concurrent.futures.FIRST_COMPLETED)
 
