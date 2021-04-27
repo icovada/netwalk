@@ -120,7 +120,7 @@ class Fabric():
                                                 assert "N77" not in nei['platform']
                                                 assert "axis" not in nei['hostname']
                                             except AssertionError:
-                                                logging.debug("Skipping %s, %s", nei['hostname'], nei['platform'])
+                                                self.logger.debug("Skipping %s, %s", nei['hostname'], nei['platform'])
                                                 continue
 
                                             self.logger.info("Queueing discover for %s", nei['hostname'])
