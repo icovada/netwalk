@@ -172,7 +172,9 @@ class Interface():
             elif self.mode== "trunk":
                 fullconfig = fullconfig + f" switchport trunk native vlan {self.native_vlan}\n"
                 if len(self.allowed_vlan) != 4094:
-                    vlan_str = ",".join(map(str, self.allowed_vlan))
+                    sorted_allowed_vlan = list(self.allowed_vlan)
+                    sorted_allowed_vlan.sort()
+                    vlan_str = ",".join(map(str, sorted_allowed_vlan))
                     fullconfig = fullconfig + f" switchport trunk allowed vlan {vlan_str}\n"
                 else:
                     fullconfig = fullconfig + " switchport trunk allowed vlan all\n"
