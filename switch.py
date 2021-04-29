@@ -54,6 +54,7 @@ class Switch():
         self.connect(username, password, napalm_optional_args)
 
         self._get_switch_data()
+        self.session.close()
 
     def connect(self, username: str, password: str, napalm_optional_args: dict = None) -> None:
         driver = napalm.get_network_driver('ios')
@@ -195,8 +196,6 @@ class Switch():
         # Get l3 interfaces
         self.interfaces_ip = self.session.get_interfaces_ip()
         self.arp_table = self.session.get_arp_table()
-
-        self.session.close()
 
     def _parse_int_last_inout(self):
         interface_types = r"([Pp]ort-channel|\w*Ethernet)."
