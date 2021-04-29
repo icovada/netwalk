@@ -135,6 +135,7 @@ class Switch():
         self._parse_config()
 
         # Get mac address table
+        self.mac_table = {} # Clear before adding new data
         mactable = self.session.get_mac_address_table()
 
         macdict = {EUI(x['mac']): x for x in mactable}
@@ -237,10 +238,10 @@ class Switch():
             re_table = textfsm.TextFSM(fsmfile)
             fsm_results = re_table.ParseText(neighdetail)
 
-        for nei in fsm_results:
-            if not hasattr(self.interfaces[nei[5]], "neighbors"):
-                self.interfaces[nei[5]].neighbors = []
+        for swname, swdata in self.interfaces.items():
+            swdata.neighbors = [] # Clear before adding new data
 
+        for nei in fsm_results:
             neigh_data = {'hostname': nei[1],
                           'ip': nei[2],
                           'platform': nei[3],
