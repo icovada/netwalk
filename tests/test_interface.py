@@ -155,5 +155,132 @@ class TrunkInterfaceTester(unittest.TestCase):
         assert interface.allowed_vlan == set(
             [1, 2, 3, 4, 5, 7, 8, 9, 10])
 
+class TestInterfaceOutString(unittest.TestCase):
+    def test_base(self):
+        intdata = {'name': 'E0'}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' switchport mode access\n'
+                     ' switchport access vlan 1\n'
+                     ' no shutdown\n'
+                     '!\n')
+        
+        assert str(interface) == outconfig
+
+    def test_mode_access(self):
+        intdata = {'name': 'E0',
+                   'mode': 'access'}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' switchport mode access\n'
+                     ' switchport access vlan 1\n'
+                     ' no shutdown\n'
+                     '!\n')
+        
+        assert str(interface) == outconfig
+
+    def test_mode_access_native_vlan(self):
+        intdata = {'name': 'E0',
+                   'mode': 'access',
+                   'native_vlan': 3}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' switchport mode access\n'
+                     ' switchport access vlan 3\n'
+                     ' no shutdown\n'
+                     '!\n')
+        
+        assert str(interface) == outconfig
+    def test_trunk(self):
+        intdata = {'name': 'E0',
+                   'mode': 'trunk'}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' switchport mode trunk\n'
+                     ' switchport trunk native vlan 1\n'
+                     ' switchport trunk allowed vlan all\n'
+                     ' no shutdown\n'
+                     '!\n')
+        
+        assert str(interface) == outconfig
+
+    def test_trunk_native(self):
+        intdata = {'name': 'E0',
+                   'mode': 'trunk',
+                   'native_vlan': 3}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' switchport mode trunk\n'
+                     ' switchport trunk native vlan 3\n'
+                     ' switchport trunk allowed vlan all\n'
+                     ' no shutdown\n'
+                     '!\n')
+        
+        assert str(interface) == outconfig
+
+    def test_trunk_allowed_vlan(self):
+        intdata = {'name': 'E0',
+                   'mode': 'trunk',
+                   'allowed_vlan': set([1,2,3])}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' switchport mode trunk\n'
+                     ' switchport trunk allowed vlan 1,2,3\n'
+                     ' switchport trunk allowed vlan all\n'
+                     ' no shutdown\n'
+                     '!\n')
+        
+        assert str(interface) == outconfig
+
+    def test_bpduguard(self):
+        intdata = {'name': 'E0',
+                   'bpduguard': True}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' switchport mode access\n'
+                     ' switchport access vlan 1\n'
+                     ' spanning-tree bpduguard enable\n'
+                     ' no shutdown\n'
+                     '!\n')
+        
+        assert str(interface) == outconfig
+
+    def test_type_edge_access(self):
+        intdata = {'name': 'E0',
+                   'type_edge': True}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' switchport mode access\n'
+                     ' switchport access vlan 1\n'
+                     ' spanning-tree portfast\n'
+                     ' no shutdown\n'
+                     '!\n')
+        
+        assert str(interface) == outconfig
+
+    def test_type_edge_trunk(self):
+        intdata = {'name': 'E0',
+                   'mode': 'trunk',
+                   'type_edge': True}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' switchport mode trunk\n'
+                     ' switchport trunk native vlan 1\n'
+                     ' switchport trunk allowed vlan all\n'
+                     ' spanning-tree portfast trunk\n'
+                     ' no shutdown\n'
+                     '!\n')
+        
+        assert str(interface) == outconfig
+
 if __name__ == '__main__':
     unittest.main()
