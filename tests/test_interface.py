@@ -198,6 +198,36 @@ class TestInterfaceOutString(unittest.TestCase):
 
         assert str(interface) == outconfig
 
+    def test_mode_access_voice_vlan(self):
+        intdata = {'name': 'E0',
+                   'mode': 'access',
+                   'voice_vlan': 150}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' switchport mode access\n'
+                     ' switchport access vlan 1\n'
+                     ' switchport voice vlan 150\n'
+                     ' no shutdown\n'
+                     '!\n')
+
+        assert str(interface) == outconfig
+
+    def test_mode_trunk_voice_vlan(self):
+        intdata = {'name': 'E0',
+                   'mode': 'trunk',
+                   'voice_vlan': 150}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' switchport mode trunk\n'
+                     ' switchport trunk native vlan 1\n'
+                     ' switchport trunk allowed vlan all\n'
+                     ' no shutdown\n'
+                     '!\n')
+
+        assert str(interface) == outconfig
+
     def test_trunk(self):
         intdata = {'name': 'E0',
                    'mode': 'trunk'}
