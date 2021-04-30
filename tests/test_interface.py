@@ -1,6 +1,17 @@
 import unittest
 import netwalk
 
+class InterfaceTester(unittest.TestCase):
+    def unparsed_lines(self):
+        config = """
+            interface E0
+              switchport mode access
+              antani mascetti perozzi"""
+
+        interface = netwalk.Interface(config=config)
+
+        assert interface.unparsed_lines == ["antani mascetti perozzi",]
+
 class AccessInterfaceTester(unittest.TestCase):
     
     def test_empty_config(self):
