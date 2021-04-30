@@ -1,8 +1,8 @@
 "Main file for library"
 
-from .interface import Interface
-from .switch import Switch
-from .fabric import Fabric
+from .netwalk.interface import Interface
+from .netwalk.switch import Switch
+from .netwalk.fabric import Fabric
 
 __all__ = ["Interface", "Switch", "Fabric"]
 
