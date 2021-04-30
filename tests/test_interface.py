@@ -235,8 +235,8 @@ class TestInterfaceOutString(unittest.TestCase):
 
         outconfig = ('interface E0\n'
                      ' switchport mode trunk\n'
+                     ' switchport trunk native vlan 1\n'
                      ' switchport trunk allowed vlan 1,2,3\n'
-                     ' switchport trunk allowed vlan all\n'
                      ' no shutdown\n'
                      '!\n')
 
