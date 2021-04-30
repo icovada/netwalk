@@ -1,10 +1,11 @@
 import unittest
 import netwalk
 
+
 class BaseInterfaceTester(unittest.TestCase):
     def test_empty_config(self):
         config = ("interface GigabitEthernet1/0/1\n")
-                  
+
         interface = netwalk.Interface(config=config)
 
         assert interface.name == "GigabitEthernet1/0/1"
@@ -31,20 +32,21 @@ class BaseInterfaceTester(unittest.TestCase):
         interface = netwalk.Interface(config=config)
 
         assert interface.unparsed_lines == [" antani mascetti perozzi", ]
-    
+
     def test_description(self):
         config = ("interface E0\n"
                   " description Antani\n")
 
         interface = netwalk.Interface(config=config)
         assert interface.description == "Antani"
-    
+
     def test_bpduguard(self):
         config = ("interface E0\n"
                   " spanning-tree bpduguard enable\n")
-        
+
         interface = netwalk.Interface(config=config)
         assert interface.bpduguard
+
 
 class AccessInterfaceTester(unittest.TestCase):
     def test_mode(self):
@@ -111,7 +113,7 @@ class AccessInterfaceTester(unittest.TestCase):
 class TrunkInterfaceTester(unittest.TestCase):
     def test_mode(self):
         config = ("interface E0\n"
-                 " switchport mode trunk\n")
+                  " switchport mode trunk\n")
 
         interface = netwalk.Interface(config=config)
         assert interface.name == "E0"
@@ -155,6 +157,7 @@ class TrunkInterfaceTester(unittest.TestCase):
         assert interface.allowed_vlan == set(
             [1, 2, 3, 4, 5, 7, 8, 9, 10])
 
+
 class TestInterfaceOutString(unittest.TestCase):
     def test_base(self):
         intdata = {'name': 'E0'}
@@ -165,7 +168,7 @@ class TestInterfaceOutString(unittest.TestCase):
                      ' switchport access vlan 1\n'
                      ' no shutdown\n'
                      '!\n')
-        
+
         assert str(interface) == outconfig
 
     def test_mode_access(self):
@@ -178,7 +181,7 @@ class TestInterfaceOutString(unittest.TestCase):
                      ' switchport access vlan 1\n'
                      ' no shutdown\n'
                      '!\n')
-        
+
         assert str(interface) == outconfig
 
     def test_mode_access_native_vlan(self):
@@ -192,8 +195,9 @@ class TestInterfaceOutString(unittest.TestCase):
                      ' switchport access vlan 3\n'
                      ' no shutdown\n'
                      '!\n')
-        
+
         assert str(interface) == outconfig
+
     def test_trunk(self):
         intdata = {'name': 'E0',
                    'mode': 'trunk'}
@@ -205,7 +209,7 @@ class TestInterfaceOutString(unittest.TestCase):
                      ' switchport trunk allowed vlan all\n'
                      ' no shutdown\n'
                      '!\n')
-        
+
         assert str(interface) == outconfig
 
     def test_trunk_native(self):
@@ -220,13 +224,13 @@ class TestInterfaceOutString(unittest.TestCase):
                      ' switchport trunk allowed vlan all\n'
                      ' no shutdown\n'
                      '!\n')
-        
+
         assert str(interface) == outconfig
 
     def test_trunk_allowed_vlan(self):
         intdata = {'name': 'E0',
                    'mode': 'trunk',
-                   'allowed_vlan': set([1,2,3])}
+                   'allowed_vlan': set([1, 2, 3])}
         interface = netwalk.Interface(**intdata)
 
         outconfig = ('interface E0\n'
@@ -235,7 +239,7 @@ class TestInterfaceOutString(unittest.TestCase):
                      ' switchport trunk allowed vlan all\n'
                      ' no shutdown\n'
                      '!\n')
-        
+
         assert str(interface) == outconfig
 
     def test_bpduguard(self):
@@ -249,7 +253,7 @@ class TestInterfaceOutString(unittest.TestCase):
                      ' spanning-tree bpduguard enable\n'
                      ' no shutdown\n'
                      '!\n')
-        
+
         assert str(interface) == outconfig
 
     def test_type_edge_access(self):
@@ -263,7 +267,7 @@ class TestInterfaceOutString(unittest.TestCase):
                      ' spanning-tree portfast\n'
                      ' no shutdown\n'
                      '!\n')
-        
+
         assert str(interface) == outconfig
 
     def test_type_edge_trunk(self):
@@ -279,8 +283,9 @@ class TestInterfaceOutString(unittest.TestCase):
                      ' spanning-tree portfast trunk\n'
                      ' no shutdown\n'
                      '!\n')
-        
+
         assert str(interface) == outconfig
+
 
 if __name__ == '__main__':
     unittest.main()
