@@ -21,7 +21,7 @@ class Interface():
         self.channel_group: Optional[int] = kwargs.get('channel_group', None)
         self.channel_protocol: Optional[str] = kwargs.get(
             'channel_protocol', None)
-        self.allowed_vlan: set = kwargs.get('allowed_vlan', set())
+        self.allowed_vlan: set = kwargs.get('allowed_vlan', None)
         self.native_vlan: int = kwargs.get('native_vlan', 1)
         self.voice_vlan: Optional[int] = kwargs.get('voice_vlan', None)
         self.switch = kwargs.get('switch', None)
@@ -50,7 +50,7 @@ class Interface():
             match = re.search(r"switchport mode (.*)$", cleanline)
             if match is not None:
                 self.mode = match.groups()[0].strip()
-                if self.mode == 'trunk' and len(self.allowed_vlan) == 0:
+                if self.mode == 'trunk' and self.allowed_vlan is None:
                     self.allowed_vlan = set([x for x in range(1, 4095)])
                 continue
 
@@ -183,7 +183,9 @@ class Interface():
 
             elif self.mode== "trunk":
                 fullconfig = fullconfig + f" switchport trunk native vlan {self.native_vlan}\n"
-                if len(self.allowed_vlan) != 4094:
+                if self.allowed_vlan is None:
+                    fullconfig = fullconfig + " switchport trunk allowed vlan all\n"
+                elif len(self.allowed_vlan) != 4094:
                     sorted_allowed_vlan = list(self.allowed_vlan)
                     sorted_allowed_vlan.sort()
                     vlan_str = ",".join(map(str, sorted_allowed_vlan))
