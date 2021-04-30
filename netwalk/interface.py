@@ -113,7 +113,11 @@ class Interface():
             match = re.search(
                 r"spanning-tree portfast", cleanline)
             if match is not None:
-                self.type_edge = True
+                if "trunk" in cleanline and self.mode == "trunk":
+                    self.type_edge = True
+                elif "trunk" not in cleanline and self.mode == "access":
+                    self.type_edge = True
+                
                 continue
 
             match = re.search(
