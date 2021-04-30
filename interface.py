@@ -46,6 +46,16 @@ class Interface():
 
         for line in self.config:
             cleanline = line.strip()
+            # Port mode. Some switches have it first, some last, so check it first thing
+            match = re.search(r"switchport mode (.*)$", cleanline)
+            if match is not None:
+                self.mode = match.groups()[0].strip()
+                if self.mode == 'trunk' and len(self.allowed_vlan) == 0:
+                    self.allowed_vlan = set([x for x in range(1, 4095)])
+                continue
+
+        for line in self.config:
+            cleanline = line.strip()
             # Find interface name
             match = re.search(r"^interface ([A-Za-z\-]*(\/*\d*)+)", cleanline)
             if match is not None:
@@ -65,13 +75,6 @@ class Interface():
                 self.channel_protocol = match.groups()[1]
                 continue
 
-            # Port mode
-            match = re.search(r"switchport mode (.*)$", cleanline)
-            if match is not None:
-                self.mode = match.groups()[0].strip()
-                if self.mode == 'trunk' and len(self.allowed_vlan) == 0:
-                    self.allowed_vlan = set([x for x in range(1, 4095)])
-                continue
 
             # Native vlan
             match = re.search(r"switchport access vlan (.*)$", cleanline)
