@@ -62,6 +62,11 @@ class Interface():
                 self.name = match.groups()[0]
                 continue
 
+            # Port mode. Already parsed, skip and do not add to unparsed lines
+            match = re.search(r"switchport mode (.*)$", cleanline)
+            if match is not None:
+                continue
+
             # Find description
             match = re.search(r"description (.*)$", cleanline)
             if match is not None:
