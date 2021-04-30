@@ -1,6 +1,7 @@
 import unittest
 import netwalk
 
+
 class InterfaceTester(unittest.TestCase):
     def unparsed_lines(self):
         config = """
@@ -10,10 +11,11 @@ class InterfaceTester(unittest.TestCase):
 
         interface = netwalk.Interface(config=config)
 
-        assert interface.unparsed_lines == ["antani mascetti perozzi",]
+        assert interface.unparsed_lines == ["antani mascetti perozzi", ]
+
 
 class AccessInterfaceTester(unittest.TestCase):
-    
+
     def test_empty_config(self):
         config = """
             interface GigabitEthernet1/0/1
@@ -21,7 +23,7 @@ class AccessInterfaceTester(unittest.TestCase):
         interface = netwalk.Interface(config=config)
 
         assert interface.name == "GigabitEthernet1/0/1"
-    
+
     def test_mode(self):
         config = """
             interface E0
@@ -64,7 +66,7 @@ class AccessInterfaceTester(unittest.TestCase):
         assert interface.name == "E0"
         assert interface.mode == "access"
         assert interface.type_edge
-    
+
     def test_interface_portfast_trunk(self):
         config = """
             interface E0
@@ -76,19 +78,19 @@ class AccessInterfaceTester(unittest.TestCase):
         assert interface.mode == "access"
         assert not interface.type_edge
 
+
 class TrunkInterfaceTester(unittest.TestCase):
 
     def test_mode(self):
         config = """
             interface E0
               switchport mode trunk"""
-        
+
         interface = netwalk.Interface(config=config)
         assert interface.name == "E0"
         assert interface.mode == "trunk"
         assert interface.native_vlan == 1
-        assert interface.allowed_vlan == set([x for x in range(1,4095)])
-
+        assert interface.allowed_vlan == {x for x in range(1, 4095)}
 
     def test_interface_w_native_vlan(self):
         config = """
@@ -100,8 +102,8 @@ class TrunkInterfaceTester(unittest.TestCase):
         assert interface.name == "E0"
         assert interface.mode == "trunk"
         assert interface.native_vlan == 3
-        assert interface.allowed_vlan == set([x for x in range(1,4095)])
-    
+        assert interface.allowed_vlan == {x for x in range(1, 4095)}
+
     def test_interface_w_allowed_vlan(self):
         config = """
             interface E0
@@ -112,7 +114,8 @@ class TrunkInterfaceTester(unittest.TestCase):
         assert interface.name == "E0"
         assert interface.mode == "trunk"
         assert interface.native_vlan == 1
-        assert interface.allowed_vlan == set([1,2,3,5,10,11,12,67,90,91,92,93,94,95])
+        assert interface.allowed_vlan == set(
+            [1, 2, 3, 5, 10, 11, 12, 67, 90, 91, 92, 93, 94, 95])
 
 
 if __name__ == '__main__':
