@@ -10,6 +10,7 @@ class BaseInterfaceTester(unittest.TestCase):
         assert interface.name == "GigabitEthernet1/0/1"
         assert interface.mode == "access"
         assert interface.native_vlan == 1
+        assert interface.voice_vlan is None
         assert interface.description is None
         assert not interface.bpduguard
         assert not interface.type_edge
@@ -46,8 +47,6 @@ class BaseInterfaceTester(unittest.TestCase):
         assert interface.bpduguard
 
 class AccessInterfaceTester(unittest.TestCase):
-
-
     def test_mode(self):
         config = ("interface E0\n"
                   " switchport mode access\n")
@@ -97,9 +96,19 @@ class AccessInterfaceTester(unittest.TestCase):
         assert interface.mode == "access"
         assert not interface.type_edge
 
+    def test_voice_vlan(self):
+        config = ("interface E0\n"
+                  " switchport mode access\n"
+                  " switchport voice vlan 150\n")
+
+        interface = netwalk.Interface(config=config)
+        assert interface.name == "E0"
+        assert interface.mode == "access"
+        assert interface.native_vlan == 1
+        assert interface.voice_vlan == 150
+
 
 class TrunkInterfaceTester(unittest.TestCase):
-
     def test_mode(self):
         config = ("interface E0\n"
                  " switchport mode trunk\n")
