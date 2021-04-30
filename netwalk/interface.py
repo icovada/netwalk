@@ -80,11 +80,16 @@ class Interface():
                 self.channel_protocol = match.groups()[1]
                 continue
 
-
             # Native vlan
             match = re.search(r"switchport access vlan (.*)$", cleanline)
             if match is not None and self.mode == 'access':
                 self.native_vlan = int(match.groups()[0])
+                continue
+
+            # NVoiceative vlan
+            match = re.search(r"switchport voice vlan (.*)$", cleanline)
+            if match is not None and self.mode == 'access':
+                self.voice_vlan = int(match.groups()[0])
                 continue
 
             # Trunk native vlan
