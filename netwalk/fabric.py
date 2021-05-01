@@ -201,7 +201,7 @@ class Fabric():
         """
         def _inside_recursive(start_int, end_sw, path = []):
             switch = start_int.neighbors[0].switch
-            path = path + [start_int, start_int.neighbors[0]]
+            path = path + [start_int.neighbors[0]]
             if switch in end_sw:
                 return [path]
             paths = []
@@ -226,7 +226,7 @@ class Fabric():
                 if len(intdata.neighbors) == 1:
                     if type(intdata.neighbors[0]) == Interface:
                         assert len(end_sw) > 0
-                        thispath = _inside_recursive(intdata, end_sw)
+                        thispath = _inside_recursive(intdata, end_sw, path=[intdata])
                         for path in thispath:
                             all_possible_paths.append(path)
         
