@@ -1,7 +1,10 @@
 # Netwalk
 
 Netwalk is a Python library born out of a large remadiation project aimed at making network device discovery and management as fast and painless as possible.
-It is completely object-based and is made out of three parts
+
+## Installation
+Can be installed via pip with `pip instal git+ssh://git@scm.dimensiondata.com/italy/netwalk.git`
+
 
 ## Fabric
 
