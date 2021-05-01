@@ -191,3 +191,43 @@ class Fabric():
                         self.mac_table[mac] = macdata
                 except KeyError:
                     self.mac_table[mac] = macdata
+
+    def find_paths(self, start_sw, end_sw):
+        """
+        Return a list of all interfaces from 'start' Switch to 'end' Switch
+
+        start_sw: Switch
+        end_sw: list[Switch]
+        """
+        def _inside_recursive(start_int, end_sw, path = []):
+            switch = start_int.neighbors[0].switch
+            path = path + [start_int.neighbors[0]]
+            if switch in end_sw:
+                return [path]
+            paths = []
+            for _, intdata in switch.interfaces.items():
+                if hasattr(intdata, 'neighbors'):
+                    if len(intdata.neighbors) == 1:
+                        if type(intdata.neighbors[0]) == Interface:
+                            neigh_int = intdata.neighbors[0]
+                            if type(neigh_int) == Interface:
+                                if intdata not in path:
+                                    this_path = path + [intdata]
+                                    newpaths = _inside_recursive(intdata, end_sw, this_path)
+                                    for newpath in newpaths:
+                                        paths.append(newpath)
+
+            return paths
+
+
+        all_possible_paths = []
+        for intname, intdata in start_sw.interfaces.items():
+            if hasattr(intdata, 'neighbors'):
+                if len(intdata.neighbors) == 1:
+                    if type(intdata.neighbors[0]) == Interface:
+                        assert len(end_sw) > 0
+                        thispath = _inside_recursive(intdata, end_sw, path=[intdata])
+                        for path in thispath:
+                            all_possible_paths.append(path)
+        
+        return all_possible_paths

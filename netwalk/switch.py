@@ -40,6 +40,7 @@ class Switch():
         self.interfaces_ip = {}
         self.vlans = None
         self.vlans_set = set()
+        self.facts = kwargs.get('facts', None)
 
         if self.config is not None:
             self._parse_config()
