@@ -39,7 +39,7 @@ class Switch():
         self.arp_table = {}
         self.interfaces_ip = {}
         self.vlans = None
-        self.vlans_set = set()
+        self.vlans_set = {x for x in range(1,4095)} # VLANs configured on the switch
         self.facts = kwargs.get('facts', None)
 
         if self.config is not None:
@@ -79,8 +79,7 @@ class Switch():
             try:
                 if len(intdata.allowed_vlan) != 4094:
                     vlans = vlans.union(intdata.allowed_vlan)
-
-            except AttributeError:
+            except (AttributeError, TypeError):
                 continue
 
         # Find trunk interfaces with no neighbors
