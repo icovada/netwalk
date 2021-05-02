@@ -372,12 +372,6 @@ class TestFabricBase(unittest.TestCase):
                        pcmac: {'interface': d.interfaces['GigabitEthernet0/1']},
                        cmac: {'interface': d.interfaces['GigabitEthernet0/1']}}
 
-        for sw in [a,b,c,d]:
-            for _, data in sw.mac_table.items():
-                try:
-                    data['interface'].mac_count += 1
-                except KeyError:
-                    pass
         f.refresh_global_information()
 
         assert f.mac_table[pcmac] == {'interface' : c.interfaces['GigabitEthernet0/2']}
