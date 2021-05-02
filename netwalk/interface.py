@@ -35,6 +35,8 @@ class Interface():
         self.bpduguard = kwargs.get('bpduguard', False)
         self.routed_port = kwargs.get('routed_port', False)
         self.neighbors = kwargs.get('neighbors', [])
+        self.last_in = kwargs.get('last_in', None)
+        self.last_out = kwargs.get('last_out', None)
 
         if self.config is not None:
             self.parse_config()
