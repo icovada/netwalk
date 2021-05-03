@@ -54,7 +54,6 @@ def create_devices_and_interfaces(fabric):
                 int_type = "lag"
 
             try:
-
                 thisint = swdata.interfaces[interface]
                 if thisint.description is not None:
                     intproperties['description'] = thisint.description
@@ -69,12 +68,13 @@ def create_devices_and_interfaces(fabric):
                     intproperties['mode'] = "access"
 
                 intproperties['untagged_vlan'] = vlans_dict[thisint.native_vlan]['id']
+                intproperties['enabled'] = thisint.is_enabled
             except:
                 pass
 
 
             nb_interface = nb.dcim.interfaces.get(device_id=nb_device.id,
-                                                  name=interface, **intproperties)
+                                                  name=interface)
 
             if nb_interface is None:
                 nb_interface = nb.dcim.interfaces.create(device=nb_device.id,
