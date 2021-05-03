@@ -15,6 +15,9 @@ nb = pynetbox.api(
 
 def create_devices_and_interfaces(fabric):
     # Create devices and interfaces
+    site_vlans = nb.ipam.vlans.filter(site_id=nb_site.id)
+
+    vlans_dict = {x['vid']: x for x in site_vlans.response}
     for swname, swdata in fabric.switches.items():
         logging.info("Switch %s", swname)
         nb_device_type = nb.dcim.device_types.get(model=swdata.facts['model'])
@@ -37,6 +40,7 @@ def create_devices_and_interfaces(fabric):
                                                serial_number=swdata.facts['serial_number'])
 
         for interface in swdata.facts['interface_list']:
+            intproperties = {}
             logger.info("Interface %s on switch %s", interface, swname)
             if "Fast" in interface:
                 int_type = "100base-tx"
@@ -49,13 +53,36 @@ def create_devices_and_interfaces(fabric):
             elif "channel" in interface:
                 int_type = "lag"
 
+            try:
+
+                thisint = swdata.interfaces[interface]
+                if thisint.description is not None:
+                    intproperties['description'] = thisint.description
+
+                if thisint.mode == "trunk":
+                    if len(thisint.allowed_vlan) == 4094:
+                        intproperties['mode'] = "tagged-all"
+                    else:
+                        intproperties['mode'] = "tagged"
+                        intproperties['tagged_vlans'] = [vlans_dict[x]['id'] for x in thisint.allowed_vlan]
+                else:
+                    intproperties['mode'] = "access"
+
+                intproperties['untagged_vlan'] = vlans_dict[thisint.native_vlan]['id']
+            except:
+                pass
+
+
             nb_interface = nb.dcim.interfaces.get(device_id=nb_device.id,
-                                                  name=interface)
+                                                  name=interface, **intproperties)
 
             if nb_interface is None:
                 nb_interface = nb.dcim.interfaces.create(device=nb_device.id,
                                                          name=interface,
-                                                         type=int_type)
+                                                         type=int_type,
+                                                         **intproperties)
+            else:
+                nb_interface.update(intproperties)
 
 def add_ip_addresses(fabric):
     for swname, swdata in fabric.switches.items():
@@ -97,9 +124,9 @@ def add_l2_vlans(fabric):
 
 
 def main():
+    add_l2_vlans(fabric)
     create_devices_and_interfaces(fabric)
     add_ip_addresses(fabric)
-    add_l2_vlans(fabric)
 
 
 if __name__ == '__main__':
@@ -107,5 +134,5 @@ if __name__ == '__main__':
         fabric = pickle.load(fabricfile)
 
     nb_role = nb.dcim.device_roles.get(name="Access Switch")
-    nb_site = nb.dcim.sites.get(name="San Martino Buon Albergo")
+    nb_site = nb.dcim.sites.get(name="Magreta")
     main()
