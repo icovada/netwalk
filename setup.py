@@ -23,5 +23,6 @@ setuptools.setup(
     install_requires=[
         "ciscoconfparse==1.5.30",
         "napalm==3.2.0"
-    ]
+    ],
+    include_package_data=True
 )
