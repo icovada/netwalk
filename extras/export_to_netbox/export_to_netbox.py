@@ -81,6 +81,10 @@ def add_ip_addresses(fabric):
                         nb_address = nb.ipam.ip_addresses.create(address=str(ip),
                                                                  site=nb_site.id)
 
+                    nb_address.update({'assigned_object_type': 'dcim.interface',
+                                       'assigned_object_id': nb_interface.id})
+
+
 def add_l2_vlans(fabric):
     for swname, swdata in fabric.switches.items():
         for vlanid, vlandata in swdata.vlans.items():
@@ -90,11 +94,11 @@ def add_l2_vlans(fabric):
                 nb_vlan = nb.ipam.vlans.create(vid=vlanid,
                                                name=vlandata['name'],
                                                site=nb_site.id)
-    pass
+
 
 def main():
-    #create_devices_and_interfaces(fabric)
-    #add_ip_addresses(fabric)
+    create_devices_and_interfaces(fabric)
+    add_ip_addresses(fabric)
     add_l2_vlans(fabric)
 
 
