@@ -5,6 +5,9 @@ Netwalk is a Python library born out of a large remadiation project aimed at mak
 ## Installation
 Can be installed via pip with `pip install git+ssh://git@scm.dimensiondata.com/italy/netwalk.git`
 
+## Extras
+A collection of scripts with extra features and examples is stored in the `extras` folder
+
 
 ## Fabric
 
