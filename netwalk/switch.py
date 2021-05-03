@@ -125,6 +125,8 @@ class Switch():
     def _get_switch_data(self):
         self.facts = self.session.get_facts()
 
+        self.init_time = dt.datetime.now()
+
         self.session.device.write_channel("show run")
         self.session.device.write_channel("\n")
         self.session.device.timeout = 30  # Could take ages...
@@ -179,6 +181,13 @@ class Switch():
             except KeyError:
                 continue
 
+        int_counters = self.session.get_interfaces_counters()
+        for intname, intstatus in int_counters.items():
+            try:
+                self.interfaces[intname].counters = intstatus
+            except KeyError:
+                continue
+
         # Add last in/out status
         self._parse_int_last_inout()
 
@@ -199,6 +208,7 @@ class Switch():
         self.arp_table = self.session.get_arp_table()
 
     def _parse_int_last_inout(self):
+        "Get last in and last out as well as last coutner clearing"
         interface_types = r"([Pp]ort-channel|\w*Ethernet)."
         commandout = self.session.cli(['show interfaces'])['show interfaces']
 
@@ -223,7 +233,16 @@ class Switch():
                     self.interfaces[name].last_in = last_in
                     self.interfaces[name].last_out = last_out
                 except KeyError:
-                    print(name)
+                    pass
+
+            for line in eth.re_search_children("Last clearing of"):
+                try:
+                    last_clearing = line.re_match(r"counters (.*)")
+
+                    last_clearing = self._cisco_time_to_dt(last_clearing)
+                    self.interfaces[name].last_clearing = last_clearing
+                except KeyError:
+                    pass
 
     def _parse_cdp_neighbors(self):
         # Return parsed cdp neighbours

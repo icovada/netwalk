@@ -37,6 +37,8 @@ class Interface():
         self.neighbors = kwargs.get('neighbors', [])
         self.last_in = kwargs.get('last_in', None)
         self.last_out = kwargs.get('last_out', None)
+        self.last_clearing = kwargs.get('last_clearing', None)
+        self.counters = kwargs.get('counters', None)
 
         if self.config is not None:
             self.parse_config()
