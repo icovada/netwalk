@@ -44,7 +44,8 @@ def create_devices_and_interfaces(fabric):
             logger.info("Interface %s on switch %s", interface, swname)
             if "Fast" in interface:
                 int_type = "100base-tx"
-            elif "Ten" in interface:
+            elif "Te" in interface:
+                interface = interface.replace("Te", "TenGigabitEthernet")
                 int_type = "10gbase-x-sfpp"
             elif "Gigabit" in interface:
                 int_type = "1000base-t"
@@ -122,11 +123,41 @@ def add_l2_vlans(fabric):
                                                name=vlandata['name'],
                                                site=nb_site.id)
 
+def add_cables(fabric):
+    for swname, swdata in fabric.switches.items():
+        swdata.nb_device = nb.dcim.devices.get(name=swdata.facts['hostname'])
+        assert swdata.nb_device is not None
+
+    for swname, swdata in fabric.switches.items():
+        sw_cables = [x for x in nb.dcim.cables.filter(device_id=swdata.nb_device.id)]
+        for intname, intdata in swdata.interfaces.items():
+            try:
+                if isinstance(intdata.neighbors[0], netwalk.Interface):
+                    nb_term_a = nb.dcim.interfaces.get(device_id=swdata.nb_device.id, name=intname)
+                    nb_term_b = nb.dcim.interfaces.get(device_id=intdata.neighbors[0].switch.nb_device.id, name=intdata.neighbors[0].name)
+
+                    try:
+                        for cable in sw_cables:
+                            assert nb_term_a != cable.termination_a
+                            assert nb_term_a != cable.termination_b
+                            assert nb_term_b != cable.termination_a
+                            assert nb_term_b != cable.termination_b
+                    except AssertionError:
+                        continue
+
+                    nb_cable = nb.dcim.cables.create(termination_a_type='dcim.interface',
+                                                     termination_b_type='dcim.interface',
+                                                     termination_a_id=nb_term_a.id,
+                                                     termination_b_id=nb_term_b.id)
+            except IndexError:
+                continue
+
 
 def main():
     add_l2_vlans(fabric)
     create_devices_and_interfaces(fabric)
     add_ip_addresses(fabric)
+    add_cables(fabric)
 
 
 if __name__ == '__main__':
