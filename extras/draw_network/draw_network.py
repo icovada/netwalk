@@ -1,7 +1,7 @@
 import pickle
 import networkx as nx
 from pyvis.network import Network
-from netwalk.netwalk import Interface
+from netwalk import Interface
 
 #matplotlib.use("Agg")
 
