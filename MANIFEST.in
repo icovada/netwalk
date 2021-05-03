@@ -1,0 +1,1 @@
+recursive-include netwalk/textfsm_templates *.textfsm
