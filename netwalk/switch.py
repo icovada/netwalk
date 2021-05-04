@@ -258,7 +258,7 @@ class Switch():
             fsm_results = re_table.ParseText(neighdetail)
 
         for result in fsm_results:
-            logging.debug("Found CDP neighbor %s IP %s local int %s, remote int %s" result[1], result[2], result[5], result[4])
+            logging.debug("Found CDP neighbor %s IP %s local int %s, remote int %s", result[1], result[2], result[5], result[4])
 
         for intname, intdata in self.interfaces.items():
             intdata.neighbors = [] # Clear before adding new data
