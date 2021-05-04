@@ -257,8 +257,8 @@ class Switch():
             re_table = textfsm.TextFSM(fsmfile)
             fsm_results = re_table.ParseText(neighdetail)
 
-        for swname, swdata in self.interfaces.items():
-            swdata.neighbors = [] # Clear before adding new data
+        for intname, intdata in self.interfaces.items():
+            intdata.neighbors = [] # Clear before adding new data
 
         for nei in fsm_results:
             neigh_data = {'hostname': nei[1],
