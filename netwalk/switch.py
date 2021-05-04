@@ -27,7 +27,7 @@ class Switch():
                  hostname: str,
                  **kwargs):
 
-        self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(__name__ + hostname)
         self.hostname = hostname
         self.interfaces = {}
         self.config = kwargs.get('config', None)
