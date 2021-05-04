@@ -8,9 +8,14 @@ import ipaddress
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.DEBUG)
 
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+
+logger.addHandler(ch)
+
 nb = pynetbox.api(
     'http://localhost',
-    token='d25885197f8a04fabf92aea757fb9f7a896f0b6c'
+    token='95db86f3b2fe48482bdeee0686051e4451f36665'
 )
 
 def create_devices_and_interfaces(fabric):
@@ -119,9 +124,12 @@ def add_l2_vlans(fabric):
             nb_vlan = nb.ipam.vlans.get(vid=vlanid,
                                         site_id=nb_site.id)
             if nb_vlan is None:
+                logger.info("Adding vlan %s", vlanid)
                 nb_vlan = nb.ipam.vlans.create(vid=vlanid,
                                                name=vlandata['name'],
                                                site=nb_site.id)
+
+        break
 
 def add_cables(fabric):
     for swname, swdata in fabric.switches.items():
@@ -145,6 +153,7 @@ def add_cables(fabric):
                     except AssertionError:
                         continue
 
+                    logger.info("Adding cable %s %s - %s %s", intdata.switch.facts['hostname'], intdata.name, intdata.neighbors[0].name, intdata.neighbors[0].switch.facts['hostname'])
                     nb_cable = nb.dcim.cables.create(termination_a_type='dcim.interface',
                                                      termination_b_type='dcim.interface',
                                                      termination_a_id=nb_term_a.id,
@@ -165,5 +174,5 @@ if __name__ == '__main__':
         fabric = pickle.load(fabricfile)
 
     nb_role = nb.dcim.device_roles.get(name="Access Switch")
-    nb_site = nb.dcim.sites.get(name="Magreta")
+    nb_site = nb.dcim.sites.get(name="Correggio")
     main()
