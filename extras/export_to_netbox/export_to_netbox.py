@@ -24,10 +24,10 @@ def create_devices_and_interfaces(fabric):
 
     vlans_dict = {x['vid']: x for x in site_vlans.response}
     for swname, swdata in fabric.switches.items():
-        logging.info("Switch %s", swname)
+        logger.info("Switch %s", swname)
         nb_device_type = nb.dcim.device_types.get(model=swdata.facts['model'])
         if nb_device_type is None:
-            nb_manufacturer = nb.dcim.manufacturers.get(name=swdata.facts['vendor'])
+            nb_manufacturer = nb.dcim.manufacturers.get(slug=slugify(swdata.facts['vendor']))
             if nb_manufacturer is None:
                 nb_manufacturer = nb.dcim.manufacturers.create(name=swdata.facts['vendor'],
                                                            slug=slugify(swdata.facts['vendor']))
@@ -95,24 +95,41 @@ def create_devices_and_interfaces(fabric):
             try:
                 neighbor = swdata.interfaces[interface].neighbors[0]
                 assert isinstance(neighbor, dict)
-                assert "AIR" in neighbor['platform']
+                #assert "AIR" in neighbor['platform']
 
                 vendor, model = neighbor['platform'].split()
+                nb_manufacturer = nb.dcim.manufacturers.get(slug=slugify(vendor))
+
+                if nb_manufacturer is None:
+                    nb_manufacturer = nb.dcim.manufacturers.create(name=vendor, slug=slugify(vendor))
+
                 nb_device_ap = nb.dcim.devices.get(name=neighbor['hostname'])
 
                 if nb_device_ap is None:
-                    nb_device_type = nb.dcim.device_types.get(model=model)
-                    try:
-                        assert nb_device_type is not None
-                    except AssertionError:
-                        raise NameError("Please create device type " +model+ " with interface "+ neighbor['remote_int'])
+                    nb_device_type = nb.dcim.device_types.get(slug=slugify(model))
+                    if nb_device_type is None:
+                        nb_device_type = nb.dcim.device_types.create(model=model,
+                                                                     manufacturer=nb_manufacturer.id,
+                                                                     slug=slugify(model))
 
-                    logger.info("Creating AP %s", neighbor['hostname'])
+                        logger.warning("Created device type " +vendor + " " +model)
+
+                    logger.info("Creating neighbor %s", neighbor['hostname'])
                     nb_device_ap = nb.dcim.devices.create(name=neighbor['hostname'],
-                                                          device_role=nb_ap_role.id,
+                                                          device_role=nb_neigh_role.id,
                                                           device_type=nb_device_type.id,
                                                           site=nb_site.id,
-                                                          serial_number=swdata.facts['serial_number'])
+                                                          )
+
+                    logger.info("Creating interface %s on neighbor %s", neighbor['remote_int'], neighbor['hostname'])
+                    nb_inerface = nb.dcim.interfaces.create(device=nb_device_ap.id,
+                                                            name=neighbor['remote_int'],
+                                                            type="1000base-t")
+
+
+                neighbor['nb_device'] = nb_device_ap
+                print(neighbor)
+
 
             except (AssertionError, KeyError, IndexError):
                 pass
@@ -143,6 +160,57 @@ def add_ip_addresses(fabric):
 
                     nb_address.update({'assigned_object_type': 'dcim.interface',
                                        'assigned_object_id': nb_interface.id})
+
+
+def add_neighbor_ip_addresses(fabric):
+    for swname, swdata in fabric.switches.items():
+        for intname, intdata in swdata.interfaces.items():
+            try:
+                neighbor = swdata.interfaces[intname].neighbors[0]
+                assert isinstance(neighbor, dict)
+            except (AssertionError, KeyError, IndexError):
+                continue
+
+            nb_neigh_device = neighbor['nb_device']
+            nb_neigh_interface = nb.dcim.interfaces.get(name=neighbor['remote_int'],
+                                                        device_id=nb_neigh_device.id)
+
+            try:            
+                assert nb_neigh_interface is not None
+            except AssertionError:
+                raise AssertionError("Did you add interface "+neighbor['remote_int']+ " to device type "+neighbor['platform']+"?")
+
+            # Search IP
+            logger.debug("Searching IP %s", neighbor['ip'])
+            nb_neigh_ip = nb.ipam.ip_addresses.get(address=neighbor['ip'])
+            if nb_neigh_ip is None:
+                # No ip found, figure out smallest prefix configured that contains the IP
+                logger.debug("IP %s not found, looking for pefixes", neighbor['ip'])
+                nb_prefixes = nb.ipam.prefixes.filter(q=neighbor['ip'])
+                assert len(nb_prefixes) > 0
+
+                # Search smallest prefix
+                prefixlen = 0
+                smallestprefix = None
+                for prefix in nb_prefixes:
+                    logging.debug("Checking prefix %s, longest prefix found so far: %s", prefix['prefix'], smallestprefix)
+                    thispref = ipaddress.ip_network(prefix['prefix'])
+                    if thispref.prefixlen > prefixlen:
+                        prefixlen = thispref.prefixlen
+                        logging.debug("Found longest prefix found %s", thispref)
+                        smallestprefix = thispref
+
+                assert smallestprefix is not None
+
+                # Now we have the smallest prefix length we can create the ip address
+
+                finalip = f"{neighbor['ip']}/{smallestprefix.prefixlen}"
+                logging.debug("Creating IP %s", finalip)
+                nb_neigh_ip = nb.ipam.ip_addresses.create(address=finalip)
+
+            logging.debug("Associating IP %s to interface %s", nb_neigh_ip.address, nb_neigh_interface.name)
+            nb_neigh_ip.update({'assigned_object_type': 'dcim.interface',
+                                'assigned_object_id': nb_neigh_interface.id})
 
 
 def add_l2_vlans(fabric):
@@ -193,6 +261,7 @@ def main():
     add_l2_vlans(fabric)
     create_devices_and_interfaces(fabric)
     add_ip_addresses(fabric)
+    add_neighbor_ip_addresses(fabric)
     add_cables(fabric)
 
 
@@ -202,6 +271,6 @@ if __name__ == '__main__':
 
     nb_access_role = nb.dcim.device_roles.get(name="Access Switch")
     nb_core_role = nb.dcim.device_roles.get(name="Core Switch")
-    nb_ap_role = nb.dcim.device_roles.get(name="Wireless")
+    nb_neigh_role = nb.dcim.device_roles.get(name="Wireless")
     nb_site = nb.dcim.sites.get(name="San Martino In Bosco")
     main()
