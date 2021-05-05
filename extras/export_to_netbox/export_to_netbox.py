@@ -185,7 +185,7 @@ def add_neighbor_ip_addresses(fabric):
             nb_neigh_ip = nb.ipam.ip_addresses.get(address=neighbor['ip'])
             if nb_neigh_ip is None:
                 # No ip found, figure out smallest prefix configured that contains the IP
-                logger.debug("IP %s not found, looking for pefixes", neighbor['ip'])
+                logger.debug("IP %s not found, looking for prefixes", neighbor['ip'])
                 nb_prefixes = nb.ipam.prefixes.filter(q=neighbor['ip'])
                 assert len(nb_prefixes) > 0
 
@@ -193,11 +193,11 @@ def add_neighbor_ip_addresses(fabric):
                 prefixlen = 0
                 smallestprefix = None
                 for prefix in nb_prefixes:
-                    logging.debug("Checking prefix %s, longest prefix found so far: %s", prefix['prefix'], smallestprefix)
+                    logger.debug("Checking prefix %s, longest prefix found so far: %s", prefix['prefix'], smallestprefix)
                     thispref = ipaddress.ip_network(prefix['prefix'])
                     if thispref.prefixlen > prefixlen:
                         prefixlen = thispref.prefixlen
-                        logging.debug("Found longest prefix found %s", thispref)
+                        logger.debug("Found longest prefix found %s", thispref)
                         smallestprefix = thispref
 
                 assert smallestprefix is not None
@@ -205,10 +205,10 @@ def add_neighbor_ip_addresses(fabric):
                 # Now we have the smallest prefix length we can create the ip address
 
                 finalip = f"{neighbor['ip']}/{smallestprefix.prefixlen}"
-                logging.debug("Creating IP %s", finalip)
+                logger.debug("Creating IP %s", finalip)
                 nb_neigh_ip = nb.ipam.ip_addresses.create(address=finalip)
 
-            logging.debug("Associating IP %s to interface %s", nb_neigh_ip.address, nb_neigh_interface.name)
+            logger.debug("Associating IP %s to interface %s", nb_neigh_ip.address, nb_neigh_interface.name)
             nb_neigh_ip.update({'assigned_object_type': 'dcim.interface',
                                 'assigned_object_id': nb_neigh_interface.id})
 
@@ -252,7 +252,7 @@ def add_cables(fabric):
                 except AssertionError:
                     continue
 
-                logger.info("Adding cable %s %s - %s %s", intdata.switch.facts['hostname'], intdata.name, intdata.neighbors[0]['remote_int'], intdata.neighbors[0]['hostname'])
+                logger.info("Adding cable")
                 nb_cable = nb.dcim.cables.create(termination_a_type='dcim.interface',
                                                  termination_b_type='dcim.interface',
                                                  termination_a_id=nb_term_a.id,
@@ -278,5 +278,5 @@ if __name__ == '__main__':
     nb_access_role = nb.dcim.device_roles.get(name="Access Switch")
     nb_core_role = nb.dcim.device_roles.get(name="Core Switch")
     nb_neigh_role = nb.dcim.device_roles.get(name="Wireless")
-    nb_site = nb.dcim.sites.get(name="San Martino In Bosco")
+    nb_site = nb.dcim.sites.get(name="Vazzola")
     main()
