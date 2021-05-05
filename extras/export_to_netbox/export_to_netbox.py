@@ -38,8 +38,9 @@ def create_devices_and_interfaces(fabric):
 
         nb_device = nb.dcim.devices.get(name=swdata.facts['hostname'])
         if nb_device is None:
+            role = nb_core_role if swdata in fabric.cores else nb_access_role
             nb_device = nb.dcim.devices.create(name=swdata.facts['hostname'],
-                                               device_role=nb_role.id,
+                                               device_role=role.id,
                                                device_type=nb_device_type.id,
                                                site=nb_site.id,
                                                serial_number=swdata.facts['serial_number'])
@@ -89,6 +90,32 @@ def create_devices_and_interfaces(fabric):
                                                          **intproperties)
             else:
                 nb_interface.update(intproperties)
+
+            # Create undiscovered CDP neighbors
+            try:
+                neighbor = swdata.interfaces[interface].neighbors[0]
+                assert isinstance(neighbor, dict)
+                assert "AIR" in neighbor['platform']
+
+                vendor, model = neighbor['platform'].split()
+                nb_device_ap = nb.dcim.devices.get(name=neighbor['hostname'])
+
+                if nb_device_ap is None:
+                    nb_device_type = nb.dcim.device_types.get(model=model)
+                    try:
+                        assert nb_device_type is not None
+                    except AssertionError:
+                        raise NameError("Please create device type " +model+ " with interface "+ neighbor['remote_int'])
+
+                    logger.info("Creating AP %s", neighbor['hostname'])
+                    nb_device_ap = nb.dcim.devices.create(name=neighbor['hostname'],
+                                                          device_role=nb_ap_role.id,
+                                                          device_type=nb_device_type.id,
+                                                          site=nb_site.id,
+                                                          serial_number=swdata.facts['serial_number'])
+
+            except (AssertionError, KeyError, IndexError):
+                pass
 
 def add_ip_addresses(fabric):
     for swname, swdata in fabric.switches.items():
@@ -173,6 +200,8 @@ if __name__ == '__main__':
     with open('fabric_data.bin', 'rb') as fabricfile:
         fabric = pickle.load(fabricfile)
 
-    nb_role = nb.dcim.device_roles.get(name="Access Switch")
-    nb_site = nb.dcim.sites.get(name="Correggio")
+    nb_access_role = nb.dcim.device_roles.get(name="Access Switch")
+    nb_core_role = nb.dcim.device_roles.get(name="Core Switch")
+    nb_ap_role = nb.dcim.device_roles.get(name="Wireless")
+    nb_site = nb.dcim.sites.get(name="San Martino In Bosco")
     main()
