@@ -239,22 +239,28 @@ def add_cables(fabric):
                     nb_term_a = nb.dcim.interfaces.get(device_id=swdata.nb_device.id, name=intname)
                     nb_term_b = nb.dcim.interfaces.get(device_id=intdata.neighbors[0].switch.nb_device.id, name=intdata.neighbors[0].name)
 
-                    try:
-                        for cable in sw_cables:
-                            assert nb_term_a != cable.termination_a
-                            assert nb_term_a != cable.termination_b
-                            assert nb_term_b != cable.termination_a
-                            assert nb_term_b != cable.termination_b
-                    except AssertionError:
-                        continue
+                elif isinstance(intdata.neighbors[0], dict):
+                    nb_term_a = nb.dcim.interfaces.get(device_id=swdata.nb_device.id, name=intname)
+                    nb_term_b = nb.dcim.interfaces.get(device_id=intdata.neighbors[0]['nb_device'].id, name=intdata.neighbors[0]['remote_int'])
+                
+                try:
+                    for cable in sw_cables:
+                        assert nb_term_a != cable.termination_a
+                        assert nb_term_a != cable.termination_b
+                        assert nb_term_b != cable.termination_a
+                        assert nb_term_b != cable.termination_b
+                except AssertionError:
+                    continue
 
-                    logger.info("Adding cable %s %s - %s %s", intdata.switch.facts['hostname'], intdata.name, intdata.neighbors[0].name, intdata.neighbors[0].switch.facts['hostname'])
-                    nb_cable = nb.dcim.cables.create(termination_a_type='dcim.interface',
-                                                     termination_b_type='dcim.interface',
-                                                     termination_a_id=nb_term_a.id,
-                                                     termination_b_id=nb_term_b.id)
+                logger.info("Adding cable %s %s - %s %s", intdata.switch.facts['hostname'], intdata.name, intdata.neighbors[0]['remote_int'], intdata.neighbors[0]['hostname'])
+                nb_cable = nb.dcim.cables.create(termination_a_type='dcim.interface',
+                                                 termination_b_type='dcim.interface',
+                                                 termination_a_id=nb_term_a.id,
+                                                 termination_b_id=nb_term_b.id)
             except IndexError:
-                continue
+                pass
+
+
 
 
 def main():
