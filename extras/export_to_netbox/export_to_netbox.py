@@ -178,7 +178,11 @@ def add_neighbor_ip_addresses(fabric):
             try:            
                 assert nb_neigh_interface is not None
             except AssertionError:
-                raise AssertionError("Did you add interface "+neighbor['remote_int']+ " to device type "+neighbor['platform']+"?")
+                nb_neigh_interface = nb.dcim.interfaces.create(device=nb_neigh_device.id,
+                                                               name=neighbor['remote_int'],
+                                                               type="1000base-t")
+
+                logger.info("Creating interface %s for AP %s, model %s", neighbor['remote_int'], neighbor['hostname'], neighbor['platform'])
 
             # Search IP
             logger.debug("Searching IP %s", neighbor['ip'])
@@ -277,6 +281,6 @@ if __name__ == '__main__':
 
     nb_access_role = nb.dcim.device_roles.get(name="Access Switch")
     nb_core_role = nb.dcim.device_roles.get(name="Core Switch")
-    nb_neigh_role = nb.dcim.device_roles.get(name="Wireless")
-    nb_site = nb.dcim.sites.get(name="Vazzola")
+    nb_neigh_role = nb.dcim.device_roles.get(name="Access Point")
+    nb_site = nb.dcim.sites.get(name="Villafranca")
     main()
