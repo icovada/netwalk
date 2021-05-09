@@ -168,7 +168,8 @@ def add_ip_addresses(fabric):
                     if nb_prefix is None:
                         logger.info("Creating prefix %s", str(address.network))
                         nb_prefix = nb.ipam.prefixes.create(prefix=str(address.network),
-                                                            site=nb_site.id)
+                                                            site=nb_site.id,
+                                                            vlan=nb_interface.untagged_vlan.id)
 
                     logger.info("Checking IP %s", str(address))
                     nb_address = nb.ipam.ip_addresses.get(address=str(address),
