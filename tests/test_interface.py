@@ -372,12 +372,12 @@ class TestL3Interface(unittest.TestCase):
         hsrpaddrobj = ipaddress.ip_address("10.0.0.2")
 
         assert primaddrobject in interface.address['ipv4']
-        assert hsrpaddrobj in interface.address['hsrp']
+        assert interface.address['hsrp'][1]['address'] == hsrpaddrobj
         
         assert interface.address['ipv4'][primaddrobject]['type'] == 'primary'
         assert hsrpaddrobj in interface.address['hsrp']['ipv4']
-        assert interface.address['hsrp'][1][hsrpaddrobj]['priority'] == 100
-        assert interface.address['hsrp'][1][hsrpaddrobj]['preempt'] is False
+        assert interface.address['hsrp'][1]['priority'] == 100
+        assert interface.address['hsrp'][1]['preempt'] is False
 
         assert str(interface) == config
 
@@ -397,10 +397,10 @@ class TestL3Interface(unittest.TestCase):
         assert hsrpaddrobj in interface.address['hsrp']
         
         assert interface.address['ipv4'][primaddrobject]['type'] == 'primary'
-        assert hsrpaddrobj in interface.address['hsrp']['ipv4']
-        assert interface.address['hsrp'][0][hsrpaddrobj]['priority'] == 100
-        assert interface.address['hsrp'][0][hsrpaddrobj]['preempt'] is False
-        assert interface.address['hsrp'][0][hsrpaddrobj]['version'] == 1
+        assert interface.address['hsrp'][0]['address'] == hsrpaddrobj
+        assert interface.address['hsrp'][0]['priority'] == 100
+        assert interface.address['hsrp'][0]['preempt'] is False
+        assert interface.address['hsrp'][0]['version'] == 1
 
         assert str(interface) == config    
 
@@ -410,7 +410,7 @@ class TestL3Interface(unittest.TestCase):
                   " standby ip 1 10.0.0.2\n"
                   " standby ip 1 priority 120\n"
                   " standby ip 1 preempt\n"
-                  " standby ip version 2"
+                  " standby ip 1 version 2"
                   " no shutdown\n"
                   "!\n")
         
@@ -423,11 +423,11 @@ class TestL3Interface(unittest.TestCase):
         assert hsrpaddrobj in interface.address['hsrp']
         
         assert interface.address['ipv4'][primaddrobject]['type'] == 'primary'
-        assert hsrpaddrobj in interface.address['hsrp']['ipv4']
-        assert interface.address['hsrp'][1][hsrpaddrobj]['priority'] == 100
-        assert interface.address['hsrp'][1][hsrpaddrobj]['preempt']
-        assert interface.address['hsrp'][1][hsrpaddrobj]['priority'] == 120
-        assert interface.address['hsrp'][1][hsrpaddrobj]['version'] == 2
+        assert interface.address['hsrp'][1]['address'] == hsrpaddrobj
+        assert interface.address['hsrp'][1]['priority'] == 100
+        assert interface.address['hsrp'][1]['preempt']
+        assert interface.address['hsrp'][1]['priority'] == 120
+        assert interface.address['hsrp'][1]['version'] == 2
 
         assert str(interface) == config    
 
