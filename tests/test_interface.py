@@ -369,7 +369,7 @@ class TestL3Interface(unittest.TestCase):
         interface = netwalk.Interface(config=config)
 
         primaddrobject = ipaddress.ip_interface("10.0.0.1/24")
-        hsrpaddrobj = ipaddress.address("10.0.0.2")
+        hsrpaddrobj = ipaddress.ip_address("10.0.0.2")
 
         assert primaddrobject in interface.address['ipv4']
         assert hsrpaddrobj in interface.address['ipv4']
@@ -391,7 +391,7 @@ class TestL3Interface(unittest.TestCase):
         interface = netwalk.Interface(config=config)
 
         primaddrobject = ipaddress.ip_interface("10.0.0.1/24")
-        hsrpaddrobj = ipaddress.address("10.0.0.2")
+        hsrpaddrobj = ipaddress.ip_address("10.0.0.2")
 
         assert primaddrobject in interface.address['ipv4']
         assert hsrpaddrobj in interface.address['ipv4']
@@ -417,7 +417,7 @@ class TestL3Interface(unittest.TestCase):
         interface = netwalk.Interface(config=config)
 
         primaddrobject = ipaddress.ip_interface("10.0.0.1/24")
-        hsrpaddrobj = ipaddress.address("10.0.0.2")
+        hsrpaddrobj = ipaddress.ip_address("10.0.0.2")
 
         assert primaddrobject in interface.address['ipv4']
         assert hsrpaddrobj in interface.address['ipv4']
