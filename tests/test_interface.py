@@ -343,9 +343,9 @@ class TestL3Interface(unittest.TestCase):
         
         interface = netwalk.Interface(config=config)
 
-        primaddrobject = ipaddress.interface("10.0.0.1/24")
-        secaddrobject_1 = ipaddress.interface("10.0.1.1/24")
-        secaddrobject_2 = ipaddress.interface("10.0.2.1/24")
+        primaddrobject = ipaddress.ip_interface("10.0.0.1/24")
+        secaddrobject_1 = ipaddress.ip_interface("10.0.1.1/24")
+        secaddrobject_2 = ipaddress.ip_interface("10.0.2.1/24")
 
         assert primaddrobject in interface.address['ipv4']
         assert secaddrobject_1 in interface.address['ipv4']
@@ -366,7 +366,7 @@ class TestL3Interface(unittest.TestCase):
         
         interface = netwalk.Interface(config=config)
 
-        primaddrobject = ipaddress.interface("10.0.0.1/24")
+        primaddrobject = ipaddress.ip_interface("10.0.0.1/24")
         hsrpaddrobj = ipaddress.address("10.0.0.2")
 
         assert primaddrobject in interface.address['ipv4']
@@ -387,7 +387,7 @@ class TestL3Interface(unittest.TestCase):
         
         interface = netwalk.Interface(config=config)
 
-        primaddrobject = ipaddress.interface("10.0.0.1/24")
+        primaddrobject = ipaddress.ip_interface("10.0.0.1/24")
         hsrpaddrobj = ipaddress.address("10.0.0.2")
 
         assert primaddrobject in interface.address['ipv4']
@@ -412,7 +412,7 @@ class TestL3Interface(unittest.TestCase):
         
         interface = netwalk.Interface(config=config)
 
-        primaddrobject = ipaddress.interface("10.0.0.1/24")
+        primaddrobject = ipaddress.ip_interface("10.0.0.1/24")
         hsrpaddrobj = ipaddress.address("10.0.0.2")
 
         assert primaddrobject in interface.address['ipv4']
@@ -435,7 +435,7 @@ class TestL3Interface(unittest.TestCase):
         
         interface = netwalk.Interface(config=config)
 
-        primaddrobject = ipaddress.interface("10.0.0.1/24")
+        primaddrobject = ipaddress.ip_interface("10.0.0.1/24")
 
         assert primaddrobject in interface.address['ipv4']
         assert interface.vrf == "antani"
