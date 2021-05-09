@@ -157,6 +157,7 @@ class Interface():
                 r'vrf forwarding (.*)', cleanline)
             if match is not None:
                 self.vrf = match.groups()[0]
+                continue
 
             # Parse 'normal' ipv4 address
             match = re.search(
@@ -253,6 +254,9 @@ class Interface():
                 fullconfig = fullconfig + " spanning-tree bpduguard enable\n"
 
         else:
+            if self.vrf != 'default':
+                fullconfig = fullconfig + " vrf forwarding " + self.vrf + "\n"
+
             if 'ipv4' in self.address:
                 for k, v in self.address['ipv4'].items():
                     fullconfig = fullconfig + f" ip address {k.ip} {k.netmask}"
