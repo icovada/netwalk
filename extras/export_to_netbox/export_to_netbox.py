@@ -18,6 +18,7 @@ nb = pynetbox.api(
     token='95db86f3b2fe48482bdeee0686051e4451f36665'
 )
 
+
 def create_devices_and_interfaces(fabric):
     # Create devices and interfaces
     site_vlans = nb.ipam.vlans.filter(site_id=nb_site.id)
@@ -27,11 +28,12 @@ def create_devices_and_interfaces(fabric):
         logger.info("Switch %s", swname)
         nb_device_type = nb.dcim.device_types.get(model=swdata.facts['model'])
         if nb_device_type is None:
-            nb_manufacturer = nb.dcim.manufacturers.get(slug=slugify(swdata.facts['vendor']))
+            nb_manufacturer = nb.dcim.manufacturers.get(
+                slug=slugify(swdata.facts['vendor']))
             if nb_manufacturer is None:
                 nb_manufacturer = nb.dcim.manufacturers.create(name=swdata.facts['vendor'],
-                                                           slug=slugify(swdata.facts['vendor']))
-            
+                                                               slug=slugify(swdata.facts['vendor']))
+
             nb_device_type = nb.dcim.device_types.create(model=swdata.facts['model'],
                                                          manufacturer=nb_manufacturer.id,
                                                          slug=slugify(swdata.facts['model']))
@@ -70,12 +72,13 @@ def create_devices_and_interfaces(fabric):
                         intproperties['mode'] = "tagged-all"
                     else:
                         intproperties['mode'] = "tagged"
-                        intproperties['tagged_vlans'] = [vlans_dict[x]['id'] for x in thisint.allowed_vlan]
+                        intproperties['tagged_vlans'] = [
+                            vlans_dict[x]['id'] for x in thisint.allowed_vlan]
                 else:
                     intproperties['mode'] = "access"
 
                 if "vlan" in interface.lower():
-                    vlanid = int(interface.lower().replace("vlan",""))
+                    vlanid = int(interface.lower().replace("vlan", ""))
                     intproperties['untagged_vlan'] = vlans_dict[vlanid]['id']
                 else:
                     intproperties['untagged_vlan'] = vlans_dict[thisint.native_vlan]['id']
@@ -99,28 +102,33 @@ def create_devices_and_interfaces(fabric):
                 neighbor = swdata.interfaces[interface].neighbors[0]
                 assert isinstance(neighbor, dict)
                 #assert "AIR" in neighbor['platform']
-                logger.debug("Parsing neighbor %s on %s ip %s platform %s", neighbor['hostname'], neighbor['remote_int'], neighbor['ip'], neighbor['platform'])
+                logger.debug("Parsing neighbor %s on %s ip %s platform %s",
+                             neighbor['hostname'], neighbor['remote_int'], neighbor['ip'], neighbor['platform'])
 
                 try:
                     vendor, model = neighbor['platform'].split()
                 except ValueError:
                     model = neighbor['platform']
                     vendor = "Unknown"
-                nb_manufacturer = nb.dcim.manufacturers.get(slug=slugify(vendor))
+                nb_manufacturer = nb.dcim.manufacturers.get(
+                    slug=slugify(vendor))
 
                 if nb_manufacturer is None:
-                    nb_manufacturer = nb.dcim.manufacturers.create(name=vendor, slug=slugify(vendor))
+                    nb_manufacturer = nb.dcim.manufacturers.create(
+                        name=vendor, slug=slugify(vendor))
 
                 nb_device_ap = nb.dcim.devices.get(name=neighbor['hostname'])
 
                 if nb_device_ap is None:
-                    nb_device_type = nb.dcim.device_types.get(slug=slugify(model))
+                    nb_device_type = nb.dcim.device_types.get(
+                        slug=slugify(model))
                     if nb_device_type is None:
                         nb_device_type = nb.dcim.device_types.create(model=model,
                                                                      manufacturer=nb_manufacturer.id,
                                                                      slug=slugify(model))
 
-                        logger.warning("Created device type " +vendor + " " +model)
+                        logger.warning("Created device type " +
+                                       vendor + " " + model)
 
                     logger.info("Creating neighbor %s", neighbor['hostname'])
                     nb_device_ap = nb.dcim.devices.create(name=neighbor['hostname'],
@@ -129,18 +137,18 @@ def create_devices_and_interfaces(fabric):
                                                           site=nb_site.id,
                                                           )
 
-                    logger.info("Creating interface %s on neighbor %s", neighbor['remote_int'], neighbor['hostname'])
+                    logger.info("Creating interface %s on neighbor %s",
+                                neighbor['remote_int'], neighbor['hostname'])
                     nb_interface = nb.dcim.interfaces.create(device=nb_device_ap.id,
                                                              name=neighbor['remote_int'],
                                                              type="1000base-t")
 
-
                 neighbor['nb_device'] = nb_device_ap
                 print(neighbor)
 
-
             except (AssertionError, KeyError, IndexError):
                 pass
+
 
 def add_ip_addresses(fabric):
     for swname, swdata in fabric.switches.items():
@@ -154,7 +162,7 @@ def add_ip_addresses(fabric):
             if 'ipv4' in intdata.address:
                 for address, addressdata in intdata.address['ipv4'].items():
                     nb_prefix = nb.ipam.prefixes.get(prefix=str(address.network),
-                                                    site_id=nb_site.id)
+                                                     site_id=nb_site.id)
 
                     logger.info("Checking prefix %s", str(address.network))
                     if nb_prefix is None:
@@ -164,14 +172,14 @@ def add_ip_addresses(fabric):
 
                     logger.info("Checking IP %s", str(address))
                     nb_address = nb.ipam.ip_addresses.get(address=str(address),
-                                                        site_id=nb_site.id)
+                                                          site_id=nb_site.id)
                     if nb_address is None:
                         logger.info("Creating IP %s", str(address))
                         nb_address = nb.ipam.ip_addresses.create(address=str(address),
-                                                                site=nb_site.id)
+                                                                 site=nb_site.id)
 
                     address_properties = {'assigned_object_type': 'dcim.interface',
-                                        'assigned_object_id': nb_interface.id}
+                                          'assigned_object_id': nb_interface.id}
 
                     if addressdata['type'] == 'secondary':
                         address_properties['role'] = 'secondary'
@@ -185,27 +193,30 @@ def add_ip_addresses(fabric):
 
             if 'hsrp' in intdata.address:
                 for hsrpgrp, hsrpdata in intdata.address['hsrp'].items():
-                    logger.info("Checking HSRP address %s on %s %s", hsrpdata['address'], intdata.switch.facts['hostname'], intdata.name)
+                    logger.info("Checking HSRP address %s on %s %s",
+                                hsrpdata['address'], intdata.switch.facts['hostname'], intdata.name)
 
-                    #Lookup in 'normal' ips to find out address netmask
+                    # Lookup in 'normal' ips to find out address netmask
 
                     netmask = None
                     for normal_address, normal_adddressdata in intdata.address['ipv4'].items():
                         if hsrpdata['address'] in normal_address.network:
                             netmask = normal_address.network
-                    
-                    assert netmask is not None, "Could not find netmask for HSRP address" + str(hsrpdata['address'])
 
-                    logger.info("Checking address %s",hsrpdata['address'])
+                    assert netmask is not None, "Could not find netmask for HSRP address" + \
+                        str(hsrpdata['address'])
+
+                    logger.info("Checking address %s", hsrpdata['address'])
                     nb_hsrp_address = nb.ipam.ip_addresses.get(address=f"{str(hsrpdata['address'])}/{str(normal_address).split('/')[1]}",
                                                                interface_id=nb_interface.id)
-                    
+
                     if nb_hsrp_address is None:
-                        logger.info("Creating HSRP address %s", hsrpdata['address'])
+                        logger.info("Creating HSRP address %s",
+                                    hsrpdata['address'])
                         nb_hsrp_address = nb.ipam.ip_addresses.create(address=f"{str(hsrpdata['address'])}/{str(normal_address).split('/')[1]}",
-                                                                     assigned_object_id=nb_interface.id,
-                                                                     assigned_object_type='dcim.interface',
-                                                                     role='hsrp')
+                                                                      assigned_object_id=nb_interface.id,
+                                                                      assigned_object_type='dcim.interface',
+                                                                      role='hsrp')
 
 
 def add_neighbor_ip_addresses(fabric):
@@ -221,32 +232,36 @@ def add_neighbor_ip_addresses(fabric):
             nb_neigh_interface = nb.dcim.interfaces.get(name=neighbor['remote_int'],
                                                         device_id=nb_neigh_device.id)
 
-            try:            
+            try:
                 assert nb_neigh_interface is not None
             except AssertionError:
                 nb_neigh_interface = nb.dcim.interfaces.create(device=nb_neigh_device.id,
                                                                name=neighbor['remote_int'],
                                                                type="1000base-t")
 
-                logger.info("Creating interface %s for AP %s, model %s", neighbor['remote_int'], neighbor['hostname'], neighbor['platform'])
+                logger.info("Creating interface %s for AP %s, model %s",
+                            neighbor['remote_int'], neighbor['hostname'], neighbor['platform'])
 
             # Search IP
             logger.debug("Searching IP %s", neighbor['ip'])
             nb_neigh_ip = nb.ipam.ip_addresses.get(address=neighbor['ip'])
             if nb_neigh_ip is None:
                 # No ip found, figure out smallest prefix configured that contains the IP
-                logger.debug("IP %s not found, looking for prefixes", neighbor['ip'])
+                logger.debug(
+                    "IP %s not found, looking for prefixes", neighbor['ip'])
                 nb_prefixes = nb.ipam.prefixes.filter(q=neighbor['ip'])
                 if len(nb_prefixes) > 0:
                     # Search smallest prefix
                     prefixlen = 0
                     smallestprefix = None
                     for prefix in nb_prefixes:
-                        logger.debug("Checking prefix %s, longest prefix found so far: %s", prefix['prefix'], smallestprefix)
+                        logger.debug(
+                            "Checking prefix %s, longest prefix found so far: %s", prefix['prefix'], smallestprefix)
                         thispref = ipaddress.ip_network(prefix['prefix'])
                         if thispref.prefixlen > prefixlen:
                             prefixlen = thispref.prefixlen
-                            logger.debug("Found longest prefix found %s", thispref)
+                            logger.debug(
+                                "Found longest prefix found %s", thispref)
                             smallestprefix = thispref
 
                     assert smallestprefix is not None
@@ -259,7 +274,8 @@ def add_neighbor_ip_addresses(fabric):
                 logger.debug("Creating IP %s", finalip)
                 nb_neigh_ip = nb.ipam.ip_addresses.create(address=finalip)
 
-            logger.debug("Associating IP %s to interface %s", nb_neigh_ip.address, nb_neigh_interface.name)
+            logger.debug("Associating IP %s to interface %s",
+                         nb_neigh_ip.address, nb_neigh_interface.name)
             nb_neigh_ip.update({'assigned_object_type': 'dcim.interface',
                                 'assigned_object_id': nb_neigh_interface.id})
 
@@ -279,23 +295,29 @@ def add_l2_vlans(fabric):
 
         break
 
+
 def add_cables(fabric):
     for swname, swdata in fabric.switches.items():
         swdata.nb_device = nb.dcim.devices.get(name=swdata.facts['hostname'])
         assert swdata.nb_device is not None
 
     for swname, swdata in fabric.switches.items():
-        sw_cables = [x for x in nb.dcim.cables.filter(device_id=swdata.nb_device.id)]
+        sw_cables = [x for x in nb.dcim.cables.filter(
+            device_id=swdata.nb_device.id)]
         for intname, intdata in swdata.interfaces.items():
             try:
                 if isinstance(intdata.neighbors[0], netwalk.Interface):
-                    nb_term_a = nb.dcim.interfaces.get(device_id=swdata.nb_device.id, name=intname)
-                    nb_term_b = nb.dcim.interfaces.get(device_id=intdata.neighbors[0].switch.nb_device.id, name=intdata.neighbors[0].name)
+                    nb_term_a = nb.dcim.interfaces.get(
+                        device_id=swdata.nb_device.id, name=intname)
+                    nb_term_b = nb.dcim.interfaces.get(
+                        device_id=intdata.neighbors[0].switch.nb_device.id, name=intdata.neighbors[0].name)
 
                 elif isinstance(intdata.neighbors[0], dict):
-                    nb_term_a = nb.dcim.interfaces.get(device_id=swdata.nb_device.id, name=intname)
-                    nb_term_b = nb.dcim.interfaces.get(device_id=intdata.neighbors[0]['nb_device'].id, name=intdata.neighbors[0]['remote_int'])
-                
+                    nb_term_a = nb.dcim.interfaces.get(
+                        device_id=swdata.nb_device.id, name=intname)
+                    nb_term_b = nb.dcim.interfaces.get(
+                        device_id=intdata.neighbors[0]['nb_device'].id, name=intdata.neighbors[0]['remote_int'])
+
                 try:
                     for cable in sw_cables:
                         assert nb_term_a != cable.termination_a
@@ -312,8 +334,6 @@ def add_cables(fabric):
                                                  termination_b_id=nb_term_b.id)
             except IndexError:
                 pass
-
-
 
 
 def main():
