@@ -372,10 +372,9 @@ class TestL3Interface(unittest.TestCase):
         hsrpaddrobj = ipaddress.ip_address("10.0.0.2")
 
         assert primaddrobject in interface.address['ipv4']
-        assert interface.address['hsrp'][1]['address'] == hsrpaddrobj
-        
         assert interface.address['ipv4'][primaddrobject]['type'] == 'primary'
-        assert hsrpaddrobj in interface.address['hsrp']['ipv4']
+
+        assert interface.address['hsrp'][1]['address'] == hsrpaddrobj
         assert interface.address['hsrp'][1]['priority'] == 100
         assert interface.address['hsrp'][1]['preempt'] is False
 
