@@ -74,11 +74,14 @@ def create_devices_and_interfaces(fabric):
                 else:
                     intproperties['mode'] = "access"
 
-                intproperties['untagged_vlan'] = vlans_dict[thisint.native_vlan]['id']
+                if "vlan" in interface.lower():
+                    vlanid = int(interface.lower().replace("vlan",""))
+                    intproperties['untagged_vlan'] = vlans_dict[vlanid]['id']
+                else:
+                    intproperties['untagged_vlan'] = vlans_dict[thisint.native_vlan]['id']
                 intproperties['enabled'] = thisint.is_enabled
             except:
                 pass
-
 
             nb_interface = nb.dcim.interfaces.get(device_id=nb_device.id,
                                                   name=interface)
