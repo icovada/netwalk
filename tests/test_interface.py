@@ -1,4 +1,5 @@
 import unittest
+import ipaddress
 import netwalk
 
 
@@ -325,9 +326,9 @@ class TestL3Interface(unittest.TestCase):
         
         interface = netwalk.Interface(config=config)
 
-        addrobject = ipaddress.interface("10.0.0.1/24")
+        addrobject = ipaddress.ip_interface("10.0.0.1/24")
         assert addrobject in interface.address['ipv4']
-        assert interface.address['ipv4'][address]['type'] == 'primary'
+        assert interface.address['ipv4'][addrobject]['type'] == 'primary'
         assert interface.vrf == "default"
 
         assert str(interface) == config
