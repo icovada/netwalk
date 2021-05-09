@@ -200,7 +200,7 @@ class Interface():
                 if command == 'ip':
                     self.address['hsrp'][grpid]['address'] = ipaddress.ip_address(argument)
                 elif command == 'priority':
-                    self.address['hrsp'][grpid]['priority'] = argument
+                    self.address['hsrp'][grpid]['priority'] = int(argument)
                 elif command == 'preempt':
                     self.address['hsrp'][grpid]['preempt'] = True
                 elif command == 'version':
