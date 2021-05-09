@@ -431,6 +431,7 @@ class TestL3Interface(unittest.TestCase):
         config = ("interface Ethernet0\n"
                   " vrf forwarding antani\n"
                   " ip address 10.0.0.1 255.255.255.0\n"
+                  " no shutdown\n"
                   "!\n")
         
         interface = netwalk.Interface(config=config)
