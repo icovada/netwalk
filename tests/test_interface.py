@@ -339,6 +339,7 @@ class TestL3Interface(unittest.TestCase):
                   " ip address 10.0.0.1 255.255.255.0\n"
                   " ip address 10.0.1.1 255.255.255.0 secondary\n"
                   " ip address 10.0.2.1 255.255.255.0 secondary\n"
+                  " no shutdown\n"
                   "!\n")
         
         interface = netwalk.Interface(config=config)
@@ -362,6 +363,7 @@ class TestL3Interface(unittest.TestCase):
         config = ("interface Ethernet0\n"
                   " ip address 10.0.0.1 255.255.255.0\n"
                   " standby 1 ip 10.0.0.2\n"
+                  " no shutdown\n"
                   "!\n")
         
         interface = netwalk.Interface(config=config)
@@ -383,6 +385,7 @@ class TestL3Interface(unittest.TestCase):
         config = ("interface Ethernet0\n"
                   " ip address 10.0.0.1 255.255.255.0\n"
                   " standby ip 10.0.0.2\n"
+                  " no shutdown\n"
                   "!\n")
         
         interface = netwalk.Interface(config=config)
@@ -408,6 +411,7 @@ class TestL3Interface(unittest.TestCase):
                   " standby ip 1 priority 120\n"
                   " standby ip 1 preempt\n"
                   " standby ip version 2"
+                  " no shutdown\n"
                   "!\n")
         
         interface = netwalk.Interface(config=config)
