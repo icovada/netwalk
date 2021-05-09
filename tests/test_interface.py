@@ -328,6 +328,7 @@ class TestL3Interface(unittest.TestCase):
         addrobject = ipaddress.interface("10.0.0.1/24")
         assert addrobject in interface.address['ipv4']
         assert interface.address['ipv4'][address]['type'] == 'primary'
+        assert interface.vrf == "default"
 
         assert str(interface) == config
 
@@ -421,6 +422,21 @@ class TestL3Interface(unittest.TestCase):
         assert interface.address['hsrp'][1][hsrpaddrobj]['preempt']
         assert interface.address['hsrp'][1][hsrpaddrobj]['priority'] == 120
         assert interface.address['hsrp'][1][hsrpaddrobj]['version'] == 2
+
+        assert str(interface) == config    
+
+    def test_l3_int_vrf(self):
+        config = ("interface Ethernet0\n"
+                  " vrf forwarding antani\n"
+                  " ip address 10.0.0.1 255.255.255.0\n"
+                  "!\n")
+        
+        interface = netwalk.Interface(config=config)
+
+        primaddrobject = ipaddress.interface("10.0.0.1/24")
+
+        assert primaddrobject in interface.address['ipv4']
+        assert interface.vrf == "antani"
 
         assert str(interface) == config    
 
