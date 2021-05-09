@@ -21,6 +21,7 @@ from netwalk import Fabric
 sitename = Fabric()
 sitename.init_from_seed_device(seed_hosts=["10.10.10.1"],
                                credentials=[("cisco","cisco"),("customer","password")]
+                               napalm_optional_args=[{'secret': 'cisco'}, {'transport': 'telnet'}])
 ```
 
 This code will start searching from device 10.10.10.1 and will try to log in via SSH with cisco/cisco and then customer/password.
