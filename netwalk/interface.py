@@ -2,6 +2,7 @@
 
 import logging
 import re
+import ipaddress
 
 from typing import List, Optional
 
@@ -17,6 +18,8 @@ class Interface():
         self.logger = logging.getLogger(__name__)
         self.name: str = kwargs.get('name', None)
         self.description: Optional[str] = kwargs.get('description', None)
+        self.address: dict = kwargs.get('address', {})
+        self.vrf: str = kwargs.get('vrf', "default")
         self.mode: str = kwargs.get('mode', 'access')
         self.channel_group: Optional[int] = kwargs.get('channel_group', None)
         self.channel_protocol: Optional[str] = kwargs.get(
@@ -47,10 +50,10 @@ class Interface():
         "Parse configuration from show run"
         if isinstance(self.config, str):
             self.config = self.config.split("\n")
-
+        
+        # Parse port mode first. Some switches have it first, some last, so check it first thing
         for line in self.config:
             cleanline = line.strip()
-            # Port mode. Some switches have it first, some last, so check it first thing
             match = re.search(r"switchport mode (.*)$", cleanline)
             if match is not None:
                 self.mode = match.groups()[0].strip()
@@ -60,6 +63,8 @@ class Interface():
 
         for line in self.config:
             cleanline = line.strip()
+            
+            # L2 data
             # Find interface name
             match = re.search(r"^interface ([A-Za-z\-]*(\/*\d*)+)", cleanline)
             if match is not None:
@@ -146,11 +151,39 @@ class Interface():
             if "switchport trunk encapsulation" in line:
                 continue
 
-            # Unknown, unparsable line
-            if any([x in cleanline for x in ["vrf forwarding", "ip address"]]):
-                self.routed_port = True
+            # L3 parsing
+            # Parse VRF
+            match = re.search(
+                r'vrf forwarding (.*)', cleanline)
+            if match is not None:
+                self.vrf = match.groups()[0]
 
-            self.unparsed_lines.append(cleanline)
+            # Parse 'normal' ipv4 address
+            match = re.search(
+                r'ip address (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}) (\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s?(secondary)?', cleanline)
+            if match is not None:
+                address, netmask, secondary = match.groups()
+                addrobj = ipaddress.ip_interface(f"{address}/{netmask}")
+
+                addr_type = 'primary' if secondary is None else 'secondary'
+
+                try:
+                    assert 'ipv4' in self.address
+                except AssertionError:
+                    self.address['ipv4'] = {}
+                
+                self.address['ipv4'][addrobj] = {'type': addr_type}
+                self.routed_port = True
+                continue
+
+            # Parse HSRP addresses
+            match = re.search(
+                r"standby (\d{1,3})?\s?(ip|priority|preempt|version)\s?(.*)?", cleanline)
+            if match is not None:
+                continue
+
+            if cleanline != '' and cleanline != '!':
+                self.unparsed_lines.append(cleanline)
 
 
     def _allowed_vlan_to_list(self, vlanlist: str) -> set:
@@ -220,8 +253,13 @@ class Interface():
                 fullconfig = fullconfig + " spanning-tree bpduguard enable\n"
 
         else:
-            # TODO: output l3 info
-            pass
+            if 'ipv4' in self.address:
+                for k, v in self.address['ipv4'].items():
+                    fullconfig = fullconfig + f" ip address {k.ip} {k.netmask}"
+                    if v['type'] == 'secondary':
+                        fullconfig = fullconfig + " secondary\n"
+                    elif v['type'] == 'primary':
+                        fullconfig = fullconfig + "\n"
 
         for line in self.unparsed_lines:
             fullconfig = fullconfig + line + "\n"
