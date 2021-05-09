@@ -95,7 +95,7 @@ class Interface():
                 self.native_vlan = int(match.groups()[0])
                 continue
 
-            # NVoiceative vlan
+            # Voice native vlan
             match = re.search(r"switchport voice vlan (.*)$", cleanline)
             if match is not None and self.mode == 'access':
                 self.voice_vlan = int(match.groups()[0])
@@ -181,6 +181,30 @@ class Interface():
             match = re.search(
                 r"standby (\d{1,3})?\s?(ip|priority|preempt|version)\s?(.*)?", cleanline)
             if match is not None:
+                grpid, command, argument = match.groups()
+                if grpid is None:
+                    grpid = 0
+                else:
+                    grpid = int(grpid)
+
+                try:
+                    assert 'hsrp' in self.address
+                except AssertionError:
+                    self.address['hsrp'] = {}
+
+                try:
+                    assert grpid in self.address['hsrp']
+                except AssertionError:
+                    self.address['hsrp'][grpid] = {'priority': 100, 'preempt': False, 'version': 1}
+
+                if command == 'ip':
+                    self.address['hsrp'][grpid]['address'] = ipaddress.ip_address(argument)
+                elif command == 'priority':
+                    self.address['hrsp'][grpid]['priority'] = argument
+                elif command == 'preempt':
+                    self.address['hsrp'][grpid]['preempt'] = True
+                elif command == 'version':
+                    self.address['hsrp'][grpid]['version'] = int(argument)
                 continue
 
             if cleanline != '' and cleanline != '!':
@@ -264,6 +288,17 @@ class Interface():
                         fullconfig = fullconfig + " secondary\n"
                     elif v['type'] == 'primary':
                         fullconfig = fullconfig + "\n"
+
+            if 'hsrp' in self.address:
+                for k, v in self.address['hsrp'].items():
+                    line_begin = f" standby {k} " if k != 0 else " standby "
+                    fullconfig = fullconfig + line_begin + "ip " + str(v['address']) + "\n"
+                    if v['priority'] != 100:
+                        fullconfig = fullconfig + line_begin + "priority " + str(v['priority']) + "\n"
+                    if v['preempt']:
+                        fullconfig = fullconfig + line_begin + "preempt\n"
+                    if v['version'] != 1:
+                        fullconfig = fullconfig + line_begin + "version " + str(v['version']) + "\n"
 
         for line in self.unparsed_lines:
             fullconfig = fullconfig + line + "\n"
