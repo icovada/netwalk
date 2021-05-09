@@ -372,7 +372,7 @@ class TestL3Interface(unittest.TestCase):
         hsrpaddrobj = ipaddress.ip_address("10.0.0.2")
 
         assert primaddrobject in interface.address['ipv4']
-        assert hsrpaddrobj in interface.address['ipv4']
+        assert hsrpaddrobj in interface.address['hsrp']
         
         assert interface.address['ipv4'][primaddrobject]['type'] == 'primary'
         assert hsrpaddrobj in interface.address['hsrp']['ipv4']
@@ -394,7 +394,7 @@ class TestL3Interface(unittest.TestCase):
         hsrpaddrobj = ipaddress.ip_address("10.0.0.2")
 
         assert primaddrobject in interface.address['ipv4']
-        assert hsrpaddrobj in interface.address['ipv4']
+        assert hsrpaddrobj in interface.address['hsrp']
         
         assert interface.address['ipv4'][primaddrobject]['type'] == 'primary'
         assert hsrpaddrobj in interface.address['hsrp']['ipv4']
@@ -420,7 +420,7 @@ class TestL3Interface(unittest.TestCase):
         hsrpaddrobj = ipaddress.ip_address("10.0.0.2")
 
         assert primaddrobject in interface.address['ipv4']
-        assert hsrpaddrobj in interface.address['ipv4']
+        assert hsrpaddrobj in interface.address['hsrp']
         
         assert interface.address['ipv4'][primaddrobject]['type'] == 'primary'
         assert hsrpaddrobj in interface.address['hsrp']['ipv4']
