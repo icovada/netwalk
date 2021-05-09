@@ -322,6 +322,7 @@ class TestL3Interface(unittest.TestCase):
     def test_base_l3_int(self):
         config = ("interface Ethernet0\n"
                   " ip address 10.0.0.1 255.255.255.0\n"
+                  " no shutdown\n"
                   "!\n")
         
         interface = netwalk.Interface(config=config)
