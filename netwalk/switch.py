@@ -20,7 +20,7 @@ class Switch():
     pass config as string to parse locally
     """
 
-    INTERFACE_TYPES = r"([Pp]ort-channel|\w*Ethernet)."
+    INTERFACE_TYPES = r"([Pp]ort-channel|\w*Ethernet|Vlan|Loopback)."
     INTERFACE_FILTER = r"^interface " + INTERFACE_TYPES
 
     def __init__(self,
