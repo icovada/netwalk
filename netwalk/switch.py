@@ -102,6 +102,13 @@ class Switch():
 
                 vlans = vlans.union(activevlans)
 
+        # Add vlans with layer3 configured
+        for intname, intdata in self.interfaces.items():
+            if "vlan" in intdata.name.lower():
+                if intdata.is_enabled:
+                    vlanid = int(intdata.name.lower().replace("vlan", ""))
+                    vlans.add(vlanid)
+
         # Remove vlans not explicitly configured
         vlans.intersection_update(self.vlans_set)
         return vlans
