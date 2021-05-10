@@ -179,9 +179,9 @@ class Interface():
 
             # Parse HSRP addresses
             match = re.search(
-                r"standby (\d{1,3})?\s?(ip|priority|preempt|version)\s?(.*)?", cleanline)
+                r"standby (\d{1,3})?\s?(ip|priority|preempt|version)\s?(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|\d*)?\s?(secondary)?", cleanline)
             if match is not None:
-                grpid, command, argument = match.groups()
+                grpid, command, argument, secondary = match.groups()
                 if grpid is None:
                     grpid = 0
                 else:
@@ -195,10 +195,13 @@ class Interface():
                 try:
                     assert grpid in self.address['hsrp']
                 except AssertionError:
-                    self.address['hsrp'][grpid] = {'priority': 100, 'preempt': False, 'version': 1}
+                    self.address['hsrp'][grpid] = {'priority': 100, 'preempt': False, 'version': 1, 'secondary': []}
 
                 if command == 'ip':
-                    self.address['hsrp'][grpid]['address'] = ipaddress.ip_address(argument)
+                    if secondary is not None:
+                        self.address['hsrp'][grpid]['secondary'].append(ipaddress.ip_address(argument))
+                    else:
+                        self.address['hsrp'][grpid]['address'] = ipaddress.ip_address(argument)
                 elif command == 'priority':
                     self.address['hsrp'][grpid]['priority'] = int(argument)
                 elif command == 'preempt':
@@ -293,6 +296,8 @@ class Interface():
                 for k, v in self.address['hsrp'].items():
                     line_begin = f" standby {k} " if k != 0 else " standby "
                     fullconfig = fullconfig + line_begin + "ip " + str(v['address']) + "\n"
+                    for secaddr in v['secondary']:
+                        fullconfig = fullconfig + line_begin + "ip " + str(secaddr) + " secondary\n"
                     if v['priority'] != 100:
                         fullconfig = fullconfig + line_begin + "priority " + str(v['priority']) + "\n"
                     if v['preempt']:

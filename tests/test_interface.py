@@ -380,6 +380,29 @@ class TestL3Interface(unittest.TestCase):
 
         assert str(interface) == config
 
+    def test_l3_int_w_hsrp_secondary(self):
+        config = ("interface Ethernet0\n"
+                  " ip address 10.0.0.1 255.255.255.0\n"
+                  " standby 1 ip 10.0.0.2\n"
+                  " standby 1 ip 10.0.0.3 secondary\n"
+                  " no shutdown\n"
+                  "!\n")
+        
+        interface = netwalk.Interface(config=config)
+
+        primaddrobject = ipaddress.ip_interface("10.0.0.1/24")
+        hsrpaddrobj = ipaddress.ip_address("10.0.0.2")
+
+        assert primaddrobject in interface.address['ipv4']
+        assert interface.address['ipv4'][primaddrobject]['type'] == 'primary'
+
+        assert interface.address['hsrp'][1]['address'] == hsrpaddrobj
+        assert interface.address['hsrp'][1]['secondary'] == [ipaddress.ip_address("10.0.0.3")]
+        assert interface.address['hsrp'][1]['priority'] == 100
+        assert interface.address['hsrp'][1]['preempt'] is False
+
+        assert str(interface) == config
+
     def test_l3_int_w_hsrp_grp_0(self):
         config = ("interface Ethernet0\n"
                   " ip address 10.0.0.1 255.255.255.0\n"
