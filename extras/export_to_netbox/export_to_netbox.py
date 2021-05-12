@@ -71,8 +71,8 @@ def create_cdp_neighbor(swdata, interface):
 def create_devices_and_interfaces(fabric):
     # Create devices and interfaces
     site_vlans = nb.ipam.vlans.filter(site_id=nb_site.id)
+    vlans_dict = {x.vid: x for x in site_vlans}
 
-    vlans_dict = {x['vid']: x for x in site_vlans.response}
     for swname, swdata in fabric.switches.items():
         logger.info("Switch %s", swname)
         nb_device_type = nb.dcim.device_types.get(model=swdata.facts['model'])
@@ -101,8 +101,8 @@ def create_devices_and_interfaces(fabric):
 
         # Create new interfaces
         for interface in swdata.interfaces.keys():
+            intproperties = {}
             if interface not in nb_all_interfaces:
-                intproperties = {}
                 logger.info("Interface %s on switch %s", interface, swname)
                 if "Fast" in interface:
                     int_type = "100base-tx"
@@ -127,15 +127,15 @@ def create_devices_and_interfaces(fabric):
                         else:
                             intproperties['mode'] = "tagged"
                             intproperties['tagged_vlans'] = [
-                                vlans_dict[x]['id'] for x in thisint.allowed_vlan]
+                                vlans_dict[x] for x in thisint.allowed_vlan]
                     else:
                         intproperties['mode'] = "access"
 
                     if "vlan" in interface.lower():
                         vlanid = int(interface.lower().replace("vlan", ""))
-                        intproperties['untagged_vlan'] = vlans_dict[vlanid]['id']
+                        intproperties['untagged_vlan'] = vlans_dict[vlanid]
                     else:
-                        intproperties['untagged_vlan'] = vlans_dict[thisint.native_vlan]['id']
+                        intproperties['untagged_vlan'] = vlans_dict[thisint.native_vlan]
                     intproperties['enabled'] = thisint.is_enabled
                 except:
                     pass
@@ -146,6 +146,45 @@ def create_devices_and_interfaces(fabric):
                                                          **intproperties)
 
                 create_cdp_neighbor(swdata, interface)
+
+            else:
+                thisint = swdata.interfaces[interface]
+                nb_int = nb_all_interfaces[interface]
+                if thisint.description is None:
+                    thisint.description = ""
+
+                if thisint.description != nb_int.description:
+                    intproperties['description'] = thisint.description if thisint.description is not None else ""
+
+                if thisint.mode == 'trunk':
+                    if len(thisint.allowed_vlan) == 4094:
+                        try:
+                            assert nb_int.mode.value == 'tagged-all'
+                        except AssertionError:
+                            intproperties['mode'] = 'tagged-all'
+                    else:
+                        try:
+                            assert nb_int.mode.value == 'tagged'
+                        except AssertionError:
+                            intproperties['mode'] = 'tagged'
+
+                elif thisint.mode == 'access':
+                    try:
+                        assert nb_int.mode.value == 'access'
+                    except AssertionError:
+                        intproperties['mode'] = 'access'
+
+                try:
+                    assert nb_int.untagged_vlan == vlans_dict[thisint.native_vlan]
+                except AssertionError:
+                    intproperties['untagged_vlan'] = vlans_dict[thisint.native_vlan].id
+
+                if thisint.is_enabled != nb_int.enabled:
+                    intproperties['enabled'] = thisint.is_enabled
+
+                if len(intproperties) > 0:
+                    logger.info("Updating interface %s on %s", interface, swname)
+                    nb_int.update(intproperties)                
 
         # Delete interfaces that no longer exist
         for k, v in nb_all_interfaces.items():
