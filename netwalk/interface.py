@@ -69,6 +69,10 @@ class Interface():
             match = re.search(r"^interface ([A-Za-z\-]*(\/*\d*)+)", cleanline)
             if match is not None:
                 self.name = match.groups()[0]
+                if "vlan" in self.name.lower():
+                    self.routed_port = True
+                    self.mode = 'access'
+                    self.native_vlan = int(self.name.lower().replace("vlan",""))
                 continue
 
             # Port mode. Already parsed, skip and do not add to unparsed lines
