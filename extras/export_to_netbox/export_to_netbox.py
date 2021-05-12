@@ -194,39 +194,41 @@ def create_devices_and_interfaces(fabric):
 def add_ip_addresses(fabric):
     for swname, swdata in fabric.switches.items():
         nb_device = nb.dcim.devices.get(name=swdata.facts['hostname'])
+        nb_device_addresses = {ipaddress.ip_interface(x): x for x in nb.ipam.ip_addresses.filter(device_id=nb_device.id)}
+        nb_device_interfaces = {x.name: x for x in nb.dcim.interfaces.filter(device_id=nb_device.id)}
+
+        # Cycle through interfaces, see if the IPs on them are configured
         for intname, intdata in swdata.interfaces.items():
             if len(intdata.address) == 0:
                 continue
-            nb_interface = nb.dcim.interfaces.get(device_id=nb_device.id,
-                                                  name=intname)
+
+            nb_interface = nb_device_interfaces[intname]
 
             if 'ipv4' in intdata.address:
                 for address, addressdata in intdata.address['ipv4'].items():
-                    nb_prefix = nb.ipam.prefixes.get(prefix=str(address.network),
-                                                     site_id=nb_site.id)
-
-                    logger.info("Checking prefix %s", str(address.network))
-                    if nb_prefix is None:
-                        logger.info("Creating prefix %s", str(address.network))
-                        nb_prefix = nb.ipam.prefixes.create(prefix=str(address.network),
-                                                            site=nb_site.id,
-                                                            vlan=nb_interface.untagged_vlan.id)
-
                     logger.info("Checking IP %s", str(address))
-                    nb_address = nb.ipam.ip_addresses.get(address=str(address),
-                                                          site_id=nb_site.id)
-                    if nb_address is None:
-                        logger.info("Creating IP %s", str(address))
-                        nb_address = nb.ipam.ip_addresses.create(address=str(address),
-                                                                 site=nb_site.id)
+                    addressobj = ipaddress.ip_interface(address)
 
-                    address_properties = {'assigned_object_type': 'dcim.interface',
-                                          'assigned_object_id': nb_interface.id}
+                    if addressobj not in nb_device_addresses:
+                        logger.info("Checking prefix %s", str(address.network))
+                        if nb_prefix is None:
+                            logger.info("Creating prefix %s", str(address.network))
+                            nb_prefix = nb.ipam.prefixes.create(prefix=str(address.network),
+                                                                site=nb_site.id,
+                                                                vlan=nb_interface.untagged_vlan.id)
 
-                    if addressdata['type'] == 'secondary':
-                        address_properties['role'] = 'secondary'
+                        if nb_address is None:
+                            logger.info("Creating IP %s", str(address))
+                            addressobj = nb.ipam.ip_addresses.create(address=str(address),
+                                                                     site=nb_site.id)
+                            nb_device_addresses[address] = addressobj
 
-                    nb_address.update(address_properties)
+                    nb_address = nb_device_addresses[addressobj]                                                                    
+                    nb_address.assigned_object_type = 'dcim.interface'
+                    nb_address.assigned_object_id = nb_interface.id
+                    nb_address.role = 'secondary'
+
+                    nb_address.save()
 
                     if intname == "Vlan901":
                         nb_device.update({'primary_ip4': nb_address.id})
@@ -254,10 +256,9 @@ def add_ip_addresses(fabric):
                         str(hsrpdata['address'])
 
                     logger.info("Checking address %s", hsrpdata['address'])
-                    nb_hsrp_address = nb.ipam.ip_addresses.get(address=f"{str(hsrpdata['address'])}/{str(normal_address).split('/')[1]}",
-                                                               interface_id=nb_interface.id)
-
-                    if nb_hsrp_address is None:
+                    try:
+                        assert ipaddress.ip_interface(str(hsrpdata['address'])+"/" +str(normal_address).split('/')[1]) in nb_device_addresses
+                    except AssertionError:
                         logger.info("Creating HSRP address %s",
                                     hsrpdata['address'])
                         nb_hsrp_address = nb.ipam.ip_addresses.create(address=f"{str(hsrpdata['address'])}/{str(normal_address).split('/')[1]}",
@@ -398,8 +399,8 @@ def add_cables(fabric):
 
 
 def main():
-    add_l2_vlans(fabric)
-    create_devices_and_interfaces(fabric)
+    #add_l2_vlans(fabric)
+    #create_devices_and_interfaces(fabric)
     add_ip_addresses(fabric)
     add_neighbor_ip_addresses(fabric)
     add_cables(fabric)
