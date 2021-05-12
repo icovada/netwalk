@@ -133,9 +133,9 @@ def create_devices_and_interfaces(fabric):
 
                     if "vlan" in interface.lower():
                         vlanid = int(interface.lower().replace("vlan", ""))
-                        intproperties['untagged_vlan'] = vlans_dict[vlanid]
+                        intproperties['untagged_vlan'] = vlans_dict[vlanid].id
                     else:
-                        intproperties['untagged_vlan'] = vlans_dict[thisint.native_vlan]
+                        intproperties['untagged_vlan'] = vlans_dict[thisint.native_vlan].id
                     intproperties['enabled'] = thisint.is_enabled
                 except:
                     pass
