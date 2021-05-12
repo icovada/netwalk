@@ -223,17 +223,27 @@ def add_ip_addresses(fabric):
                                                                      site=nb_site.id)
                             nb_device_addresses[address] = addressobj
 
-                    nb_address = nb_device_addresses[addressobj]                                                                    
-                    nb_address.assigned_object_type = 'dcim.interface'
-                    nb_address.assigned_object_id = nb_interface.id
-                    nb_address.role = 'secondary'
+                    nb_address = nb_device_addresses[addressobj]
+                    newdata = {}
+                    if nb_address.assigned_object_type != 'dcim.interface':
+                        newdata['assigned_object_type'] = 'dcim.interface'
+                    if nb_address.assigned_object_id != nb_interface.id:
+                        newdata['assigned_object_id'] = nb_interface.id
 
-                    nb_address.save()
+                    role = None if addressdata['type'] == 'primary' else addressdata['type']    
+                    
+                    if nb_address.role != role:
+                        newdata['role'] = role
 
-                    if intname == "Vlan901":
-                        nb_device.update({'primary_ip4': nb_address.id})
-                    elif len(swdata.interfaces_ip.items()) == 1:
-                        nb_device.update({'primary_ip4': nb_address.id})
+                    if len(newdata) > 0:
+                        logger.info("Updating address %s", address)
+                        nb_address.update(newdata)
+
+                    if nb_device.primary_ip4 != nb_address.id:
+                        if intname == "Vlan901":
+                            nb_device.update({'primary_ip4': nb_address.id})
+                        elif len(swdata.interfaces_ip.items()) == 1:
+                            nb_device.update({'primary_ip4': nb_address.id})
 
             if 'hsrp' in intdata.address and 'groups' in intdata.address['hsrp']:
                 for hsrpgrp, hsrpdata in intdata.address['hsrp']['groups'].items():
