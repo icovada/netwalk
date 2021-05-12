@@ -180,8 +180,9 @@ def create_devices_and_interfaces(fabric):
                     intproperties['enabled'] = thisint.is_enabled
 
                 if len(intproperties) > 0:
-                    logger.info("Updating interface %s on %s", interface, swname)
-                    nb_int.update(intproperties)                
+                    logger.info("Updating interface %s on %s",
+                                interface, swname)
+                    nb_int.update(intproperties)
 
         # Delete interfaces that no longer exist
         for k, v in nb_all_interfaces.items():
@@ -193,8 +194,10 @@ def create_devices_and_interfaces(fabric):
 def add_ip_addresses(fabric):
     for swname, swdata in fabric.switches.items():
         nb_device = nb.dcim.devices.get(name=swdata.facts['hostname'])
-        nb_device_addresses = {ipaddress.ip_interface(x): x for x in nb.ipam.ip_addresses.filter(device_id=nb_device.id)}
-        nb_device_interfaces = {x.name: x for x in nb.dcim.interfaces.filter(device_id=nb_device.id)}
+        nb_device_addresses = {ipaddress.ip_interface(
+            x): x for x in nb.ipam.ip_addresses.filter(device_id=nb_device.id)}
+        nb_device_interfaces = {
+            x.name: x for x in nb.dcim.interfaces.filter(device_id=nb_device.id)}
         all_device_addresses = []
 
         # Cycle through interfaces, see if the IPs on them are configured
@@ -212,10 +215,11 @@ def add_ip_addresses(fabric):
                     if address not in nb_device_addresses:
                         logger.info("Checking prefix %s", str(address.network))
                         nb_prefix = nb.ipam.prefixes.get(prefix=str(address.network),
-                                                     site_id=nb_site.id)
+                                                         site_id=nb_site.id)
 
                         if nb_prefix is None:
-                            logger.info("Creating prefix %s", str(address.network))
+                            logger.info("Creating prefix %s",
+                                        str(address.network))
                             nb_prefix = nb.ipam.prefixes.create(prefix=str(address.network),
                                                                 site=nb_site.id,
                                                                 vlan=nb_interface.untagged_vlan.id)
@@ -227,7 +231,7 @@ def add_ip_addresses(fabric):
                             logger.info("Creating IP %s", str(address))
                             nb_address = nb.ipam.ip_addresses.create(address=str(address),
                                                                      site=nb_site.id)
-                        
+
                         nb_device_addresses[address] = nb_address
 
                     nb_address = nb_device_addresses[address]
@@ -237,8 +241,8 @@ def add_ip_addresses(fabric):
                     if nb_address.assigned_object_id != nb_interface.id:
                         newdata['assigned_object_id'] = nb_interface.id
 
-                    role = None if addressdata['type'] == 'primary' else addressdata['type']    
-                    
+                    role = None if addressdata['type'] == 'primary' else addressdata['type']
+
                     if nb_address.role != role:
                         newdata['role'] = role
 
@@ -274,7 +278,8 @@ def add_ip_addresses(fabric):
 
                     logger.info("Checking address %s", hsrpdata['address'])
                     try:
-                        hsrp_addr_obj = ipaddress.ip_interface(str(hsrpdata['address'])+"/" +str(normal_address).split('/')[1])
+                        hsrp_addr_obj = ipaddress.ip_interface(
+                            str(hsrpdata['address'])+"/" + str(normal_address).split('/')[1])
                         all_device_addresses.append(hsrp_addr_obj)
                         assert hsrp_addr_obj in nb_device_addresses
                     except AssertionError:
@@ -289,7 +294,8 @@ def add_ip_addresses(fabric):
         for k, v in nb_device_addresses.items():
             if k not in all_device_addresses:
                 logger.warning("Deleting old address %s from %s", k, swname)
-                ip_to_remove = nb.ipam.ip_addresses.get(q=str(k), device_id=nb_device.id)
+                ip_to_remove = nb.ipam.ip_addresses.get(
+                    q=str(k), device_id=nb_device.id)
                 ip_to_remove.delete()
 
 
@@ -305,7 +311,8 @@ def add_neighbor_ip_addresses(fabric):
             try:
                 nb_neigh_device = neighbor['nb_device']
             except KeyError:
-                nb_neigh_device = nb.dcim.devices.get(name=neighbor['hostname'])
+                nb_neigh_device = nb.dcim.devices.get(
+                    name=neighbor['hostname'])
 
             nb_neigh_interface = nb.dcim.interfaces.get(name=neighbor['remote_int'],
                                                         device_id=nb_neigh_device.id)
@@ -321,11 +328,14 @@ def add_neighbor_ip_addresses(fabric):
                             neighbor['remote_int'], neighbor['hostname'], neighbor['platform'])
 
             # Search IP
-            logger.debug("Searching IP %s for %s", neighbor['ip'], neighbor['hostname'])
-            nb_neigh_ips = [x for x in nb.ipam.ip_addresses.filter(device_id=nb_neigh_device.id)]
+            logger.debug("Searching IP %s for %s",
+                         neighbor['ip'], neighbor['hostname'])
+            nb_neigh_ips = [x for x in nb.ipam.ip_addresses.filter(
+                device_id=nb_neigh_device.id)]
 
             if any([x.assigned_object_id != nb_neigh_interface.id for x in nb_neigh_ips]):
-                logger.error("Error, neighbor device %s as IPs on more interfaces than discovered, is this an error?", neighbor['hostname'])
+                logger.error(
+                    "Error, neighbor device %s as IPs on more interfaces than discovered, is this an error?", neighbor['hostname'])
                 continue
 
             if len(nb_neigh_ips) == 0:
@@ -355,16 +365,18 @@ def add_neighbor_ip_addresses(fabric):
                 else:
                     finalip = neighbor['ip'] + "/32"
                 logger.debug("Creating IP %s", finalip)
-                nb_neigh_ips.append(nb.ipam.ip_addresses.create(address=finalip))
+                nb_neigh_ips.append(
+                    nb.ipam.ip_addresses.create(address=finalip))
 
             for nb_neigh_ip in nb_neigh_ips:
                 if str(ipaddress.ip_interface(nb_neigh_ip.address).ip) != neighbor['ip']:
-                    logger.warning("Deleting old IP %s form %s", nb_neigh_ip.address, neighbor['hostname'])
+                    logger.warning("Deleting old IP %s form %s",
+                                   nb_neigh_ip.address, neighbor['hostname'])
                     nb_neigh_ip.delete()
 
                 if nb_neigh_ip.assigned_object_id != nb_neigh_interface.id:
                     logger.debug("Associating IP %s to interface %s",
-                                nb_neigh_ip.address, nb_neigh_interface.name)
+                                 nb_neigh_ip.address, nb_neigh_interface.name)
                     nb_neigh_ip.update({'assigned_object_type': 'dcim.interface',
                                         'assigned_object_id': nb_neigh_interface.id})
 
@@ -386,7 +398,8 @@ def add_l2_vlans(fabric):
 
 def add_cables(fabric):
     logger.info("Adding cables")
-    all_nb_devices = {x.name: x for x in nb.dcim.devices.filter(site_id=nb_site.id)}
+    all_nb_devices = {
+        x.name: x for x in nb.dcim.devices.filter(site_id=nb_site.id)}
     for swname, swdata in fabric.switches.items():
         swdata.nb_device = all_nb_devices[swdata.facts['hostname']]
 
@@ -400,14 +413,15 @@ def add_cables(fabric):
                     try:
                         assert hasattr(intdata, 'nb_interface')
                     except AssertionError:
-                        intdata.nb_interface = nb.dcim.interfaces.get(device_id=swdata.nb_device.id, name=intname)
+                        intdata.nb_interface = nb.dcim.interfaces.get(
+                            device_id=swdata.nb_device.id, name=intname)
 
                     try:
                         assert hasattr(intdata.neighbors[0], 'nb_interface')
                     except AssertionError:
-                        intdata.neighbors[0].nb_interface = nb.dcim.interfaces.get(device_id=intdata.neighbors[0].switch.nb_device.id, name=intdata.neighbors[0].name)
+                        intdata.neighbors[0].nb_interface = nb.dcim.interfaces.get(
+                            device_id=intdata.neighbors[0].switch.nb_device.id, name=intdata.neighbors[0].name)
 
-                
                     nb_term_a = intdata.nb_interface
                     nb_term_b = intdata.neighbors[0].nb_interface
 
@@ -415,7 +429,8 @@ def add_cables(fabric):
                     try:
                         assert hasattr(intdata, 'nb_interface')
                     except AssertionError:
-                        intdata.nb_interface = nb.dcim.interfaces.get(device_id=swdata.nb_device.id, name=intname)
+                        intdata.nb_interface = nb.dcim.interfaces.get(
+                            device_id=swdata.nb_device.id, name=intname)
 
                     try:
                         assert hasattr(intdata.neighbors[0], 'nb_device')
@@ -425,8 +440,8 @@ def add_cables(fabric):
                     try:
                         assert hasattr(intdata.neighbors[0], 'nb_interface')
                     except AssertionError:
-                        intdata.neighbors[0]['nb_interface'] = nb.dcim.interfaces.get(device_id=intdata.neighbors[0]['nb_device'].id, name=intdata.neighbors[0]['remote_int'])
-
+                        intdata.neighbors[0]['nb_interface'] = nb.dcim.interfaces.get(
+                            device_id=intdata.neighbors[0]['nb_device'].id, name=intdata.neighbors[0]['remote_int'])
 
                     nb_term_a = intdata.nb_interface
                     nb_term_b = intdata.neighbors[0]['nb_interface']
