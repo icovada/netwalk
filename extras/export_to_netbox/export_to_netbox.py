@@ -380,26 +380,51 @@ def add_l2_vlans(fabric):
 
 
 def add_cables(fabric):
+    logger.info("Adding cables")
+    all_nb_devices = {x.name: x for x in nb.dcim.devices.filter(site_id=nb_site.id)}
     for swname, swdata in fabric.switches.items():
-        swdata.nb_device = nb.dcim.devices.get(name=swdata.facts['hostname'])
-        assert swdata.nb_device is not None
+        swdata.nb_device = all_nb_devices[swdata.facts['hostname']]
 
     for swname, swdata in fabric.switches.items():
+        logger.info("Checking cables for device %s", swname)
         sw_cables = [x for x in nb.dcim.cables.filter(
             device_id=swdata.nb_device.id)]
         for intname, intdata in swdata.interfaces.items():
             try:
                 if isinstance(intdata.neighbors[0], netwalk.Interface):
-                    nb_term_a = nb.dcim.interfaces.get(
-                        device_id=swdata.nb_device.id, name=intname)
-                    nb_term_b = nb.dcim.interfaces.get(
-                        device_id=intdata.neighbors[0].switch.nb_device.id, name=intdata.neighbors[0].name)
+                    try:
+                        assert hasattr(intdata, 'nb_interface')
+                    except AssertionError:
+                        intdata.nb_interface = nb.dcim.interfaces.get(device_id=swdata.nb_device.id, name=intname)
+
+                    try:
+                        assert hasattr(intdata.neighbors[0], 'nb_interface')
+                    except AssertionError:
+                        intdata.neighbors[0].nb_interface = nb.dcim.interfaces.get(device_id=intdata.neighbors[0].switch.nb_device.id, name=intdata.neighbors[0].name)
+
+                
+                    nb_term_a = intdata.nb_interface
+                    nb_term_b = intdata.neighbors[0].nb_interface
 
                 elif isinstance(intdata.neighbors[0], dict):
-                    nb_term_a = nb.dcim.interfaces.get(
-                        device_id=swdata.nb_device.id, name=intname)
-                    nb_term_b = nb.dcim.interfaces.get(
-                        device_id=intdata.neighbors[0]['nb_device'].id, name=intdata.neighbors[0]['remote_int'])
+                    try:
+                        assert hasattr(intdata, 'nb_interface')
+                    except AssertionError:
+                        intdata.nb_interface = nb.dcim.interfaces.get(device_id=swdata.nb_device.id, name=intname)
+
+                    try:
+                        assert hasattr(intdata.neighbors[0], 'nb_device')
+                    except AssertionError:
+                        intdata.neighbors[0]['nb_device'] = all_nb_devices[intdata.neighbors[0]['hostname']]
+
+                    try:
+                        assert hasattr(intdata.neighbors[0], 'nb_interface')
+                    except AssertionError:
+                        intdata.neighbors[0]['nb_interface'] = nb.dcim.interfaces.get(device_id=intdata.neighbors[0]['nb_device'].id, name=intdata.neighbors[0]['remote_int'])
+
+
+                    nb_term_a = intdata.nb_interface
+                    nb_term_b = intdata.neighbors[0]['nb_interface']
 
                 try:
                     for cable in sw_cables:
@@ -420,8 +445,8 @@ def add_cables(fabric):
 
 
 def main():
-    #add_l2_vlans(fabric)
-    #create_devices_and_interfaces(fabric)
+    add_l2_vlans(fabric)
+    create_devices_and_interfaces(fabric)
     add_ip_addresses(fabric)
     add_neighbor_ip_addresses(fabric)
     add_cables(fabric)
