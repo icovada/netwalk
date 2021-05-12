@@ -297,6 +297,10 @@ def add_neighbor_ip_addresses(fabric):
             logger.debug("Searching IP %s for %s", neighbor['ip'], neighbor['hostname'])
             nb_neigh_ips = [x for x in nb.ipam.ip_addresses.filter(device_id=nb_neigh_device.id)]
 
+            if any([x.assigned_object_id != nb_neigh_interface.id for x in nb_neigh_ips]):
+                logger.error("Error, neighbor device %s as IPs on more interfaces than discovered, is this an error?", neighbor['hostname'])
+                continue
+
             if len(nb_neigh_ips) == 0:
                 # No ip found, figure out smallest prefix configured that contains the IP
                 logger.debug(
