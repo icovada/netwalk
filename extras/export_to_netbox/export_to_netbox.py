@@ -196,6 +196,7 @@ def add_ip_addresses(fabric):
         nb_device = nb.dcim.devices.get(name=swdata.facts['hostname'])
         nb_device_addresses = {ipaddress.ip_interface(x): x for x in nb.ipam.ip_addresses.filter(device_id=nb_device.id)}
         nb_device_interfaces = {x.name: x for x in nb.dcim.interfaces.filter(device_id=nb_device.id)}
+        all_device_addresses = []
 
         # Cycle through interfaces, see if the IPs on them are configured
         for intname, intdata in swdata.interfaces.items():
@@ -208,6 +209,7 @@ def add_ip_addresses(fabric):
                 for address, addressdata in intdata.address['ipv4'].items():
                     logger.info("Checking IP %s", str(address))
                     addressobj = ipaddress.ip_interface(address)
+                    all_device_addresses.append(addressobj)
 
                     if addressobj not in nb_device_addresses:
                         logger.info("Checking prefix %s", str(address.network))
@@ -268,6 +270,7 @@ def add_ip_addresses(fabric):
                     logger.info("Checking address %s", hsrpdata['address'])
                     try:
                         hsrp_addr_obj = ipaddress.ip_interface(str(hsrpdata['address'])+"/" +str(normal_address).split('/')[1])
+                        all_device_addresses.append(hsrp_addr_obj)
                         assert hsrp_addr_obj in nb_device_addresses
                     except AssertionError:
                         logger.info("Creating HSRP address %s",
@@ -277,6 +280,12 @@ def add_ip_addresses(fabric):
                                                                       assigned_object_type='dcim.interface',
                                                                       role='hsrp')
                         nb_device_addresses[hsrp_addr_obj] = nb_device_addresses
+
+        for k, v in nb_device_addresses.items():
+            if k not in all_device_addresses:
+                logger.warning("Deleting old address %s from %s", k, swname)
+                ip_to_remove = nb.ipam.ip_addresses.get(q=str(k), device_id=nb_device.id)
+                ip_to_remove.delete()
 
 
 def add_neighbor_ip_addresses(fabric):
