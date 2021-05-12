@@ -47,6 +47,9 @@ def create_devices_and_interfaces(fabric):
                                                site=nb_site.id,
                                                serial_number=swdata.facts['serial_number'])
 
+        nb_all_interfaces = {x.name: x for x in nb.dcim.interfaces.filter(device_id=nb_device.id)}
+
+        # Create new interfaces
         for interface in swdata.facts['interface_list']:
             intproperties = {}
             logger.info("Interface %s on switch %s", interface, swname)
@@ -148,6 +151,13 @@ def create_devices_and_interfaces(fabric):
 
             except (AssertionError, KeyError, IndexError):
                 pass
+
+
+        # Delete interfaces that no longer exist
+        for k, v in nb_all_interfaces.items():
+            if k not in swdata.interfaces:
+                logger.info("Deleting interface %s from %s", k, swname)
+                v.delete()
 
 
 def add_ip_addresses(fabric):
@@ -289,8 +299,8 @@ def add_neighbor_ip_addresses(fabric):
 
 
 def add_l2_vlans(fabric):
-    nb_all_vlans = nb.ipam.vlans.filter(site_id=nb_site.id)
-    vlan_dict = {x['vid']: x for x in nb_all_vlans.response}
+    nb_all_vlans = [x for x in nb.ipam.vlans.filter(site_id=nb_site.id)]
+    vlan_dict = {x.vid: x for x in nb_all_vlans}
     for swname, swdata in fabric.switches.items():
         for vlanid, vlandata in swdata.vlans.items():
             if int(vlanid) not in vlan_dict:
