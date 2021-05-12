@@ -275,7 +275,11 @@ def add_neighbor_ip_addresses(fabric):
             except (AssertionError, KeyError, IndexError):
                 continue
 
-            nb_neigh_device = neighbor['nb_device']
+            try:
+                nb_neigh_device = neighbor['nb_device']
+            except KeyError:
+                nb_neigh_device = nb.dcim.devices.get(name=neighbor['hostname'])
+
             nb_neigh_interface = nb.dcim.interfaces.get(name=neighbor['remote_int'],
                                                         device_id=nb_neigh_device.id)
 
@@ -290,9 +294,10 @@ def add_neighbor_ip_addresses(fabric):
                             neighbor['remote_int'], neighbor['hostname'], neighbor['platform'])
 
             # Search IP
-            logger.debug("Searching IP %s", neighbor['ip'])
-            nb_neigh_ip = nb.ipam.ip_addresses.get(address=neighbor['ip'])
-            if nb_neigh_ip is None:
+            logger.debug("Searching IP %s for %s", neighbor['ip'], neighbor['hostname'])
+            nb_neigh_ips = [x for x in nb.ipam.ip_addresses.filter(device_id=nb_neigh_device.id)]
+
+            if len(nb_neigh_ips) == 0:
                 # No ip found, figure out smallest prefix configured that contains the IP
                 logger.debug(
                     "IP %s not found, looking for prefixes", neighbor['ip'])
@@ -308,7 +313,7 @@ def add_neighbor_ip_addresses(fabric):
                         if thispref.prefixlen > prefixlen:
                             prefixlen = thispref.prefixlen
                             logger.debug(
-                                "Found longest prefix found %s", thispref)
+                                "Found longest prefix %s", thispref)
                             smallestprefix = thispref
 
                     assert smallestprefix is not None
@@ -319,15 +324,20 @@ def add_neighbor_ip_addresses(fabric):
                 else:
                     finalip = neighbor['ip'] + "/32"
                 logger.debug("Creating IP %s", finalip)
-                nb_neigh_ip = nb.ipam.ip_addresses.create(address=finalip)
+                nb_neigh_ips.append(nb.ipam.ip_addresses.create(address=finalip))
 
-            if nb_neigh_ip.assigned_object_id == nb_neigh_interface.id:
-                logger.debug("Associating IP %s to interface %s",
-                            nb_neigh_ip.address, nb_neigh_interface.name)
-                nb_neigh_ip.update({'assigned_object_type': 'dcim.interface',
-                                    'assigned_object_id': nb_neigh_interface.id})
+            for nb_neigh_ip in nb_neigh_ips:
+                if str(ipaddress.ip_interface(nb_neigh_ip.address).ip) != neighbor['ip']:
+                    logger.warning("Deleting old IP %s form %s", nb_neigh_ip.address, neighbor['hostname'])
+                    nb_neigh_ip.delete()
 
-                nb_neigh_device.update({'primary_ip4': nb_neigh_ip.id})
+                if nb_neigh_ip.assigned_object_id != nb_neigh_interface.id:
+                    logger.debug("Associating IP %s to interface %s",
+                                nb_neigh_ip.address, nb_neigh_interface.name)
+                    nb_neigh_ip.update({'assigned_object_type': 'dcim.interface',
+                                        'assigned_object_id': nb_neigh_interface.id})
+
+                    nb_neigh_device.update({'primary_ip4': nb_neigh_ip.id})
 
 
 def add_l2_vlans(fabric):
