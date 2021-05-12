@@ -321,12 +321,13 @@ def add_neighbor_ip_addresses(fabric):
                 logger.debug("Creating IP %s", finalip)
                 nb_neigh_ip = nb.ipam.ip_addresses.create(address=finalip)
 
-            logger.debug("Associating IP %s to interface %s",
-                         nb_neigh_ip.address, nb_neigh_interface.name)
-            nb_neigh_ip.update({'assigned_object_type': 'dcim.interface',
-                                'assigned_object_id': nb_neigh_interface.id})
+            if nb_neigh_ip.assigned_object_id == nb_neigh_interface.id:
+                logger.debug("Associating IP %s to interface %s",
+                            nb_neigh_ip.address, nb_neigh_interface.name)
+                nb_neigh_ip.update({'assigned_object_type': 'dcim.interface',
+                                    'assigned_object_id': nb_neigh_interface.id})
 
-            nb_neigh_device.update({'primary_ip4': nb_neigh_ip.id})
+                nb_neigh_device.update({'primary_ip4': nb_neigh_ip.id})
 
 
 def add_l2_vlans(fabric):
