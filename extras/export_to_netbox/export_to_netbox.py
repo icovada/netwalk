@@ -194,6 +194,11 @@ def add_ip_addresses(fabric):
 
             if 'hsrp' in intdata.address and 'groups' in intdata.address['hsrp']:
                 for hsrpgrp, hsrpdata in intdata.address['hsrp']['groups'].items():
+                    try:
+                        assert 'address' in hsrpdata
+                    except AssertionError:
+                        continue
+
                     logger.info("Checking HSRP address %s on %s %s",
                                 hsrpdata['address'], intdata.switch.facts['hostname'], intdata.name)
 
@@ -352,5 +357,5 @@ if __name__ == '__main__':
     nb_access_role = nb.dcim.device_roles.get(name="Access Switch")
     nb_core_role = nb.dcim.device_roles.get(name="Core Switch")
     nb_neigh_role = nb.dcim.device_roles.get(name="Access Point")
-    nb_site = nb.dcim.sites.get(name="Caselle")
+    nb_site = nb.dcim.sites.get(name="Capoponte")
     main()
