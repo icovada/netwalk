@@ -289,17 +289,16 @@ def add_neighbor_ip_addresses(fabric):
 
 
 def add_l2_vlans(fabric):
+    nb_all_vlans = nb.ipam.vlans.filter(site_id=nb_site.id)
+    vlan_dict = {x['vid']: x for x in nb_all_vlans.response}
     for swname, swdata in fabric.switches.items():
         for vlanid, vlandata in swdata.vlans.items():
-            nb_vlan = nb.ipam.vlans.get(vid=vlanid,
-                                        site_id=nb_site.id)
-            if nb_vlan is None:
+            if int(vlanid) not in vlan_dict:
                 logger.info("Adding vlan %s", vlanid)
                 nb_vlan = nb.ipam.vlans.create(vid=vlanid,
                                                name=vlandata['name'],
                                                site=nb_site.id)
-
-        break
+                vlan_dict[int(vlanid)] = nb_vlan
 
 
 def add_cables(fabric):
