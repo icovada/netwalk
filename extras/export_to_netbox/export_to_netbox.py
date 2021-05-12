@@ -24,7 +24,6 @@ def create_cdp_neighbor(swdata, interface):
     try:
         neighbor = swdata.interfaces[interface].neighbors[0]
         assert isinstance(neighbor, dict)
-        # assert "AIR" in neighbor['platform']
         logger.debug("Parsing neighbor %s on %s ip %s platform %s",
                      neighbor['hostname'], neighbor['remote_int'], neighbor['ip'], neighbor['platform'])
 
@@ -34,8 +33,7 @@ def create_cdp_neighbor(swdata, interface):
             model = neighbor['platform']
             vendor = "Unknown"
 
-        nb_manufacturer = nb.dcim.manufacturers.get(
-            slug=slugify(vendor))
+        nb_manufacturer = nb.dcim.manufacturers.get(slug=slugify(vendor))
 
         if nb_manufacturer is None:
             nb_manufacturer = nb.dcim.manufacturers.create(
@@ -102,7 +100,7 @@ def create_devices_and_interfaces(fabric):
             x.name: x for x in nb.dcim.interfaces.filter(device_id=nb_device.id)}
 
         # Create new interfaces
-        for interface in swdata.facts['interface_list']:
+        for interface in swdata.interfaces.keys():
             if interface not in nb_all_interfaces:
                 intproperties = {}
                 logger.info("Interface %s on switch %s", interface, swname)
