@@ -19,6 +19,57 @@ nb = pynetbox.api(
 )
 
 
+def create_cdp_neighbor(swdata, interface):
+    # Create undiscovered CDP neighbors
+    try:
+        neighbor = swdata.interfaces[interface].neighbors[0]
+        assert isinstance(neighbor, dict)
+        # assert "AIR" in neighbor['platform']
+        logger.debug("Parsing neighbor %s on %s ip %s platform %s",
+                     neighbor['hostname'], neighbor['remote_int'], neighbor['ip'], neighbor['platform'])
+
+        try:
+            vendor, model = neighbor['platform'].split()
+        except ValueError:
+            model = neighbor['platform']
+            vendor = "Unknown"
+
+        nb_manufacturer = nb.dcim.manufacturers.get(
+            slug=slugify(vendor))
+
+        if nb_manufacturer is None:
+            nb_manufacturer = nb.dcim.manufacturers.create(
+                name=vendor, slug=slugify(vendor))
+
+        nb_device_ap = nb.dcim.devices.get(name=neighbor['hostname'])
+        if nb_device_ap is None:
+            nb_device_type = nb.dcim.device_types.get(
+                slug=slugify(model))
+            if nb_device_type is None:
+                nb_device_type = nb.dcim.device_types.create(model=model,
+                                                             manufacturer=nb_manufacturer.id,
+                                                             slug=slugify(model))
+
+                logger.warning("Created device type " +
+                               vendor + " " + model)
+
+            logger.info("Creating neighbor %s", neighbor['hostname'])
+            nb_device_ap = nb.dcim.devices.create(name=neighbor['hostname'],
+                                                  device_role=nb_neigh_role.id,
+                                                  device_type=nb_device_type.id,
+                                                  site=nb_site.id)
+
+            logger.info("Creating interface %s on neighbor %s",
+                        neighbor['remote_int'], neighbor['hostname'])
+            nb_interface = nb.dcim.interfaces.create(device=nb_device_ap.id,
+                                                     name=neighbor['remote_int'],
+                                                     type="1000base-t")
+
+        neighbor['nb_device'] = nb_device_ap
+    except (AssertionError, KeyError, IndexError):
+        pass
+
+
 def create_devices_and_interfaces(fabric):
     # Create devices and interfaces
     site_vlans = nb.ipam.vlans.filter(site_id=nb_site.id)
@@ -47,111 +98,56 @@ def create_devices_and_interfaces(fabric):
                                                site=nb_site.id,
                                                serial_number=swdata.facts['serial_number'])
 
-        nb_all_interfaces = {x.name: x for x in nb.dcim.interfaces.filter(device_id=nb_device.id)}
+        nb_all_interfaces = {
+            x.name: x for x in nb.dcim.interfaces.filter(device_id=nb_device.id)}
 
         # Create new interfaces
         for interface in swdata.facts['interface_list']:
-            intproperties = {}
-            logger.info("Interface %s on switch %s", interface, swname)
-            if "Fast" in interface:
-                int_type = "100base-tx"
-            elif "Te" in interface:
-                interface = interface.replace("Te", "TenGigabitEthernet")
-                int_type = "10gbase-x-sfpp"
-            elif "Gigabit" in interface:
-                int_type = "1000base-t"
-            elif "Vlan" in interface:
-                int_type = "virtual"
-            elif "channel" in interface:
-                int_type = "lag"
+            if interface not in nb_all_interfaces:
+                intproperties = {}
+                logger.info("Interface %s on switch %s", interface, swname)
+                if "Fast" in interface:
+                    int_type = "100base-tx"
+                elif "Te" in interface:
+                    interface = interface.replace("Te", "TenGigabitEthernet")
+                    int_type = "10gbase-x-sfpp"
+                elif "Gigabit" in interface:
+                    int_type = "1000base-t"
+                elif "Vlan" in interface:
+                    int_type = "virtual"
+                elif "channel" in interface:
+                    int_type = "lag"
 
-            try:
-                thisint = swdata.interfaces[interface]
-                if thisint.description is not None:
-                    intproperties['description'] = thisint.description
+                try:
+                    thisint = swdata.interfaces[interface]
+                    if thisint.description is not None:
+                        intproperties['description'] = thisint.description
 
-                if thisint.mode == "trunk":
-                    if len(thisint.allowed_vlan) == 4094:
-                        intproperties['mode'] = "tagged-all"
+                    if thisint.mode == "trunk":
+                        if len(thisint.allowed_vlan) == 4094:
+                            intproperties['mode'] = "tagged-all"
+                        else:
+                            intproperties['mode'] = "tagged"
+                            intproperties['tagged_vlans'] = [
+                                vlans_dict[x]['id'] for x in thisint.allowed_vlan]
                     else:
-                        intproperties['mode'] = "tagged"
-                        intproperties['tagged_vlans'] = [
-                            vlans_dict[x]['id'] for x in thisint.allowed_vlan]
-                else:
-                    intproperties['mode'] = "access"
+                        intproperties['mode'] = "access"
 
-                if "vlan" in interface.lower():
-                    vlanid = int(interface.lower().replace("vlan", ""))
-                    intproperties['untagged_vlan'] = vlans_dict[vlanid]['id']
-                else:
-                    intproperties['untagged_vlan'] = vlans_dict[thisint.native_vlan]['id']
-                intproperties['enabled'] = thisint.is_enabled
-            except:
-                pass
+                    if "vlan" in interface.lower():
+                        vlanid = int(interface.lower().replace("vlan", ""))
+                        intproperties['untagged_vlan'] = vlans_dict[vlanid]['id']
+                    else:
+                        intproperties['untagged_vlan'] = vlans_dict[thisint.native_vlan]['id']
+                    intproperties['enabled'] = thisint.is_enabled
+                except:
+                    pass
 
-            nb_interface = nb.dcim.interfaces.get(device_id=nb_device.id,
-                                                  name=interface)
-
-            if nb_interface is None:
                 nb_interface = nb.dcim.interfaces.create(device=nb_device.id,
                                                          name=interface,
                                                          type=int_type,
                                                          **intproperties)
-            else:
-                nb_interface.update(intproperties)
 
-            # Create undiscovered CDP neighbors
-            try:
-                neighbor = swdata.interfaces[interface].neighbors[0]
-                assert isinstance(neighbor, dict)
-                #assert "AIR" in neighbor['platform']
-                logger.debug("Parsing neighbor %s on %s ip %s platform %s",
-                             neighbor['hostname'], neighbor['remote_int'], neighbor['ip'], neighbor['platform'])
-
-                try:
-                    vendor, model = neighbor['platform'].split()
-                except ValueError:
-                    model = neighbor['platform']
-                    vendor = "Unknown"
-                nb_manufacturer = nb.dcim.manufacturers.get(
-                    slug=slugify(vendor))
-
-                if nb_manufacturer is None:
-                    nb_manufacturer = nb.dcim.manufacturers.create(
-                        name=vendor, slug=slugify(vendor))
-
-                nb_device_ap = nb.dcim.devices.get(name=neighbor['hostname'])
-
-                if nb_device_ap is None:
-                    nb_device_type = nb.dcim.device_types.get(
-                        slug=slugify(model))
-                    if nb_device_type is None:
-                        nb_device_type = nb.dcim.device_types.create(model=model,
-                                                                     manufacturer=nb_manufacturer.id,
-                                                                     slug=slugify(model))
-
-                        logger.warning("Created device type " +
-                                       vendor + " " + model)
-
-                    logger.info("Creating neighbor %s", neighbor['hostname'])
-                    nb_device_ap = nb.dcim.devices.create(name=neighbor['hostname'],
-                                                          device_role=nb_neigh_role.id,
-                                                          device_type=nb_device_type.id,
-                                                          site=nb_site.id,
-                                                          )
-
-                    logger.info("Creating interface %s on neighbor %s",
-                                neighbor['remote_int'], neighbor['hostname'])
-                    nb_interface = nb.dcim.interfaces.create(device=nb_device_ap.id,
-                                                             name=neighbor['remote_int'],
-                                                             type="1000base-t")
-
-                neighbor['nb_device'] = nb_device_ap
-                print(neighbor)
-
-            except (AssertionError, KeyError, IndexError):
-                pass
-
+                create_cdp_neighbor(swdata, interface)
 
         # Delete interfaces that no longer exist
         for k, v in nb_all_interfaces.items():
