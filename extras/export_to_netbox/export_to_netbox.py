@@ -107,7 +107,6 @@ def create_devices_and_interfaces(fabric):
                 if "Fast" in interface:
                     int_type = "100base-tx"
                 elif "Te" in interface:
-                    interface = interface.replace("Te", "TenGigabitEthernet")
                     int_type = "10gbase-x-sfpp"
                 elif "Gigabit" in interface:
                     int_type = "1000base-t"
@@ -127,7 +126,7 @@ def create_devices_and_interfaces(fabric):
                         else:
                             intproperties['mode'] = "tagged"
                             intproperties['tagged_vlans'] = [
-                                vlans_dict[x] for x in thisint.allowed_vlan]
+                                vlans_dict[x].id for x in thisint.allowed_vlan]
                     else:
                         intproperties['mode'] = "access"
 
@@ -208,24 +207,30 @@ def add_ip_addresses(fabric):
             if 'ipv4' in intdata.address:
                 for address, addressdata in intdata.address['ipv4'].items():
                     logger.info("Checking IP %s", str(address))
-                    addressobj = ipaddress.ip_interface(address)
-                    all_device_addresses.append(addressobj)
+                    all_device_addresses.append(address)
 
-                    if addressobj not in nb_device_addresses:
+                    if address not in nb_device_addresses:
                         logger.info("Checking prefix %s", str(address.network))
+                        nb_prefix = nb.ipam.prefixes.get(prefix=str(address.network),
+                                                     site_id=nb_site.id)
+
                         if nb_prefix is None:
                             logger.info("Creating prefix %s", str(address.network))
                             nb_prefix = nb.ipam.prefixes.create(prefix=str(address.network),
                                                                 site=nb_site.id,
                                                                 vlan=nb_interface.untagged_vlan.id)
 
+                        logger.info("Checking IP %s", str(address))
+                        nb_address = nb.ipam.ip_addresses.get(address=str(address),
+                                                              site_id=nb_site.id)
                         if nb_address is None:
                             logger.info("Creating IP %s", str(address))
-                            addressobj = nb.ipam.ip_addresses.create(address=str(address),
+                            nb_address = nb.ipam.ip_addresses.create(address=str(address),
                                                                      site=nb_site.id)
-                            nb_device_addresses[address] = addressobj
+                        
+                        nb_device_addresses[address] = nb_address
 
-                    nb_address = nb_device_addresses[addressobj]
+                    nb_address = nb_device_addresses[address]
                     newdata = {}
                     if nb_address.assigned_object_type != 'dcim.interface':
                         newdata['assigned_object_type'] = 'dcim.interface'
