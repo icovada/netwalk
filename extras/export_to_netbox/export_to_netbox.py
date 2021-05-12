@@ -267,14 +267,16 @@ def add_ip_addresses(fabric):
 
                     logger.info("Checking address %s", hsrpdata['address'])
                     try:
-                        assert ipaddress.ip_interface(str(hsrpdata['address'])+"/" +str(normal_address).split('/')[1]) in nb_device_addresses
+                        hsrp_addr_obj = ipaddress.ip_interface(str(hsrpdata['address'])+"/" +str(normal_address).split('/')[1])
+                        assert hsrp_addr_obj in nb_device_addresses
                     except AssertionError:
                         logger.info("Creating HSRP address %s",
                                     hsrpdata['address'])
-                        nb_hsrp_address = nb.ipam.ip_addresses.create(address=f"{str(hsrpdata['address'])}/{str(normal_address).split('/')[1]}",
+                        nb_hsrp_address = nb.ipam.ip_addresses.create(address=str(hsrp_addr_obj),
                                                                       assigned_object_id=nb_interface.id,
                                                                       assigned_object_type='dcim.interface',
                                                                       role='hsrp')
+                        nb_device_addresses[hsrp_addr_obj] = nb_device_addresses
 
 
 def add_neighbor_ip_addresses(fabric):
