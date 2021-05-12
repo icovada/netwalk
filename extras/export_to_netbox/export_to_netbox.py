@@ -175,7 +175,7 @@ def create_devices_and_interfaces(fabric):
                 try:
                     assert nb_int.untagged_vlan == vlans_dict[thisint.native_vlan]
                 except AssertionError:
-                    intproperties['untagged_vlan'] = vlans_dict[thisint.native_vlan].id
+                    intproperties['untagged_vlan'] = vlans_dict[thisint.native_vlan]
 
                 if thisint.is_enabled != nb_int.enabled:
                     intproperties['enabled'] = thisint.is_enabled
