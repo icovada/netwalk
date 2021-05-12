@@ -17,7 +17,7 @@ class Interface():
     def __init__(self, **kwargs):
         self.logger = logging.getLogger(__name__)
         self.name: str = kwargs.get('name', None)
-        self.description: Optional[str] = kwargs.get('description', None)
+        self.description: Optional[str] = kwargs.get('description', "")
         self.address: dict = kwargs.get('address', {})
         self.vrf: str = kwargs.get('vrf', "default")
         self.mode: str = kwargs.get('mode', 'access')
@@ -244,7 +244,7 @@ class Interface():
 
         fullconfig = f"interface {self.name}\n"
 
-        if self.description is not None:
+        if self.description != "":
             fullconfig = fullconfig + f" description {self.description}\n"
 
         if not self.routed_port:

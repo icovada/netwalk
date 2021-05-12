@@ -150,8 +150,6 @@ def create_devices_and_interfaces(fabric):
             else:
                 thisint = swdata.interfaces[interface]
                 nb_int = nb_all_interfaces[interface]
-                if thisint.description is None:
-                    thisint.description = ""
 
                 if thisint.description != nb_int.description:
                     intproperties['description'] = thisint.description if thisint.description is not None else ""
