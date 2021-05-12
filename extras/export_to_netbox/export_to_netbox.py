@@ -192,8 +192,8 @@ def add_ip_addresses(fabric):
                     elif len(swdata.interfaces_ip.items()) == 1:
                         nb_device.update({'primary_ip4': nb_address.id})
 
-            if 'hsrp' in intdata.address:
-                for hsrpgrp, hsrpdata in intdata.address['hsrp'].items():
+            if 'hsrp' in intdata.address and 'groups' in intdata.address['hsrp']:
+                for hsrpgrp, hsrpdata in intdata.address['hsrp']['groups'].items():
                     logger.info("Checking HSRP address %s on %s %s",
                                 hsrpdata['address'], intdata.switch.facts['hostname'], intdata.name)
 

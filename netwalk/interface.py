@@ -190,24 +190,26 @@ class Interface():
                 try:
                     assert 'hsrp' in self.address
                 except AssertionError:
-                    self.address['hsrp'] = {}
+                    self.address['hsrp'] = {'version': 1, 'groups': {}}
+
+                if command == 'version':
+                    self.address['hsrp']['version'] = int(argument)
+                    continue
 
                 try:
-                    assert grpid in self.address['hsrp']
+                    assert grpid in self.address['hsrp']['groups']
                 except AssertionError:
-                    self.address['hsrp'][grpid] = {'priority': 100, 'preempt': False, 'version': 1, 'secondary': []}
+                    self.address['hsrp']['groups'][grpid] = {'priority': 100, 'preempt': False, 'secondary': []}
 
                 if command == 'ip':
                     if secondary is not None:
-                        self.address['hsrp'][grpid]['secondary'].append(ipaddress.ip_address(argument))
+                        self.address['hsrp']['groups'][grpid]['secondary'].append(ipaddress.ip_address(argument))
                     else:
-                        self.address['hsrp'][grpid]['address'] = ipaddress.ip_address(argument)
+                        self.address['hsrp']['groups'][grpid]['address'] = ipaddress.ip_address(argument)
                 elif command == 'priority':
-                    self.address['hsrp'][grpid]['priority'] = int(argument)
+                    self.address['hsrp']['groups'][grpid]['priority'] = int(argument)
                 elif command == 'preempt':
-                    self.address['hsrp'][grpid]['preempt'] = True
-                elif command == 'version':
-                    self.address['hsrp'][grpid]['version'] = int(argument)
+                    self.address['hsrp']['groups'][grpid]['preempt'] = True
                 continue
 
             if cleanline != '' and cleanline != '!':
@@ -293,7 +295,9 @@ class Interface():
                         fullconfig = fullconfig + "\n"
 
             if 'hsrp' in self.address:
-                for k, v in self.address['hsrp'].items():
+                if self.address['hsrp']['version'] != 1:
+                    fullconfig = fullconfig + " standby version " + str(self.address['hsrp']['version']) + "\n"
+                for k, v in self.address['hsrp']['groups'].items():
                     line_begin = f" standby {k} " if k != 0 else " standby "
                     fullconfig = fullconfig + line_begin + "ip " + str(v['address']) + "\n"
                     for secaddr in v['secondary']:
@@ -302,8 +306,6 @@ class Interface():
                         fullconfig = fullconfig + line_begin + "priority " + str(v['priority']) + "\n"
                     if v['preempt']:
                         fullconfig = fullconfig + line_begin + "preempt\n"
-                    if v['version'] != 1:
-                        fullconfig = fullconfig + line_begin + "version " + str(v['version']) + "\n"
 
         for line in self.unparsed_lines:
             fullconfig = fullconfig + line + "\n"
