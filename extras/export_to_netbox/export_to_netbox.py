@@ -335,7 +335,7 @@ def add_neighbor_ip_addresses(fabric):
 
             if any([x.assigned_object_id != nb_neigh_interface.id for x in nb_neigh_ips]):
                 logger.error(
-                    "Error, neighbor device %s as IPs on more interfaces than discovered, is this an error?", neighbor['hostname'])
+                    "Error, neighbor device %s has IPs on more interfaces than discovered, is this an error?", neighbor['hostname'])
                 continue
 
             if len(nb_neigh_ips) == 0:
