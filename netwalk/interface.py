@@ -95,7 +95,7 @@ class Interface():
 
             # Native vlan
             match = re.search(r"switchport access vlan (.*)$", cleanline)
-            if match is not None and self.mode == 'access':
+            if match is not None and self.mode != 'trunk':
                 self.native_vlan = int(match.groups()[0])
                 continue
 
