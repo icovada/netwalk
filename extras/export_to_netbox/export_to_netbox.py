@@ -174,18 +174,18 @@ def create_devices_and_interfaces(fabric):
                     if len(thisint.allowed_vlan) == 4094:
                         try:
                             assert nb_int.mode.value == 'tagged-all'
-                        except AssertionError:
+                        except (AssertionError, AttributeError):
                             intproperties['mode'] = 'tagged-all'
                     else:
                         try:
                             assert nb_int.mode.value == 'tagged'
-                        except AssertionError:
+                        except (AssertionError, AttributeError):
                             intproperties['mode'] = 'tagged'
 
                 elif thisint.mode == 'access':
                     try:
                         assert nb_int.mode.value == 'access'
-                    except AssertionError:
+                    except (AssertionError, AttributeError):
                         intproperties['mode'] = 'access'
 
                 try:
@@ -287,9 +287,11 @@ def add_ip_addresses(fabric):
                     # Lookup in 'normal' ips to find out address netmask
 
                     netmask = None
-                    for normal_address, normal_adddressdata in intdata.address['ipv4'].items():
-                        if hsrpdata['address'] in normal_address.network:
-                            netmask = normal_address.network
+
+                    if 'ipv4' in intdata.address:
+                        for normal_address, normal_adddressdata in intdata.address['ipv4'].items():
+                            if hsrpdata['address'] in normal_address.network:
+                                netmask = normal_address.network
 
                     assert netmask is not None, "Could not find netmask for HSRP address" + \
                         str(hsrpdata['address'])
@@ -497,5 +499,5 @@ if __name__ == '__main__':
     nb_access_role = nb.dcim.device_roles.get(name="Access Switch")
     nb_core_role = nb.dcim.device_roles.get(name="Core Switch")
     nb_neigh_role = nb.dcim.device_roles.get(name="Access Point")
-    nb_site = nb.dcim.sites.get(name="Nogarole")
+    nb_site = nb.dcim.sites.get(name="Cremona")
     main()
