@@ -144,8 +144,6 @@ def create_devices_and_interfaces(fabric):
                                                          type=int_type,
                                                          **intproperties)
 
-                create_cdp_neighbor(swdata, interface)
-
             else:
                 thisint = swdata.interfaces[interface]
                 nb_int = nb_all_interfaces[interface]
@@ -183,6 +181,8 @@ def create_devices_and_interfaces(fabric):
                     logger.info("Updating interface %s on %s",
                                 interface, swname)
                     nb_int.update(intproperties)
+
+            create_cdp_neighbor(swdata, interface)
 
         # Delete interfaces that no longer exist
         for k, v in nb_all_interfaces.items():
@@ -479,5 +479,5 @@ if __name__ == '__main__':
     nb_access_role = nb.dcim.device_roles.get(name="Access Switch")
     nb_core_role = nb.dcim.device_roles.get(name="Core Switch")
     nb_neigh_role = nb.dcim.device_roles.get(name="Access Point")
-    nb_site = nb.dcim.sites.get(name="Capoponte")
+    nb_site = nb.dcim.sites.get(name="Nogarole")
     main()
