@@ -143,10 +143,15 @@ def create_devices_and_interfaces(fabric):
                                                          name=interface,
                                                          type=int_type,
                                                          **intproperties)
+                create_cdp_neighbor(swdata, interface)
 
             else:
                 thisint = swdata.interfaces[interface]
                 nb_int = nb_all_interfaces[interface]
+
+                if len(thisint.neighbors) == 0 and nb_int.cable is not None:
+                    logger.info("Deleting old cable on %s", thisint.name)
+                    nb_int.cable.delete()
 
                 if thisint.description != nb_int.description:
                     intproperties['description'] = thisint.description if thisint.description is not None else ""
@@ -182,7 +187,6 @@ def create_devices_and_interfaces(fabric):
                                 interface, swname)
                     nb_int.update(intproperties)
 
-            create_cdp_neighbor(swdata, interface)
 
         # Delete interfaces that no longer exist
         for k, v in nb_all_interfaces.items():
