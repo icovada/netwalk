@@ -19,7 +19,7 @@ nb = pynetbox.api(
 )
 
 
-def create_cdp_neighbor(swdata, interface):
+def create_cdp_neighbor(swdata, interface, nb_int=None):
     # Create undiscovered CDP neighbors
     try:
         neighbor = swdata.interfaces[interface].neighbors[0]
@@ -63,7 +63,18 @@ def create_cdp_neighbor(swdata, interface):
                                                      name=neighbor['remote_int'],
                                                      type="1000base-t")
 
-        neighbor['nb_device'] = nb_device_ap
+            neighbor['nb_device'] = nb_device_ap
+        else:
+            if nb_int is not None:
+                if nb_int.cable is not None:
+                    try:
+                        assert nb_int.cable_peer.device.name == neighbor['hostname'].split(".")[0]
+                        assert nb_int.cable_peer.name == neighbor['remote_int']
+                    except AssertionError:
+                        nb_int.cable.delete()
+
+            neighbor['nb_device'] = nb_device_ap
+
     except (AssertionError, KeyError, IndexError):
         pass
 
@@ -149,9 +160,12 @@ def create_devices_and_interfaces(fabric):
                 thisint = swdata.interfaces[interface]
                 nb_int = nb_all_interfaces[interface]
 
-                if len(thisint.neighbors) == 0 and nb_int.cable is not None:
-                    logger.info("Deleting old cable on %s", thisint.name)
-                    nb_int.cable.delete()
+                if len(thisint.neighbors) == 0:
+                    if nb_int.cable is not None:
+                        logger.info("Deleting old cable on %s", thisint.name)
+                        nb_int.cable.delete()
+                else:
+                    create_cdp_neighbor(swdata, interface, nb_int=nb_int)
 
                 if thisint.description != nb_int.description:
                     intproperties['description'] = thisint.description if thisint.description is not None else ""
