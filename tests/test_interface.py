@@ -13,7 +13,7 @@ class BaseInterfaceTester(unittest.TestCase):
         assert interface.mode == "access"
         assert interface.native_vlan == 1
         assert interface.voice_vlan is None
-        assert interface.description is None
+        assert interface.description == ""
         assert not interface.bpduguard
         assert not interface.type_edge
         assert interface.is_enabled
@@ -47,6 +47,19 @@ class BaseInterfaceTester(unittest.TestCase):
 
         interface = netwalk.Interface(config=config)
         assert interface.bpduguard
+
+    def test_dynamic_desirable(self):
+        config = ("interface GigabitEthernet0/16\n"
+                  "description [Direct] SD-WAN\n"
+                  "switchport access vlan 820\n"
+                  "switchport mode dynamic desirable\n"
+                  "spanning-tree portfast\n")
+
+        interface = netwalk.Interface(config=config)
+
+        assert interface.mode == "dynamic desirable"
+        assert interface.native_vlan == 820
+
 
 
 class AccessInterfaceTester(unittest.TestCase):
