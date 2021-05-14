@@ -303,7 +303,7 @@ def add_ip_addresses(fabric):
                                                                       assigned_object_id=nb_interface.id,
                                                                       assigned_object_type='dcim.interface',
                                                                       role='hsrp')
-                        nb_device_addresses[hsrp_addr_obj] = nb_device_addresses
+                        nb_device_addresses[hsrp_addr_obj] = nb_device_address
 
         for k, v in nb_device_addresses.items():
             if k not in all_device_addresses:
@@ -312,13 +312,15 @@ def add_ip_addresses(fabric):
                     q=str(k), device_id=nb_device.id)
                 ip_to_remove.delete()
             else:
-                if nb_device.primary_ip4 != nb_address:
-                    if intname.lower() == "vlan901":
-                        logger.info("Assign %s as primary ip for %s", nb_address, swname)
-                        nb_device.update({'primary_ip4': nb_address.id})
-                    elif len(swdata.interfaces_ip.items()) == 1:
-                        logger.info("Assign %s as primary ip for %s", nb_address, swname)
-                        nb_device.update({'primary_ip4': nb_address.id})
+                if nb_device.primary_ip4 != v:
+                    if v.assigned_object is not None:
+                        if v.assigned_object.name.lower() == "vlan901":
+                            if v.role is None:
+                                logger.info("Assign %s as primary ip for %s", v, swname)
+                                nb_device.update({'primary_ip4': v.id})
+                        elif len(swdata.interfaces_ip.items()) == 1:
+                            logger.info("Assign %s as primary ip for %s", v, swname)
+                            nb_device.update({'primary_ip4': v.id})
 
  
 def add_neighbor_ip_addresses(fabric):
@@ -501,5 +503,5 @@ if __name__ == '__main__':
     nb_access_role = nb.dcim.device_roles.get(name="Access Switch")
     nb_core_role = nb.dcim.device_roles.get(name="Core Switch")
     nb_neigh_role = nb.dcim.device_roles.get(name="Access Point")
-    nb_site = nb.dcim.sites.get(name="Caselle")
+    nb_site = nb.dcim.sites.get(name="Capoponte")
     main()
