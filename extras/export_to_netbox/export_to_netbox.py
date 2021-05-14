@@ -303,7 +303,7 @@ def add_ip_addresses(fabric):
                                                                       assigned_object_id=nb_interface.id,
                                                                       assigned_object_type='dcim.interface',
                                                                       role='hsrp')
-                        nb_device_addresses[hsrp_addr_obj] = nb_device_address
+                        nb_device_addresses[hsrp_addr_obj] = nb_hsrp_address
 
         for k, v in nb_device_addresses.items():
             if k not in all_device_addresses:
