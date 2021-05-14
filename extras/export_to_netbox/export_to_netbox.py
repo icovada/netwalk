@@ -268,12 +268,6 @@ def add_ip_addresses(fabric):
                         logger.info("Updating address %s", address)
                         nb_address.update(newdata)
 
-                    if nb_device.primary_ip4 != nb_address.id:
-                        if intname == "Vlan901":
-                            nb_device.update({'primary_ip4': nb_address.id})
-                        elif len(swdata.interfaces_ip.items()) == 1:
-                            nb_device.update({'primary_ip4': nb_address.id})
-
             if 'hsrp' in intdata.address and 'groups' in intdata.address['hsrp']:
                 for hsrpgrp, hsrpdata in intdata.address['hsrp']['groups'].items():
                     try:
@@ -317,8 +311,16 @@ def add_ip_addresses(fabric):
                 ip_to_remove = nb.ipam.ip_addresses.get(
                     q=str(k), device_id=nb_device.id)
                 ip_to_remove.delete()
+            else:
+                if nb_device.primary_ip4 != nb_address:
+                    if intname.lower() == "vlan901":
+                        logger.info("Assign %s as primary ip for %s", nb_address, swname)
+                        nb_device.update({'primary_ip4': nb_address.id})
+                    elif len(swdata.interfaces_ip.items()) == 1:
+                        logger.info("Assign %s as primary ip for %s", nb_address, swname)
+                        nb_device.update({'primary_ip4': nb_address.id})
 
-
+ 
 def add_neighbor_ip_addresses(fabric):
     for swname, swdata in fabric.switches.items():
         for intname, intdata in swdata.interfaces.items():
@@ -499,5 +501,5 @@ if __name__ == '__main__':
     nb_access_role = nb.dcim.device_roles.get(name="Access Switch")
     nb_core_role = nb.dcim.device_roles.get(name="Core Switch")
     nb_neigh_role = nb.dcim.device_roles.get(name="Access Point")
-    nb_site = nb.dcim.sites.get(name="Cremona")
+    nb_site = nb.dcim.sites.get(name="Caselle")
     main()
