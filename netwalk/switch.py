@@ -113,6 +113,10 @@ class Switch():
         vlans.intersection_update(self.vlans_set)
         return vlans
 
+    def add_interface(self, intobject: Interface):
+        intobject.device = self
+        self.interfaces = [intobject.name] = intobject
+
     def _parse_config(self):
         running = StringIO()
         running.write(self.config)
@@ -127,7 +131,7 @@ class Switch():
 
         for intf in interface_config_list:
             thisint = Interface(config=intf.ioscfg)
-            self.interfaces[thisint.name] = thisint
+            self.add_interface(thisint)
 
     def _get_switch_data(self):
         self.facts = self.session.get_facts()
