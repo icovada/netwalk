@@ -5,8 +5,11 @@ import logging
 import concurrent.futures
 from napalm.base.exceptions import ConnectionException
 from netmiko.ssh_exception import NetMikoAuthenticationException
+from netaddr import EUI
 
 from datetime import datetime as dt
+
+from typing import Any
 
 from .switch import Switch
 from .interface import Interface
@@ -14,9 +17,9 @@ from .interface import Interface
 class Fabric():
     def __init__(self):
         self.logger = logging.getLogger(__name__)
-        self.switches = {}
-        self.discovery_status = {}
-        self.mac_table = {}
+        self.switches: dict[str, Switch] = {}
+        self.discovery_status: dict[str, Any[dt, str]] = {}
+        self.mac_table: dict[EUI, dict] = {}
 
     def add_switch(self,
                    host,

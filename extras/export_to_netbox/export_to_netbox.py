@@ -125,6 +125,8 @@ def create_devices_and_interfaces(fabric):
                     int_type = "virtual"
                 elif "channel" in interface:
                     int_type = "lag"
+                else:
+                    int_type = 'virtual'
 
                 try:
                     thisint = swdata.interfaces[interface]
@@ -469,6 +471,8 @@ def add_cables(fabric):
 
                     nb_term_a = intdata.nb_interface
                     nb_term_b = intdata.neighbors[0]['nb_interface']
+                else:
+                    continue
 
                 try:
                     for cable in sw_cables:
