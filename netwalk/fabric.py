@@ -119,6 +119,7 @@ class Fabric():
                                                 assert "CAP" not in nei['platform']
                                                 assert "N77" not in nei['platform']
                                                 assert "axis" not in nei['hostname']
+                                                assert "C9115AX" not in nei['hostname']
                                             except AssertionError:
                                                 self.logger.debug("Skipping %s, %s", nei['hostname'], nei['platform'])
                                                 continue
@@ -165,6 +166,7 @@ class Fabric():
                         try:
                             peer_device = self.switches[switch].interfaces[port]
                             intfdata.neighbors[i] = peer_device
+                            peer_device.neighbors.append(self)
                             self.logger.debug("Found link between %s %s and %s %s", intfdata.name, intfdata.switch.facts['fqdn'], peer_device.name, peer_device.switch.facts['fqdn'])
                         except KeyError:
                             # Hostname over 40 char
@@ -173,11 +175,13 @@ class Fabric():
                                                            ].interfaces[port]
                                 self.logger.debug("Found link between %s %s and %s %s", intfdata.name, intfdata.switch.facts['fqdn'], peer_device.name, peer_device.switch.facts['fqdn'])
                                 intfdata.neighbors[i] = peer_device
+                                peer_device.neighbors.append(self)
                             except KeyError:
                                 try:
                                     peer_device = hostname_only_fabric[switch].interfaces[port]
                                     self.logger.debug("Found link between %s %s and %s %s", intfdata.name, intfdata.switch.facts['fqdn'], peer_device.name, peer_device.switch.facts['fqdn'])
                                     intfdata.neighbors[i] = peer_device
+                                    peer_device.neighbors.append(self)
                                 except KeyError:
                                     self.logger.debug("Could not find link between %s %s and %s %s", intfdata.name, intfdata.switch.facts['fqdn'], port, switch)
                                     pass
