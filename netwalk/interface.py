@@ -1,10 +1,11 @@
 "Define Interface object"
 
+from datetime import datetime
 import logging
 import re
 import ipaddress
 
-from typing import List, Optional
+from typing import List, Optional, Any
 
 
 class Interface():
@@ -15,6 +16,7 @@ class Interface():
     """
 
     def __init__(self, **kwargs):
+        from netwalk.switch import Switch
         self.logger = logging.getLogger(__name__)
         self.name: str = kwargs.get('name', None)
         self.description: Optional[str] = kwargs.get('description', "")
@@ -27,21 +29,23 @@ class Interface():
         self.allowed_vlan: set = kwargs.get('allowed_vlan', None)
         self.native_vlan: int = kwargs.get('native_vlan', 1)
         self.voice_vlan: Optional[int] = kwargs.get('voice_vlan', None)
-        self.switch = kwargs.get('switch', None)
-        self.parent_interface = kwargs.get('parent_interface', None)
+        self.switch: Optional[Switch] = kwargs.get('switch', None)
+        self.parent_interface: Optional[Interface] = kwargs.get('parent_interface', None)
         self.is_up: bool = kwargs.get('is_up', True)
         self.is_enabled: bool = kwargs.get('is_enabled', True)
         self.config: List[str] = kwargs.get('config', None)
-        self.unparsed_lines = kwargs.get('unparsed_lines', [])
-        self.mac_count = 0
-        self.type_edge = kwargs.get('type_edge', False)
-        self.bpduguard = kwargs.get('bpduguard', False)
-        self.routed_port = kwargs.get('routed_port', False)
-        self.neighbors = kwargs.get('neighbors', [])
-        self.last_in = kwargs.get('last_in', None)
-        self.last_out = kwargs.get('last_out', None)
-        self.last_clearing = kwargs.get('last_clearing', None)
-        self.counters = kwargs.get('counters', None)
+        self.unparsed_lines: List[str] = kwargs.get('unparsed_lines', [])
+        self.mac_count: int = 0
+        self.type_edge: bool = kwargs.get('type_edge', False)
+        self.bpduguard: bool = kwargs.get('bpduguard', False)
+        self.routed_port: bool = kwargs.get('routed_port', False)
+        self.neighbors: List[Any[Interface, dict]] = kwargs.get('neighbors', [])
+        self.last_in: Optional[datetime] = kwargs.get('last_in', None)
+        self.last_out: Optional[datetime] = kwargs.get('last_out', None)
+        self.last_clearing: Optional[datetime] = kwargs.get('last_clearing', None)
+        self.counters: Optional[dict] = kwargs.get('counters', None)
+        self.device: Optional[Switch] = kwargs.get('switch', None)
+        self.speed: Optional[int] = kwargs.get('speed', None)
 
         if self.config is not None:
             self.parse_config()
@@ -89,7 +93,7 @@ class Interface():
             # Find port-channel properties
             match = re.search(r"channel-group (\d*) mode (\w*)", cleanline)
             if match is not None:
-                self.channel_group = match.groups()[0]
+                self.channel_group = int(match.groups()[0])
                 self.channel_protocol = match.groups()[1]
                 continue
 
