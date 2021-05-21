@@ -481,6 +481,31 @@ class TestL3Interface(unittest.TestCase):
 
         assert str(interface) == config    
 
+class TestPortChannel(unittest.TestCase):
+    import ipaddress
+    def test_base_po(self):
+        config = ("interface Ethernet0\n"
+                  " channel-group 1 mode active\n"
+                  " no shutdown\n"
+                  "!\n")
+        
+        interface = netwalk.Interface(config=config)
+
+        config = ("interface Port-channel1\n"
+                  " switchport mode trunk\n"
+                  " no shutdown\n"
+                  "!\n")
+        
+        po = netwalk.Interface(config=config)
+
+
+        switch = netwalk.Switch(hostname="testswitch")
+        switch.add_interface(interface)
+        switch.add_interface(po)
+
+        assert interface.parent_interface==po
+        assert interface in po.child_interfaces
+
 
 if __name__ == '__main__':
     unittest.main()
