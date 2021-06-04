@@ -122,7 +122,6 @@ class Fabric():
                                                 assert "CAP" not in nei['platform']
                                                 assert "N77" not in nei['platform']
                                                 assert "axis" not in nei['hostname']
-                                                assert "C9115AX" not in nei['hostname']
                                             except AssertionError:
                                                 self.logger.debug("Skipping %s, %s", nei['hostname'], nei['platform'])
                                                 continue
