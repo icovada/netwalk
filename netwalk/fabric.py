@@ -169,7 +169,7 @@ class Fabric():
                         try:
                             peer_device = self.switches[switch].interfaces[port]
                             intfdata.neighbors[i] = peer_device
-                            peer_device.neighbors.append(intfdata)
+                            peer_device.neighbors[0] = intfdata
                             self.logger.debug("Found link between %s %s and %s %s", intfdata.name, intfdata.switch.facts['fqdn'], peer_device.name, peer_device.switch.facts['fqdn'])
                         except KeyError:
                             # Hostname over 40 char
@@ -178,13 +178,13 @@ class Fabric():
                                                            ].interfaces[port]
                                 self.logger.debug("Found link between %s %s and %s %s", intfdata.name, intfdata.switch.facts['fqdn'], peer_device.name, peer_device.switch.facts['fqdn'])
                                 intfdata.neighbors[i] = peer_device
-                                peer_device.neighbors.append(intfdata)
+                                peer_device.neighbors[0] = intfdata
                             except KeyError:
                                 try:
                                     peer_device = hostname_only_fabric[switch].interfaces[port]
                                     self.logger.debug("Found link between %s %s and %s %s", intfdata.name, intfdata.switch.facts['fqdn'], peer_device.name, peer_device.switch.facts['fqdn'])
                                     intfdata.neighbors[i] = peer_device
-                                    peer_device.neighbors.append(intfdata)
+                                    peer_device.neighbors[0] = intfdata
                                 except KeyError:
                                     self.logger.debug("Could not find link between %s %s and %s %s", intfdata.name, intfdata.switch.facts['fqdn'], port, switch)
                                     pass
