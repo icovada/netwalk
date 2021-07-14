@@ -191,6 +191,9 @@ class Fabric():
     def _recalculate_macs(self):
         # Refresh count macs per interface
         for swname, swdata in self.switches.items():
+            for intname, intdata in swdata.interfaces.items():
+                intdata.mac_count = 0
+                
             for _, data in swdata.mac_table.items():
                 try:
                     data['interface'].mac_count += 1
