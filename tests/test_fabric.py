@@ -375,6 +375,7 @@ class TestFabricBase(unittest.TestCase):
         f.refresh_global_information()
 
         assert f.mac_table[pcmac] == {'interface' : c.interfaces['GigabitEthernet0/2']}
+        assert c.interfaces['GigabitEthernet0/2'].mac_count == 1
 
 
 if __name__ == '__main__':
