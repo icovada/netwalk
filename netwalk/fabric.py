@@ -168,7 +168,10 @@ class Fabric():
                         try:
                             peer_device = self.switches[switch].interfaces[port]
                             intfdata.neighbors[i] = peer_device
-                            peer_device.neighbors[0] = intfdata
+                            if len(peer_device.neighbors) == 0:
+                                peer_device.neighbors.append(intfdata)
+                            else:
+                                peer_device.neighbors[0] = intfdata
                             self.logger.debug("Found link between %s %s and %s %s", intfdata.name, intfdata.switch.facts['fqdn'], peer_device.name, peer_device.switch.facts['fqdn'])
                         except KeyError:
                             # Hostname over 40 char
