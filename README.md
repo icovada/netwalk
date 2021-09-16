@@ -106,3 +106,17 @@ An Interface object defines a switched interface ("switchport" in Cisco language
  * `bpduguard`
 
 Printing an interface yelds its configuration based on its current attributes
+
+## Trick
+
+### Check a trunk filter is equal on both sides
+```python
+assert int.allowed_vlan == int.neighbors[0].allowed_vlan
+```
+
+### Check a particular host is in vlan 10
+```python
+from netaddr import EUI
+host_mac = EUI('00:01:02:03:04:05')
+assert fabric.mac_table[host_mac]['interface'].native_vlan == 10
+```
