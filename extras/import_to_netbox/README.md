@@ -1,4 +1,4 @@
-Copy a Fabric object stored in fabric_data.bin via pickle on Netbox
+Cycle through a list of .bin files under bindata/ and upload their data to Netbox
 
 Currently generates:
  
