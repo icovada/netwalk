@@ -1,3 +1,21 @@
+"""
+netwalk
+Copyright (C) 2021 NTT Ltd
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 import unittest
 import ipaddress
 import netwalk
@@ -13,7 +31,7 @@ class BaseInterfaceTester(unittest.TestCase):
         assert interface.mode == "access"
         assert interface.native_vlan == 1
         assert interface.voice_vlan is None
-        assert interface.description is None
+        assert interface.description == ""
         assert not interface.bpduguard
         assert not interface.type_edge
         assert interface.is_enabled
@@ -47,6 +65,19 @@ class BaseInterfaceTester(unittest.TestCase):
 
         interface = netwalk.Interface(config=config)
         assert interface.bpduguard
+
+    def test_dynamic_desirable(self):
+        config = ("interface GigabitEthernet0/16\n"
+                  "description [Direct] SD-WAN\n"
+                  "switchport access vlan 820\n"
+                  "switchport mode dynamic desirable\n"
+                  "spanning-tree portfast\n")
+
+        interface = netwalk.Interface(config=config)
+
+        assert interface.mode == "dynamic desirable"
+        assert interface.native_vlan == 820
+
 
 
 class AccessInterfaceTester(unittest.TestCase):
@@ -374,9 +405,10 @@ class TestL3Interface(unittest.TestCase):
         assert primaddrobject in interface.address['ipv4']
         assert interface.address['ipv4'][primaddrobject]['type'] == 'primary'
 
-        assert interface.address['hsrp'][1]['address'] == hsrpaddrobj
-        assert interface.address['hsrp'][1]['priority'] == 100
-        assert interface.address['hsrp'][1]['preempt'] is False
+        assert interface.address['hsrp']['version'] == 1
+        assert interface.address['hsrp']['groups'][1]['address'] == hsrpaddrobj
+        assert interface.address['hsrp']['groups'][1]['priority'] == 100
+        assert interface.address['hsrp']['groups'][1]['preempt'] is False
 
         assert str(interface) == config
 
@@ -396,10 +428,11 @@ class TestL3Interface(unittest.TestCase):
         assert primaddrobject in interface.address['ipv4']
         assert interface.address['ipv4'][primaddrobject]['type'] == 'primary'
 
-        assert interface.address['hsrp'][1]['address'] == hsrpaddrobj
-        assert interface.address['hsrp'][1]['secondary'] == [ipaddress.ip_address("10.0.0.3")]
-        assert interface.address['hsrp'][1]['priority'] == 100
-        assert interface.address['hsrp'][1]['preempt'] is False
+        assert interface.address['hsrp']['version'] == 1
+        assert interface.address['hsrp']['groups'][1]['address'] == hsrpaddrobj
+        assert interface.address['hsrp']['groups'][1]['secondary'] == [ipaddress.ip_address("10.0.0.3")]
+        assert interface.address['hsrp']['groups'][1]['priority'] == 100
+        assert interface.address['hsrp']['groups'][1]['preempt'] is False
 
         assert str(interface) == config
 
@@ -418,20 +451,20 @@ class TestL3Interface(unittest.TestCase):
         assert primaddrobject in interface.address['ipv4']
         
         assert interface.address['ipv4'][primaddrobject]['type'] == 'primary'
-        assert interface.address['hsrp'][0]['address'] == hsrpaddrobj
-        assert interface.address['hsrp'][0]['priority'] == 100
-        assert interface.address['hsrp'][0]['preempt'] is False
-        assert interface.address['hsrp'][0]['version'] == 1
+        assert interface.address['hsrp']['groups'][0]['address'] == hsrpaddrobj
+        assert interface.address['hsrp']['groups'][0]['priority'] == 100
+        assert interface.address['hsrp']['groups'][0]['preempt'] is False
+        assert interface.address['hsrp']['version'] == 1
 
         assert str(interface) == config    
 
     def test_l3_int_w_hsrp_w_extra_conf(self):
         config = ("interface Ethernet0\n"
                   " ip address 10.0.0.1 255.255.255.0\n"
+                  " standby version 2\n"
                   " standby 1 ip 10.0.0.2\n"
                   " standby 1 priority 120\n"
                   " standby 1 preempt\n"
-                  " standby 1 version 2\n"
                   " no shutdown\n"
                   "!\n")
         
@@ -443,10 +476,10 @@ class TestL3Interface(unittest.TestCase):
         assert primaddrobject in interface.address['ipv4']
         
         assert interface.address['ipv4'][primaddrobject]['type'] == 'primary'
-        assert interface.address['hsrp'][1]['address'] == hsrpaddrobj
-        assert interface.address['hsrp'][1]['preempt']
-        assert interface.address['hsrp'][1]['priority'] == 120
-        assert interface.address['hsrp'][1]['version'] == 2
+        assert interface.address['hsrp']['groups'][1]['address'] == hsrpaddrobj
+        assert interface.address['hsrp']['groups'][1]['preempt']
+        assert interface.address['hsrp']['groups'][1]['priority'] == 120
+        assert interface.address['hsrp']['version'] == 2
 
         assert str(interface) == config    
 
@@ -465,6 +498,31 @@ class TestL3Interface(unittest.TestCase):
         assert interface.vrf == "antani"
 
         assert str(interface) == config    
+
+class TestPortChannel(unittest.TestCase):
+    import ipaddress
+    def test_base_po(self):
+        config = ("interface Ethernet0\n"
+                  " channel-group 1 mode active\n"
+                  " no shutdown\n"
+                  "!\n")
+        
+        interface = netwalk.Interface(config=config)
+
+        config = ("interface Port-channel1\n"
+                  " switchport mode trunk\n"
+                  " no shutdown\n"
+                  "!\n")
+        
+        po = netwalk.Interface(config=config)
+
+
+        switch = netwalk.Switch(hostname="testswitch")
+        switch.add_interface(interface)
+        switch.add_interface(po)
+
+        assert interface.parent_interface==po
+        assert interface in po.child_interfaces
 
 
 if __name__ == '__main__':

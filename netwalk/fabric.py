@@ -1,3 +1,21 @@
+"""
+netwalk
+Copyright (C) 2021 NTT Ltd
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 "Define Fabric object"
 
 import logging
@@ -5,8 +23,11 @@ import logging
 import concurrent.futures
 from napalm.base.exceptions import ConnectionException
 from netmiko.ssh_exception import NetMikoAuthenticationException
+from netaddr import EUI
 
 from datetime import datetime as dt
+
+from typing import Any
 
 from .switch import Switch
 from .interface import Interface
@@ -14,9 +35,9 @@ from .interface import Interface
 class Fabric():
     def __init__(self):
         self.logger = logging.getLogger(__name__)
-        self.switches = {}
-        self.discovery_status = {}
-        self.mac_table = {}
+        self.switches: dict[str, Switch] = {}
+        self.discovery_status: dict[str, Any[dt, str]] = {}
+        self.mac_table: dict[EUI, dict] = {}
 
     def add_switch(self,
                    host,
@@ -165,6 +186,10 @@ class Fabric():
                         try:
                             peer_device = self.switches[switch].interfaces[port]
                             intfdata.neighbors[i] = peer_device
+                            if len(peer_device.neighbors) == 0:
+                                peer_device.neighbors.append(intfdata)
+                            else:
+                                peer_device.neighbors[0] = intfdata
                             self.logger.debug("Found link between %s %s and %s %s", intfdata.name, intfdata.switch.facts['fqdn'], peer_device.name, peer_device.switch.facts['fqdn'])
                         except KeyError:
                             # Hostname over 40 char
@@ -173,11 +198,13 @@ class Fabric():
                                                            ].interfaces[port]
                                 self.logger.debug("Found link between %s %s and %s %s", intfdata.name, intfdata.switch.facts['fqdn'], peer_device.name, peer_device.switch.facts['fqdn'])
                                 intfdata.neighbors[i] = peer_device
+                                peer_device.neighbors[0] = intfdata
                             except KeyError:
                                 try:
                                     peer_device = hostname_only_fabric[switch].interfaces[port]
                                     self.logger.debug("Found link between %s %s and %s %s", intfdata.name, intfdata.switch.facts['fqdn'], peer_device.name, peer_device.switch.facts['fqdn'])
                                     intfdata.neighbors[i] = peer_device
+                                    peer_device.neighbors[0] = intfdata
                                 except KeyError:
                                     self.logger.debug("Could not find link between %s %s and %s %s", intfdata.name, intfdata.switch.facts['fqdn'], port, switch)
                                     pass
@@ -185,6 +212,9 @@ class Fabric():
     def _recalculate_macs(self):
         # Refresh count macs per interface
         for swname, swdata in self.switches.items():
+            for intname, intdata in swdata.interfaces.items():
+                intdata.mac_count = 0
+                
             for _, data in swdata.mac_table.items():
                 try:
                     data['interface'].mac_count += 1

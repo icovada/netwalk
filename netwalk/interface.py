@@ -1,10 +1,29 @@
+"""
+netwalk
+Copyright (C) 2021 NTT Ltd
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 "Define Interface object"
 
+from datetime import datetime
 import logging
 import re
 import ipaddress
 
-from typing import List, Optional
+from typing import List, Optional, Any
 
 
 class Interface():
@@ -15,9 +34,10 @@ class Interface():
     """
 
     def __init__(self, **kwargs):
+        from netwalk.switch import Switch
         self.logger = logging.getLogger(__name__)
         self.name: str = kwargs.get('name', None)
-        self.description: Optional[str] = kwargs.get('description', None)
+        self.description: Optional[str] = kwargs.get('description', "")
         self.address: dict = kwargs.get('address', {})
         self.vrf: str = kwargs.get('vrf', "default")
         self.mode: str = kwargs.get('mode', 'access')
@@ -27,21 +47,23 @@ class Interface():
         self.allowed_vlan: set = kwargs.get('allowed_vlan', None)
         self.native_vlan: int = kwargs.get('native_vlan', 1)
         self.voice_vlan: Optional[int] = kwargs.get('voice_vlan', None)
-        self.switch = kwargs.get('switch', None)
-        self.parent_interface = kwargs.get('parent_interface', None)
+        self.switch: Optional[Switch] = kwargs.get('switch', None)
+        self.parent_interface: Optional[Interface] = kwargs.get('parent_interface', None)
         self.is_up: bool = kwargs.get('is_up', True)
         self.is_enabled: bool = kwargs.get('is_enabled', True)
         self.config: List[str] = kwargs.get('config', None)
-        self.unparsed_lines = kwargs.get('unparsed_lines', [])
-        self.mac_count = 0
-        self.type_edge = kwargs.get('type_edge', False)
-        self.bpduguard = kwargs.get('bpduguard', False)
-        self.routed_port = kwargs.get('routed_port', False)
-        self.neighbors = kwargs.get('neighbors', [])
-        self.last_in = kwargs.get('last_in', None)
-        self.last_out = kwargs.get('last_out', None)
-        self.last_clearing = kwargs.get('last_clearing', None)
-        self.counters = kwargs.get('counters', None)
+        self.unparsed_lines: List[str] = kwargs.get('unparsed_lines', [])
+        self.mac_count: int = 0
+        self.type_edge: bool = kwargs.get('type_edge', False)
+        self.bpduguard: bool = kwargs.get('bpduguard', False)
+        self.routed_port: bool = kwargs.get('routed_port', False)
+        self.neighbors: List[Any[Interface, dict]] = kwargs.get('neighbors', [])
+        self.last_in: Optional[datetime] = kwargs.get('last_in', None)
+        self.last_out: Optional[datetime] = kwargs.get('last_out', None)
+        self.last_clearing: Optional[datetime] = kwargs.get('last_clearing', None)
+        self.counters: Optional[dict] = kwargs.get('counters', None)
+        self.device: Optional[Switch] = kwargs.get('switch', None)
+        self.speed: Optional[int] = kwargs.get('speed', None)
 
         if self.config is not None:
             self.parse_config()
@@ -69,6 +91,10 @@ class Interface():
             match = re.search(r"^interface ([A-Za-z\-]*(\/*\d*)+)", cleanline)
             if match is not None:
                 self.name = match.groups()[0]
+                if "vlan" in self.name.lower():
+                    self.routed_port = True
+                    self.mode = 'access'
+                    self.native_vlan = int(self.name.lower().replace("vlan",""))
                 continue
 
             # Port mode. Already parsed, skip and do not add to unparsed lines
@@ -85,13 +111,13 @@ class Interface():
             # Find port-channel properties
             match = re.search(r"channel-group (\d*) mode (\w*)", cleanline)
             if match is not None:
-                self.channel_group = match.groups()[0]
+                self.channel_group = int(match.groups()[0])
                 self.channel_protocol = match.groups()[1]
                 continue
 
             # Native vlan
             match = re.search(r"switchport access vlan (.*)$", cleanline)
-            if match is not None and self.mode == 'access':
+            if match is not None and self.mode != 'trunk':
                 self.native_vlan = int(match.groups()[0])
                 continue
 
@@ -190,24 +216,26 @@ class Interface():
                 try:
                     assert 'hsrp' in self.address
                 except AssertionError:
-                    self.address['hsrp'] = {}
+                    self.address['hsrp'] = {'version': 1, 'groups': {}}
+
+                if command == 'version':
+                    self.address['hsrp']['version'] = int(argument)
+                    continue
 
                 try:
-                    assert grpid in self.address['hsrp']
+                    assert grpid in self.address['hsrp']['groups']
                 except AssertionError:
-                    self.address['hsrp'][grpid] = {'priority': 100, 'preempt': False, 'version': 1, 'secondary': []}
+                    self.address['hsrp']['groups'][grpid] = {'priority': 100, 'preempt': False, 'secondary': []}
 
                 if command == 'ip':
                     if secondary is not None:
-                        self.address['hsrp'][grpid]['secondary'].append(ipaddress.ip_address(argument))
+                        self.address['hsrp']['groups'][grpid]['secondary'].append(ipaddress.ip_address(argument))
                     else:
-                        self.address['hsrp'][grpid]['address'] = ipaddress.ip_address(argument)
+                        self.address['hsrp']['groups'][grpid]['address'] = ipaddress.ip_address(argument)
                 elif command == 'priority':
-                    self.address['hsrp'][grpid]['priority'] = int(argument)
+                    self.address['hsrp']['groups'][grpid]['priority'] = int(argument)
                 elif command == 'preempt':
-                    self.address['hsrp'][grpid]['preempt'] = True
-                elif command == 'version':
-                    self.address['hsrp'][grpid]['version'] = int(argument)
+                    self.address['hsrp']['groups'][grpid]['preempt'] = True
                 continue
 
             if cleanline != '' and cleanline != '!':
@@ -242,7 +270,7 @@ class Interface():
 
         fullconfig = f"interface {self.name}\n"
 
-        if self.description is not None:
+        if self.description != "":
             fullconfig = fullconfig + f" description {self.description}\n"
 
         if not self.routed_port:
@@ -293,7 +321,9 @@ class Interface():
                         fullconfig = fullconfig + "\n"
 
             if 'hsrp' in self.address:
-                for k, v in self.address['hsrp'].items():
+                if self.address['hsrp']['version'] != 1:
+                    fullconfig = fullconfig + " standby version " + str(self.address['hsrp']['version']) + "\n"
+                for k, v in self.address['hsrp']['groups'].items():
                     line_begin = f" standby {k} " if k != 0 else " standby "
                     fullconfig = fullconfig + line_begin + "ip " + str(v['address']) + "\n"
                     for secaddr in v['secondary']:
@@ -302,8 +332,6 @@ class Interface():
                         fullconfig = fullconfig + line_begin + "priority " + str(v['priority']) + "\n"
                     if v['preempt']:
                         fullconfig = fullconfig + line_begin + "preempt\n"
-                    if v['version'] != 1:
-                        fullconfig = fullconfig + line_begin + "version " + str(v['version']) + "\n"
 
         for line in self.unparsed_lines:
             fullconfig = fullconfig + line + "\n"

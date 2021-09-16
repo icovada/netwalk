@@ -1,9 +1,29 @@
+"""
+netwalk
+Copyright (C) 2021 NTT Ltd
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 "Define Switch object"
 
+import ipaddress
 import logging
 import os
 from io import StringIO
 import datetime as dt
+from typing import Dict, Optional
 from netaddr import EUI
 
 import napalm
@@ -28,19 +48,19 @@ class Switch():
                  **kwargs):
 
         self.logger = logging.getLogger(__name__ + hostname)
-        self.hostname = hostname
-        self.interfaces = {}
-        self.config = kwargs.get('config', None)
+        self.hostname: str = hostname
+        self.interfaces: Dict[str, Interface] = {}
+        self.config: Optional[str] = kwargs.get('config', None)
         self.timeout = 30
         self.napalm_optional_args = kwargs.get('napalm_optional_args', None)
         self.init_time = dt.datetime.now()
-        self.mac_table = {}
-        self.vtp = None
-        self.arp_table = {}
+        self.mac_table: Dict[EUI, dict] = {}
+        self.vtp: Optional[str] = None
+        self.arp_table: Dict[ipaddress.IPv4Interface, dict] = {}
         self.interfaces_ip = {}
-        self.vlans = None
+        self.vlans: Optional[Dict[int, dict]] = None
         self.vlans_set = {x for x in range(1,4095)} # VLANs configured on the switch
-        self.facts = kwargs.get('facts', None)
+        self.facts: dict = kwargs.get('facts', None)
 
         if self.config is not None:
             self._parse_config()
@@ -113,21 +133,28 @@ class Switch():
         vlans.intersection_update(self.vlans_set)
         return vlans
 
+    def add_interface(self, intobject: Interface):
+        intobject.device = self
+        self.interfaces[intobject.name] = intobject
+
     def _parse_config(self):
-        running = StringIO()
-        running.write(self.config)
+        if isinstance(self.config, str):
+            running = StringIO()
+            running.write(self.config)
 
-        # Be kind rewind
-        running.seek(0)
+            # Be kind rewind
+            running.seek(0)
 
-        # Get show run an interface access/trunk status
-        self.parsed_conf = ciscoconfparse.CiscoConfParse(running)
-        interface_config_list: list = self.parsed_conf.find_objects(
-            self.INTERFACE_FILTER)
+            # Get show run an interface access/trunk status
+            self.parsed_conf = ciscoconfparse.CiscoConfParse(running)
+            interface_config_list: list = self.parsed_conf.find_objects(
+                self.INTERFACE_FILTER)
 
-        for intf in interface_config_list:
-            thisint = Interface(config=intf.ioscfg)
-            self.interfaces[thisint.name] = thisint
+            for intf in interface_config_list:
+                thisint = Interface(config=intf.ioscfg)
+                self.add_interface(thisint)
+        else:
+            TypeError("No interface loaded, cannot parse")
 
     def _get_switch_data(self):
         self.facts = self.session.get_facts()
@@ -287,7 +314,8 @@ class Switch():
         seconds = 0
 
         if time == 'never':
-            return None
+            # TODO: return uptime
+            return dt.datetime(1970, 1, 1, 0, 0, 0)
 
         if ':' in time:
             hours, minutes, seconds = time.split(':')
