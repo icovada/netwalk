@@ -39,7 +39,7 @@ sitename.add_switch(seed_hosts=["10.10.10.1"],
                     credentials=[("cisco","cisco"))
 sitename.refresh_global_information()
 ```
-Note: you may also pass a list of `napalm_optional_args`, check the [optional args guide](docs/napalm_optional_args_guide.md) for explanation and examples
+Note: you may also pass a list of `napalm_optional_args`, check the [optional args guide](https://napalm.readthedocs.io/en/latest/support/#optional-arguments) for explanation and examples
 ### Structure
 
 `sitename` will now contain two main attributes:
@@ -59,7 +59,7 @@ sw01 = Switch(hostname="10.10.10.1")
 sw01.retrieve_data(username="cisco",
                    password="cisco"})
 ```
-Note: you may also pass a list of `napalm_optional_args`, check the [optional args guide](docs/napalm_optional_args_guide.md) for explanation and examples
+Note: you may also pass a list of `napalm_optional_args`, check the [optional args guide](https://napalm.readthedocs.io/en/latest/support/#optional-arguments) for explanation and examples
 
 This will connect to the switch and pull all the data much like `add_switch()` does in `Fabric`
 
