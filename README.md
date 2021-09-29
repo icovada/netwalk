@@ -35,7 +35,7 @@ You can tell Fabric to discover another switch on its own or you can add a `Swit
 #### Example
 
 ```python
-sitename.add_switch(seed_hosts=["10.10.10.1"],
+sitename.add_switch(host="10.10.10.1",
                     credentials=[("cisco","cisco"))
 sitename.refresh_global_information()
 ```
