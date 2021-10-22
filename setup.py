@@ -1,10 +1,11 @@
+# -*- coding: UTF-8 -*-
 import setuptools
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name = "netwalk",
-    version = "1.1.1a",
+    version = "1.1.3",
     author = "Federico Tabbò (Europe)",
     author_email = "federico.tabbo@global.ntt",
     description = "Network discovery and analysis tool",
