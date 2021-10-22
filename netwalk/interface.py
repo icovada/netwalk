@@ -251,8 +251,8 @@ class Interface():
 
     def _calculate_sort_order(self) -> None:
         if 'Port-channel' in self.name:
-                id = self.name.replace('Port-channel', '')
-                self.sort_order = int(id) + 1000000
+            id = self.name.replace('Port-channel', '')
+            self.sort_order = int(id) + 1000000
 
         elif 'Ethernet' in self.name:
             try:
