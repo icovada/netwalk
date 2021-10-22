@@ -59,6 +59,7 @@ class Interface():
         self.protocol_status: Optional[str] = kwargs.get('protocol_status', None)
         self.queue_strategy: Optional[str] = kwargs.get('queue_strategy', None)
         self.routed_port: bool = kwargs.get('routed_port', False)
+        self.sort_order: Optional[int] = kwargs.get('sort_order', None)
         self.speed: Optional[int] = kwargs.get('speed', None)
         self.speed: Optional[str] = kwargs.get('speed', None)
         self.switch: Optional[Switch] = kwargs.get('switch', None)
@@ -69,6 +70,10 @@ class Interface():
 
         if self.config is not None:
             self.parse_config()
+
+        if self.name is not None:
+            self._calculate_sort_order()
+            
 
     def parse_config(self):
         "Parse configuration from show run"
@@ -243,6 +248,24 @@ class Interface():
             if cleanline != '' and cleanline != '!':
                 self.unparsed_lines.append(cleanline)
 
+
+    def _calculate_sort_order(self) -> None:
+        if 'Port-channel' in self.name:
+                id = self.name.replace('Port-channel', '')
+                self.sort_order = int(id) + 1000000
+
+        elif 'Ethernet' in self.name:
+            try:
+                portid = self.name.split('Ethernet')[1]
+            except IndexError:
+                self.sort_order = 0
+                
+            sortid = ""
+            port_number = portid.split('/')
+            for i in port_number:
+                sortid = sortid + str(i).zfill(3)
+
+            self.sort_order = int(sortid)
 
     def _allowed_vlan_to_list(self, vlanlist: str) -> set:
         """
