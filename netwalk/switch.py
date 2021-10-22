@@ -196,26 +196,7 @@ class Switch():
 
         if interface_status:
             # Get interface status
-            int_status = self.session.get_interfaces()
-
-            for intname, intstatus in int_status.items():
-                try:
-                    self.interfaces[intname].is_enabled = intstatus['is_enabled']
-                    self.interfaces[intname].is_up = intstatus['is_up']
-                    self.interfaces[intname].speed = intstatus['speed']
-                    self.interfaces[intname].switch = self
-                except KeyError:
-                    continue
-
-            int_counters = self.session.get_interfaces_counters()
-            for intname, intstatus in int_counters.items():
-                try:
-                    self.interfaces[intname].counters = intstatus
-                except KeyError:
-                    continue
-
-            # Add last in/out status
-            self._parse_int_last_inout()
+            self._parse_show_interface()
 
         if cdp_neighbors:
             self._parse_cdp_neighbors()
@@ -237,42 +218,27 @@ class Switch():
             self.interfaces_ip = self.session.get_interfaces_ip()
             self.arp_table = self.session.get_arp_table()
 
-    def _parse_int_last_inout(self):
-        "Get last in and last out as well as last coutner clearing"
-        interface_types = r"([Pp]ort-channel|\w*Ethernet)."
-        commandout = self.session.cli(['show interfaces'])['show interfaces']
 
-        parsed_command = ciscoconfparse.CiscoConfParse(
-            config=commandout.splitlines())
+    def _parse_show_interface(self):
+        """Parse output of show inteface with greater data collection than napalm"""
+        self.session.device.write_channel("show interface")
+        self.session.device.write_channel("\n")
+        self.session.device.timeout = 30  # Could take ages...
+        showint = self.session.device.read_until_prompt(max_loops=3000)
+        fsmpath = os.path.dirname(os.path.realpath(__file__)) + "/textfsm_templates/show_interface.textfsm"
+        with open(fsmpath, 'r') as fsmfile:
+            re_table = textfsm.TextFSM(fsmfile)
+            fsm_results = re_table.ParseTextToDicts(showint)
 
-        interfaces = parsed_command.find_objects_w_child(
-            interface_types, "Last")
-
-        for eth in interfaces:
-            name = eth.text.split()[0]
-            for line in eth.re_search_children("Last input"):
-                try:
-                    last_in = line.re_match(
-                        r"Last input (.*), output .*, output hang")
-                    last_out = line.re_match(
-                        r"Last input .*, output (.*), output hang")
-
-                    last_in = self._cisco_time_to_dt(last_in)
-                    last_out = self._cisco_time_to_dt(last_out)
-
-                    self.interfaces[name].last_in = last_in
-                    self.interfaces[name].last_out = last_out
-                except KeyError:
-                    pass
-
-            for line in eth.re_search_children("Last clearing of"):
-                try:
-                    last_clearing = line.re_match(r"counters (.*)")
-
-                    last_clearing = self._cisco_time_to_dt(last_clearing)
-                    self.interfaces[name].last_clearing = last_clearing
-                except KeyError:
-                    pass
+        for intf in fsm_results:
+            for k, v in intf.items():
+                if k in ('last_in', 'last_out', 'last_out_hang', 'last_clearing'):
+                    setattr(self.interfaces[intf['name']], k, self._cisco_time_to_dt(v))
+                elif k in ('is_enabled', 'is_up'):
+                    val = True if 'up' in v else False
+                    setattr(self.interfaces[intf['name']], k, val)
+                else:
+                    setattr(self.interfaces[intf['name']], k, v)
 
     def _parse_cdp_neighbors(self):
         # Return parsed cdp neighbours
