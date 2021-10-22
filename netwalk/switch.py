@@ -234,9 +234,13 @@ class Switch():
             for k, v in intf.items():
                 if k in ('last_in', 'last_out', 'last_out_hang', 'last_clearing'):
                     setattr(self.interfaces[intf['name']], k, self._cisco_time_to_dt(v))
-                elif k in ('is_enabled', 'is_up'):
+                elif k == 'is_enabled':
                     val = True if 'up' in v else False
                     setattr(self.interfaces[intf['name']], k, val)
+                elif k == 'is_up':
+                    val = True if 'up' in v else False
+                    setattr(self.interfaces[intf['name']], k, val)
+                    setattr(self.interfaces[intf['name']], 'protocol_status', val)
                 else:
                     setattr(self.interfaces[intf['name']], k, v)
 

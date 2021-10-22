@@ -56,6 +56,7 @@ class Interface():
         self.output_packets: Optional[str] = kwargs.get('output_packets', None)
         self.output_rate: Optional[str] = kwargs.get('output_rate', None)
         self.parent_interface: Optional[Interface] = kwargs.get('parent_interface', None)
+        self.protocol_status: Optional[str] = kwargs.get('protocol_status', None)
         self.queue_strategy: Optional[str] = kwargs.get('queue_strategy', None)
         self.routed_port: bool = kwargs.get('routed_port', False)
         self.speed: Optional[int] = kwargs.get('speed', None)
