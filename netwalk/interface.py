@@ -38,35 +38,60 @@ class Interface():
         self.logger = logging.getLogger(__name__)
         self.name: str = kwargs.get('name', None)
         self.description: Optional[str] = kwargs.get('description', "")
+
+        self.abort: Optional[str] = kwargs.get('abort', None)
         self.address: dict = kwargs.get('address', {})
-        self.vrf: str = kwargs.get('vrf', "default")
-        self.mode: str = kwargs.get('mode', 'access')
-        self.channel_group: Optional[int] = kwargs.get('channel_group', None)
-        self.channel_protocol: Optional[str] = kwargs.get(
-            'channel_protocol', None)
         self.allowed_vlan: set = kwargs.get('allowed_vlan', None)
-        self.native_vlan: int = kwargs.get('native_vlan', 1)
-        self.voice_vlan: Optional[int] = kwargs.get('voice_vlan', None)
-        self.switch: Optional[Switch] = kwargs.get('switch', None)
-        self.parent_interface: Optional[Interface] = kwargs.get('parent_interface', None)
-        self.is_up: bool = kwargs.get('is_up', True)
-        self.is_enabled: bool = kwargs.get('is_enabled', True)
-        self.config: List[str] = kwargs.get('config', None)
-        self.unparsed_lines: List[str] = kwargs.get('unparsed_lines', [])
-        self.mac_count: int = 0
-        self.type_edge: bool = kwargs.get('type_edge', False)
+        self.bandwidth: Optional[str] = kwargs.get('bandwidth', None)
+        self.bia: Optional[str] = kwargs.get('bia', None)
         self.bpduguard: bool = kwargs.get('bpduguard', False)
-        self.routed_port: bool = kwargs.get('routed_port', False)
-        self.neighbors: List[Any[Interface, dict]] = kwargs.get('neighbors', [])
-        self.last_in: Optional[datetime] = kwargs.get('last_in', None)
-        self.last_out: Optional[datetime] = kwargs.get('last_out', None)
-        self.last_clearing: Optional[datetime] = kwargs.get('last_clearing', None)
+        self.channel_group: Optional[int] = kwargs.get('channel_group', None)
+        self.channel_protocol: Optional[str] = kwargs.get('channel_protocol', None)
+        self.config: List[str] = kwargs.get('config', None)
         self.counters: Optional[dict] = kwargs.get('counters', None)
+        self.crc: Optional[str] = kwargs.get('crc', None)
+        self.delay: Optional[str] = kwargs.get('delay', None)
         self.device: Optional[Switch] = kwargs.get('switch', None)
+        self.duplex: Optional[str] = kwargs.get('duplex', None)
+        self.encapsulation: Optional[str] = kwargs.get('encapsulation', None)
+        self.hardware_type: Optional[str] = kwargs.get('hardware_type', None)
+        self.input_errors: Optional[str] = kwargs.get('input_errors', None)
+        self.input_packets: Optional[str] = kwargs.get('input_packets', None)
+        self.input_rate: Optional[str] = kwargs.get('input_rate', None)
+        self.is_enabled: bool = kwargs.get('is_enabled', True)
+        self.is_up: bool = kwargs.get('is_up', True)
+        self.last_clearing: Optional[datetime] = kwargs.get('last_clear', None)
+        self.last_in: Optional[datetime] = kwargs.get('last_in', None)
+        self.last_out_hang: Optional[datetime] = kwargs.get('last_out_hang', None)
+        self.last_out: Optional[datetime] = kwargs.get('last_out', None)
+        self.mac_count: int = 0
+        self.media_type: Optional[str] = kwargs.get('media_type', None)
+        self.mode: str = kwargs.get('mode', 'access')
+        self.mtu: Optional[int] = kwargs.get('mtu', None)
+        self.native_vlan: int = kwargs.get('native_vlan', 1)
+        self.neighbors: List[Any[Interface, dict]] = kwargs.get('neighbors', [])
+        self.output_errors: Optional[str] = kwargs.get('output_errors', None)
+        self.output_packets: Optional[str] = kwargs.get('output_packets', None)
+        self.output_rate: Optional[str] = kwargs.get('output_rate', None)
+        self.parent_interface: Optional[Interface] = kwargs.get('parent_interface', None)
+        self.protocol_status: Optional[str] = kwargs.get('protocol_status', None)
+        self.queue_strategy: Optional[str] = kwargs.get('queue_strategy', None)
+        self.routed_port: bool = kwargs.get('routed_port', False)
+        self.sort_order: Optional[int] = kwargs.get('sort_order', None)
         self.speed: Optional[int] = kwargs.get('speed', None)
+        self.speed: Optional[str] = kwargs.get('speed', None)
+        self.switch: Optional[Switch] = kwargs.get('switch', None)
+        self.type_edge: bool = kwargs.get('type_edge', False)
+        self.unparsed_lines: List[str] = kwargs.get('unparsed_lines', [])
+        self.voice_vlan: Optional[int] = kwargs.get('voice_vlan', None)
+        self.vrf: str = kwargs.get('vrf', "default")
 
         if self.config is not None:
             self.parse_config()
+
+        if self.name is not None:
+            self._calculate_sort_order()
+            
 
     def parse_config(self):
         "Parse configuration from show run"
@@ -241,6 +266,24 @@ class Interface():
             if cleanline != '' and cleanline != '!':
                 self.unparsed_lines.append(cleanline)
 
+
+    def _calculate_sort_order(self) -> None:
+        if 'Port-channel' in self.name:
+            id = self.name.replace('Port-channel', '')
+            self.sort_order = int(id) + 1000000
+
+        elif 'Ethernet' in self.name:
+            try:
+                portid = self.name.split('Ethernet')[1]
+            except IndexError:
+                self.sort_order = 0
+                
+            sortid = ""
+            port_number = portid.split('/')
+            for i in port_number:
+                sortid = sortid + str(i).zfill(3)
+
+            self.sort_order = int(sortid)
 
     def _allowed_vlan_to_list(self, vlanlist: str) -> set:
         """

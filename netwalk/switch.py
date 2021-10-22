@@ -68,13 +68,14 @@ class Switch():
     def retrieve_data(self,
                       username: str,
                       password: str,
-                      napalm_optional_args: dict = {}):
+                      napalm_optional_args: dict = {},
+                      scan_options: dict={}):
 
         self.napalm_optional_args = napalm_optional_args
 
         self.connect(username, password, napalm_optional_args)
 
-        self._get_switch_data()
+        self._get_switch_data(**scan_options)
         self.session.close()
 
     def connect(self, username: str, password: str, napalm_optional_args: dict = None) -> None:
@@ -156,7 +157,14 @@ class Switch():
         else:
             TypeError("No interface loaded, cannot parse")
 
-    def _get_switch_data(self):
+    def _get_switch_data(self, 
+                         cdp_neighbors=True,
+                         interface_status=True,
+                         l3_int=True,
+                         mac_address=True,
+                         vlans=True,
+                         vtp=True):
+
         self.facts = self.session.get_facts()
 
         self.init_time = dt.datetime.now()
@@ -170,113 +178,89 @@ class Switch():
 
         self._parse_config()
 
-        # Get mac address table
-        self.mac_table = {} # Clear before adding new data
-        mactable = self.session.get_mac_address_table()
+        if mac_address:
+            # Get mac address table
+            self.mac_table = {} # Clear before adding new data
+            mactable = self.session.get_mac_address_table()
 
-        macdict = {EUI(x['mac']): x for x in mactable}
+            macdict = {EUI(x['mac']): x for x in mactable}
 
-        for k, v in macdict.items():
-            if v['interface'] == '':
-                continue
+            for k, v in macdict.items():
+                if v['interface'] == '':
+                    continue
 
-            v['interface'] = v['interface'].replace(
-                "Fa", "FastEthernet").replace("Gi", "GigabitEthernet").replace("Po", "Port-channel")
+                v['interface'] = v['interface'].replace(
+                    "Fa", "FastEthernet").replace("Gi", "GigabitEthernet").replace("Po", "Port-channel")
 
-            v.pop('mac')
-            v.pop('static')
-            v.pop('moves')
-            v.pop('last_move')
-            v.pop('active')
+                v.pop('mac')
+                v.pop('static')
+                v.pop('moves')
+                v.pop('last_move')
+                v.pop('active')
 
-            try:
-                v['interface'] = self.interfaces[v['interface']]
-                self.mac_table[k] = v
-            except KeyError:
-                #print("Interface {} not found".format(v['interface']))
-                continue
-
-        # Count macs per interface
-        for _, data in self.mac_table.items():
-            try:
-                data['interface'].mac_count += 1
-            except KeyError:
-                pass
-
-        # Get interface status
-        int_status = self.session.get_interfaces()
-
-        for intname, intstatus in int_status.items():
-            try:
-                self.interfaces[intname].is_enabled = intstatus['is_enabled']
-                self.interfaces[intname].is_up = intstatus['is_up']
-                self.interfaces[intname].speed = intstatus['speed']
-                self.interfaces[intname].switch = self
-            except KeyError:
-                continue
-
-        int_counters = self.session.get_interfaces_counters()
-        for intname, intstatus in int_counters.items():
-            try:
-                self.interfaces[intname].counters = intstatus
-            except KeyError:
-                continue
-
-        # Add last in/out status
-        self._parse_int_last_inout()
-
-        self._parse_cdp_neighbors()
-
-        # Get VTP status
-        command = "show vtp status"
-        result = self.session.cli([command])
-
-        self.vtp = result[command]
-
-        # Get VLANs
-        self.vlans = self.session.get_vlans()
-        self.vlans_set = set([int(k) for k, v in self.vlans.items()])
-
-        # Get l3 interfaces
-        self.interfaces_ip = self.session.get_interfaces_ip()
-        self.arp_table = self.session.get_arp_table()
-
-    def _parse_int_last_inout(self):
-        "Get last in and last out as well as last coutner clearing"
-        interface_types = r"([Pp]ort-channel|\w*Ethernet)."
-        commandout = self.session.cli(['show interfaces'])['show interfaces']
-
-        parsed_command = ciscoconfparse.CiscoConfParse(
-            config=commandout.splitlines())
-
-        interfaces = parsed_command.find_objects_w_child(
-            interface_types, "Last")
-
-        for eth in interfaces:
-            name = eth.text.split()[0]
-            for line in eth.re_search_children("Last input"):
                 try:
-                    last_in = line.re_match(
-                        r"Last input (.*), output .*, output hang")
-                    last_out = line.re_match(
-                        r"Last input .*, output (.*), output hang")
+                    v['interface'] = self.interfaces[v['interface']]
+                    self.mac_table[k] = v
+                except KeyError:
+                    #print("Interface {} not found".format(v['interface']))
+                    continue
 
-                    last_in = self._cisco_time_to_dt(last_in)
-                    last_out = self._cisco_time_to_dt(last_out)
-
-                    self.interfaces[name].last_in = last_in
-                    self.interfaces[name].last_out = last_out
+            # Count macs per interface
+            for _, data in self.mac_table.items():
+                try:
+                    data['interface'].mac_count += 1
                 except KeyError:
                     pass
 
-            for line in eth.re_search_children("Last clearing of"):
-                try:
-                    last_clearing = line.re_match(r"counters (.*)")
+        if interface_status:
+            # Get interface status
+            self._parse_show_interface()
 
-                    last_clearing = self._cisco_time_to_dt(last_clearing)
-                    self.interfaces[name].last_clearing = last_clearing
-                except KeyError:
-                    pass
+        if cdp_neighbors:
+            self._parse_cdp_neighbors()
+
+        if vtp:
+            # Get VTP status
+            command = "show vtp status"
+            result = self.session.cli([command])
+
+            self.vtp = result[command]
+
+        if vlans:
+            # Get VLANs
+            self.vlans = self.session.get_vlans()
+            self.vlans_set = set([int(k) for k, v in self.vlans.items()])
+
+        if l3_int:
+            # Get l3 interfaces
+            self.interfaces_ip = self.session.get_interfaces_ip()
+            self.arp_table = self.session.get_arp_table()
+
+
+    def _parse_show_interface(self):
+        """Parse output of show inteface with greater data collection than napalm"""
+        self.session.device.write_channel("show interface")
+        self.session.device.write_channel("\n")
+        self.session.device.timeout = 30  # Could take ages...
+        showint = self.session.device.read_until_prompt(max_loops=3000)
+        fsmpath = os.path.dirname(os.path.realpath(__file__)) + "/textfsm_templates/show_interface.textfsm"
+        with open(fsmpath, 'r') as fsmfile:
+            re_table = textfsm.TextFSM(fsmfile)
+            fsm_results = re_table.ParseTextToDicts(showint)
+
+        for intf in fsm_results:
+            for k, v in intf.items():
+                if k in ('last_in', 'last_out', 'last_out_hang', 'last_clearing'):
+                    setattr(self.interfaces[intf['name']], k, self._cisco_time_to_dt(v))
+                elif k == 'is_enabled':
+                    val = True if 'up' in v else False
+                    setattr(self.interfaces[intf['name']], k, val)
+                elif k == 'is_up':
+                    val = True if 'up' in v else False
+                    setattr(self.interfaces[intf['name']], k, val)
+                    setattr(self.interfaces[intf['name']], 'protocol_status', v)
+                else:
+                    setattr(self.interfaces[intf['name']], k, v)
 
     def _parse_cdp_neighbors(self):
         # Return parsed cdp neighbours

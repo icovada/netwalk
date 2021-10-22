@@ -1,0 +1,4 @@
+v1.1.3
+- Allow to disable some information gathering from a switch
+- Calculate a sort_order value for interfaces to sort by interface id, not
+  merely alphabetical
