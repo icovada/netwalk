@@ -240,7 +240,7 @@ class Switch():
                 elif k == 'is_up':
                     val = True if 'up' in v else False
                     setattr(self.interfaces[intf['name']], k, val)
-                    setattr(self.interfaces[intf['name']], 'protocol_status', val)
+                    setattr(self.interfaces[intf['name']], 'protocol_status', v)
                 else:
                     setattr(self.interfaces[intf['name']], k, v)
 
