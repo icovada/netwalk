@@ -60,6 +60,7 @@ class Switch():
         self.interfaces_ip = {}
         self.vlans: Optional[Dict[int, dict]] = None
         self.vlans_set = {x for x in range(1,4095)} # VLANs configured on the switch
+        self.local_admins: Optional[Dict[str, dict]] = None
         self.facts: dict = kwargs.get('facts', None)
 
         if self.config is not None:
@@ -163,7 +164,8 @@ class Switch():
                          l3_int=True,
                          mac_address=True,
                          vlans=True,
-                         vtp=True):
+                         vtp=True,
+                         local_admins=True):
 
         self.facts = self.session.get_facts()
 
@@ -235,6 +237,10 @@ class Switch():
             # Get l3 interfaces
             self.interfaces_ip = self.session.get_interfaces_ip()
             self.arp_table = self.session.get_arp_table()
+
+        if local_admins:
+            # Get local admins
+            self.local_admins = self.session.get_users()
 
 
     def _parse_show_interface(self):
