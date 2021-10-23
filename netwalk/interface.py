@@ -20,13 +20,13 @@ class Interface(BaseModel):
     description: Optional[str] = ""
     abort: Optional[str] = None
     address: dict = {}
-    allowed_vlan: set[int] = None
+    allowed_vlan: Optional[set[int]] = None
     bandwidth: Optional[str] = None
     bia: Optional[str] = None
     bpduguard: bool = False
     channel_group: Optional[int] = None
     channel_protocol: Optional[str] = None
-    config: List[str] = None
+    config: Optional[List[str]] = None
     counters: Optional[dict] = None
     crc: Optional[str] = None
     delay: Optional[str] = None
