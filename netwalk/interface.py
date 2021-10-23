@@ -6,7 +6,9 @@ import logging
 import re
 import ipaddress
 from pydantic import BaseModel
-from typing import Dict, List, Optional, ForwardRef, Any
+from typing import Dict, List, Optional, ForwardRef, Any, Union
+
+Switch = ForwardRef('Switch')
 
 class Interface(BaseModel):
     """
@@ -29,8 +31,7 @@ class Interface(BaseModel):
     counters: Optional[dict] = None
     crc: Optional[str] = None
     delay: Optional[str] = None
-    # This should hinted to "Switch" but I can't make it work on pydantic
-    device: Optional[Any] = None
+    device: Optional[Switch] = None
     duplex: Optional[str] = None
     encapsulation: Optional[str] = None
     hardware_type: Optional[str] = None
@@ -47,7 +48,7 @@ class Interface(BaseModel):
     mode: str = 'access'
     mtu: Optional[int] = None
     native_vlan: int = 1
-    neighbors: List[Dict[Interface, dict]] = []
+    neighbors: List[Union[Dict[Interface, dict],Dict[str, str]]] = []
     output_errors: Optional[str] = None
     output_packets: Optional[str] = None
     output_rate: Optional[str] = None
@@ -58,7 +59,7 @@ class Interface(BaseModel):
     sort_order: Optional[int] = None
     speed: Optional[str] = None
     # This should hinted to "Switch" but I can't make it work on pydantic
-    switch: Optional[Any] = None
+    switch: Optional[Switch] = None
     type_edge: bool = False
     unparsed_lines: List[str] = []
     voice_vlan: Optional[int] = None

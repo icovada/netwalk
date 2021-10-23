@@ -8,12 +8,12 @@ class OldConfigTester(unittest.TestCase):
     Test configs on IOS 11 (yes I am working on some stuff _that_ old)
     """
     def test_old_switchport(self):
-        config = ("interface FastEthernet0/1\n"
-                  " no ip address\n"
-                  " description Antani\n"
-                  " switchport trunk native vlan 4\n"
-                  " switchport trunk allowed vlan 5-10\n"
-                  " switchport mode trunk")
+        config = ["interface FastEthernet0/1\n",
+                  " no ip address\n",
+                  " description Antani\n",
+                  " switchport trunk native vlan 4\n",
+                  " switchport trunk allowed vlan 5-10\n",
+                  " switchport mode trunk"]
 
         interface = netwalk.Interface(config=config)
 
