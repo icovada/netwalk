@@ -1,13 +1,12 @@
 "Define Interface object"
 
+from __future__ import annotations
 from datetime import datetime
 import logging
 import re
 import ipaddress
 from pydantic import BaseModel
-from typing import Dict, List, Optional, ForwardRef
-
-Switch = ForwardRef('Switch')
+from typing import Dict, List, Optional, ForwardRef, Any
 
 class Interface(BaseModel):
     """
@@ -15,7 +14,7 @@ class Interface(BaseModel):
     Can be initialised with any of the values or by passing
     an array containing each line of the interface configuration
     """
-    name:str 
+    name: Optional[str] = None
     logger: logging.Logger = logging.getLogger(__name__)
     description: Optional[str] = ""
     abort: Optional[str] = None
@@ -30,7 +29,8 @@ class Interface(BaseModel):
     counters: Optional[dict] = None
     crc: Optional[str] = None
     delay: Optional[str] = None
-    device: Optional[Switch] = None
+    # This should hinted to "Switch" but I can't make it work on pydantic
+    device: Optional[Any] = None
     duplex: Optional[str] = None
     encapsulation: Optional[str] = None
     hardware_type: Optional[str] = None
@@ -47,17 +47,18 @@ class Interface(BaseModel):
     mode: str = 'access'
     mtu: Optional[int] = None
     native_vlan: int = 1
-    neighbors: List[Dict['Interface', dict]] = []
+    neighbors: List[Dict[Interface, dict]] = []
     output_errors: Optional[str] = None
     output_packets: Optional[str] = None
     output_rate: Optional[str] = None
-    parent_interface: Optional['Interface'] = None
+    parent_interface: Optional[Interface] = None
     protocol_status: Optional[str] = None
     queue_strategy: Optional[str] = None
     routed_port: bool = False
     sort_order: Optional[int] = None
     speed: Optional[str] = None
-    switch: Optional[Switch] = None
+    # This should hinted to "Switch" but I can't make it work on pydantic
+    switch: Optional[Any] = None
     type_edge: bool = False
     unparsed_lines: List[str] = []
     voice_vlan: Optional[int] = None
@@ -68,11 +69,8 @@ class Interface(BaseModel):
         validate_assignment = True
 
     def __init__(self, **kwargs):
-        from netwalk import Switch
-
-        # Retro compatibility to pre-pydantic
-        super().__init__(**kwargs)
         self.update_forward_refs()
+        super().__init__(**kwargs)
 
         if self.config is not None:
             self.parse_config()
@@ -83,8 +81,6 @@ class Interface(BaseModel):
 
     def parse_config(self):
         "Parse configuration from show run"
-        if isinstance(self.config, str):
-            self.config = self.config.split("\n")
         
         # Parse port mode first. Some switches have it first, some last, so check it first thing
         for line in self.config:
