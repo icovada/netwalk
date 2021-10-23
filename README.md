@@ -3,7 +3,7 @@
 Netwalk is a Python library born out of a large remadiation project aimed at making network device discovery and management as fast and painless as possible.
 
 ## Installation
-Can be installed via pip with `pip install git+ssh://git@scm.dimensiondata.com/italy/netwalk.git`
+Can be installed via pip with `pip install netwalk`
 
 ### Extras
 A collection of scripts with extra features and examples is stored in the `extras` folder
@@ -35,11 +35,11 @@ You can tell Fabric to discover another switch on its own or you can add a `Swit
 #### Example
 
 ```python
-sitename.add_switch(seed_hosts=["10.10.10.1"],
+sitename.add_switch(host="10.10.10.1",
                     credentials=[("cisco","cisco"))
 sitename.refresh_global_information()
 ```
-Note: you may also pass a list of `napalm_optional_args`, check the [optional args guide](docs/napalm_optional_args_guide.md) for explanation and examples
+Note: you may also pass a list of `napalm_optional_args`, check the [optional args guide](https://napalm.readthedocs.io/en/latest/support/#optional-arguments) for explanation and examples
 ### Structure
 
 `sitename` will now contain two main attributes:
@@ -59,7 +59,7 @@ sw01 = Switch(hostname="10.10.10.1")
 sw01.retrieve_data(username="cisco",
                    password="cisco"})
 ```
-Note: you may also pass a list of `napalm_optional_args`, check the [optional args guide](docs/napalm_optional_args_guide.md) for explanation and examples
+Note: you may also pass a list of `napalm_optional_args`, check the [optional args guide](https://napalm.readthedocs.io/en/latest/support/#optional-arguments) for explanation and examples
 
 This will connect to the switch and pull all the data much like `add_switch()` does in `Fabric`
 
@@ -106,3 +106,17 @@ An Interface object defines a switched interface ("switchport" in Cisco language
  * `bpduguard`
 
 Printing an interface yelds its configuration based on its current attributes
+
+## Trick
+
+### Check a trunk filter is equal on both sides
+```python
+assert int.allowed_vlan == int.neighbors[0].allowed_vlan
+```
+
+### Check a particular host is in vlan 10
+```python
+from netaddr import EUI
+host_mac = EUI('00:01:02:03:04:05')
+assert fabric.mac_table[host_mac]['interface'].native_vlan == 10
+```

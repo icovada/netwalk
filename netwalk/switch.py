@@ -1,3 +1,21 @@
+"""
+netwalk
+Copyright (C) 2021 NTT Ltd
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 "Define Switch object"
 
 import ipaddress
@@ -42,6 +60,7 @@ class Switch():
         self.interfaces_ip = {}
         self.vlans: Optional[Dict[int, dict]] = None
         self.vlans_set = {x for x in range(1,4095)} # VLANs configured on the switch
+        self.local_admins: Optional[Dict[str, dict]] = None
         self.facts: dict = kwargs.get('facts', None)
 
         if self.config is not None:
@@ -145,7 +164,8 @@ class Switch():
                          l3_int=True,
                          mac_address=True,
                          vlans=True,
-                         vtp=True):
+                         vtp=True,
+                         local_admins=True):
 
         self.facts = self.session.get_facts()
 
@@ -217,6 +237,10 @@ class Switch():
             # Get l3 interfaces
             self.interfaces_ip = self.session.get_interfaces_ip()
             self.arp_table = self.session.get_arp_table()
+
+        if local_admins:
+            # Get local admins
+            self.local_admins = self.session.get_users()
 
 
     def _parse_show_interface(self):

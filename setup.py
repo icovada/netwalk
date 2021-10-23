@@ -11,9 +11,9 @@ setuptools.setup(
     description = "Network discovery and analysis tool",
     long_description = long_description,
     long_description_content_type = "text/markdown",
-    url = "https://scm.dimensiondata.com/italy/netwalk",
+    url = "https://github.com/icovada/netwalk",
     project_urls = {
-        "Bug Tracker": "https://scm.dimensiondata.com/italy/netwalk/issues"
+        "Bug Tracker": "https://github.com/icovada/netwalk/issues"
     },
     classifiers = [
         "Programming Language :: Python :: 3",
@@ -22,8 +22,8 @@ setuptools.setup(
     packages = setuptools.find_packages(),
     python_requires = ">=3.6",
     install_requires=[
-        "ciscoconfparse==1.5.30",
-        "napalm==3.2.0"
+        "ciscoconfparse>=1.5.30",
+        "napalm>=3.2.0"
     ],
     include_package_data=True
 )

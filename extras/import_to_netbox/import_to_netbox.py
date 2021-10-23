@@ -1,9 +1,30 @@
+"""
+netwalk
+Copyright (C) 2021 NTT Ltd
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
+
+import glob
 import pickle
 import pynetbox
 import netwalk
 from slugify import slugify
 import logging
 import ipaddress
+import os
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.DEBUG)
@@ -14,12 +35,12 @@ ch.setLevel(logging.DEBUG)
 logger.addHandler(ch)
 
 nb = pynetbox.api(
-    'http://localhost',
-    token='95db86f3b2fe48482bdeee0686051e4451f36665'
+    'http://192.168.1.192',
+    token=os.getenv('api_key', None)
 )
 
 
-def create_cdp_neighbor(swdata, interface, nb_int=None):
+def create_cdp_neighbor(swdata, nb_site, nb_neigh_role, interface, nb_int=None):
     # Create undiscovered CDP neighbors
     try:
         neighbor = swdata.interfaces[interface].neighbors[0]
@@ -79,7 +100,7 @@ def create_cdp_neighbor(swdata, interface, nb_int=None):
         pass
 
 
-def create_devices_and_interfaces(fabric):
+def create_devices_and_interfaces(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
     # Create devices and interfaces
     site_vlans = nb.ipam.vlans.filter(site_id=nb_site.id)
     vlans_dict = {x.vid: x for x in site_vlans}
@@ -100,12 +121,19 @@ def create_devices_and_interfaces(fabric):
 
         nb_device = nb.dcim.devices.get(name=swdata.facts['hostname'])
         if nb_device is None:
-            role = nb_core_role if swdata in fabric.cores else nb_access_role
             nb_device = nb.dcim.devices.create(name=swdata.facts['hostname'],
-                                               device_role=role.id,
+                                               device_role=nb_access_role.id,
                                                device_type=nb_device_type.id,
                                                site=nb_site.id,
                                                serial_number=swdata.facts['serial_number'])
+        else:
+            try:
+                assert nb_device.device_type.model == swdata.facts['model']
+                assert nb_device.serial == swdata.facts['serial_number']
+            except AssertionError:
+                logger.warning("Switch %s changed model from %s to %s", swdata.facts['hostname'], nb_device.device_type.display_name, swdata.facts['model'])
+                nb_device.update({'device_type': nb_device_type.id,
+                                  'serial': swdata.facts['serial_number']})
 
         nb_all_interfaces = {
             x.name: x for x in nb.dcim.interfaces.filter(device_id=nb_device.id)}
@@ -156,7 +184,7 @@ def create_devices_and_interfaces(fabric):
                                                          name=interface,
                                                          type=int_type,
                                                          **intproperties)
-                create_cdp_neighbor(swdata, interface)
+                create_cdp_neighbor(swdata, nb_site, nb_neigh_role, interface)
 
             else:
                 thisint = swdata.interfaces[interface]
@@ -167,7 +195,7 @@ def create_devices_and_interfaces(fabric):
                         logger.info("Deleting old cable on %s", thisint.name)
                         nb_int.cable.delete()
                 else:
-                    create_cdp_neighbor(swdata, interface, nb_int=nb_int)
+                    create_cdp_neighbor(swdata, nb_site, interface, nb_neigh_role, nb_int=nb_int)
 
                 if thisint.description != nb_int.description:
                     intproperties['description'] = thisint.description if thisint.description is not None else ""
@@ -194,6 +222,9 @@ def create_devices_and_interfaces(fabric):
                     assert nb_int.untagged_vlan == vlans_dict[thisint.native_vlan]
                 except AssertionError:
                     intproperties['untagged_vlan'] = vlans_dict[thisint.native_vlan]
+                except KeyError:
+                    logger.error("VLAN %s on interface %s %s does not exist", thisint.native_vlan, thisint.name, thisint.switch.hostname)
+                    continue
 
                 if thisint.is_enabled != nb_int.enabled:
                     intproperties['enabled'] = thisint.is_enabled
@@ -211,7 +242,7 @@ def create_devices_and_interfaces(fabric):
                 v.delete()
 
 
-def add_ip_addresses(fabric):
+def add_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
     for swname, swdata in fabric.switches.items():
         nb_device = nb.dcim.devices.get(name=swdata.facts['hostname'])
         nb_device_addresses = {ipaddress.ip_interface(
@@ -222,7 +253,10 @@ def add_ip_addresses(fabric):
 
         # Cycle through interfaces, see if the IPs on them are configured
         for intname, intdata in swdata.interfaces.items():
-            if len(intdata.address) == 0:
+            try:
+                assert hasattr(intdata, 'address')
+                assert len(intdata.address) != 0
+            except AssertionError:
                 continue
 
             nb_interface = nb_device_interfaces[intname]
@@ -240,9 +274,12 @@ def add_ip_addresses(fabric):
                         if nb_prefix is None:
                             logger.info("Creating prefix %s",
                                         str(address.network))
-                            nb_prefix = nb.ipam.prefixes.create(prefix=str(address.network),
-                                                                site=nb_site.id,
-                                                                vlan=nb_interface.untagged_vlan.id)
+                            try:
+                                nb_prefix = nb.ipam.prefixes.create(prefix=str(address.network),
+                                                                    site=nb_site.id,
+                                                                    vlan=nb_interface.untagged_vlan.id)
+                            except:
+                                pass
 
                         logger.info("Checking IP %s", str(address))
                         nb_address = nb.ipam.ip_addresses.get(address=str(address),
@@ -325,7 +362,7 @@ def add_ip_addresses(fabric):
                             nb_device.update({'primary_ip4': v.id})
 
  
-def add_neighbor_ip_addresses(fabric):
+def add_neighbor_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
     for swname, swdata in fabric.switches.items():
         for intname, intdata in swdata.interfaces.items():
             try:
@@ -339,6 +376,11 @@ def add_neighbor_ip_addresses(fabric):
             except KeyError:
                 nb_neigh_device = nb.dcim.devices.get(
                     name=neighbor['hostname'])
+
+                if nb_neigh_device is None:
+                    create_cdp_neighbor(swdata, nb_site, nb_neigh_role, intname)
+                    nb_neigh_device = nb.dcim.devices.get(
+                                            name=neighbor['hostname'])
 
             nb_neigh_interface = nb.dcim.interfaces.get(name=neighbor['remote_int'],
                                                         device_id=nb_neigh_device.id)
@@ -409,7 +451,7 @@ def add_neighbor_ip_addresses(fabric):
                     nb_neigh_device.update({'primary_ip4': nb_neigh_ip.id})
 
 
-def add_l2_vlans(fabric):
+def add_l2_vlans(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
     nb_all_vlans = [x for x in nb.ipam.vlans.filter(site_id=nb_site.id)]
     vlan_dict = {x.vid: x for x in nb_all_vlans}
     for swname, swdata in fabric.switches.items():
@@ -422,7 +464,7 @@ def add_l2_vlans(fabric):
                 vlan_dict[int(vlanid)] = nb_vlan
 
 
-def add_cables(fabric):
+def add_cables(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
     logger.info("Adding cables")
     all_nb_devices = {
         x.name: x for x in nb.dcim.devices.filter(site_id=nb_site.id)}
@@ -431,8 +473,6 @@ def add_cables(fabric):
 
     for swname, swdata in fabric.switches.items():
         logger.info("Checking cables for device %s", swname)
-        sw_cables = [x for x in nb.dcim.cables.filter(
-            device_id=swdata.nb_device.id)]
         for intname, intdata in swdata.interfaces.items():
             try:
                 if isinstance(intdata.neighbors[0], netwalk.Interface):
@@ -474,6 +514,19 @@ def add_cables(fabric):
                 else:
                     continue
 
+                sw_cables = [x for x in nb.dcim.cables.filter(
+                                device_id=nb_term_a.device.id)]
+                try:
+                    for cable in sw_cables:
+                        assert nb_term_a != cable.termination_a
+                        assert nb_term_a != cable.termination_b
+                        assert nb_term_b != cable.termination_a
+                        assert nb_term_b != cable.termination_b
+                except AssertionError:
+                    continue
+
+                sw_cables = [x for x in nb.dcim.cables.filter(
+                                device_id=nb_term_b.device.id)]
                 try:
                     for cable in sw_cables:
                         assert nb_term_a != cable.termination_a
@@ -491,21 +544,37 @@ def add_cables(fabric):
             except IndexError:
                 pass
 
+def add_software_versions(fabric):
+    for swname, swdata in fabric.switches.items():
+        hostname = swname.replace(".veronesi.com", "")
+        logger.debug("Looking up %s", hostname)
+        thisdev = nb.dcim.devices.get(name=hostname)
+        assert thisdev is not None
+        if thisdev['custom_fields']['software_version'] != swdata.facts['os_version']:
+            logger.info("Updating %s with version %s", hostname, swdata.facts['os_version'])
+            thisdev.update({'custom_fields':{'software_version': swdata.facts['os_version']}})
+        else:
+            logger.info("Skipping %s", hostname)
+        
 
-def main():
-    add_l2_vlans(fabric)
-    create_devices_and_interfaces(fabric)
-    add_ip_addresses(fabric)
-    add_neighbor_ip_addresses(fabric)
-    add_cables(fabric)
+def main(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
+    add_l2_vlans(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site)
+    create_devices_and_interfaces(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site)
+    add_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site)
+    add_neighbor_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site)
+    add_cables(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site)
+    add_software_versions(fabric)
 
 
 if __name__ == '__main__':
-    with open('fabric_data.bin', 'rb') as fabricfile:
-        fabric = pickle.load(fabricfile)
+    for f in glob.glob("bindata/*"):
+        sitename = f.replace("bindata/", "").replace(".bin","")
+        logger.info("Opening %s", f)
+        with open(f, "rb") as bindata:
+            fabric = pickle.load(bindata)
 
-    nb_access_role = nb.dcim.device_roles.get(name="Access Switch")
-    nb_core_role = nb.dcim.device_roles.get(name="Core Switch")
-    nb_neigh_role = nb.dcim.device_roles.get(name="Access Point")
-    nb_site = nb.dcim.sites.get(name="Capoponte")
-    main()
+        nb_access_role = nb.dcim.device_roles.get(name="Access Switch")
+        nb_core_role = nb.dcim.device_roles.get(name="Core Switch")
+        nb_neigh_role = nb.dcim.device_roles.get(name="Access Point")
+        nb_site = nb.dcim.sites.get(slug=sitename)
+        main(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site)
