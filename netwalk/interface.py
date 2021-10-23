@@ -17,7 +17,6 @@ class Interface(BaseModel):
     """
     name:str 
     logger: logging.Logger = logging.getLogger(__name__)
-    name: str = None
     description: Optional[str] = ""
     abort: Optional[str] = None
     address: dict = {}
@@ -57,7 +56,6 @@ class Interface(BaseModel):
     queue_strategy: Optional[str] = None
     routed_port: bool = False
     sort_order: Optional[int] = None
-    speed: Optional[int] = None
     speed: Optional[str] = None
     switch: Optional[Switch] = None
     type_edge: bool = False
