@@ -11,7 +11,7 @@ from netaddr import EUI
 import napalm
 import ciscoconfparse
 import textfsm
-from .interface import Interface
+from netwalk.interface import Interface
 
 
 class Switch():

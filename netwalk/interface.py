@@ -4,69 +4,77 @@ from datetime import datetime
 import logging
 import re
 import ipaddress
+from pydantic import BaseModel
+from typing import Dict, List, Optional, ForwardRef
 
-from typing import List, Optional, Any
+Switch = ForwardRef('Switch')
 
-
-class Interface():
+class Interface(BaseModel):
     """
     Define an interface
     Can be initialised with any of the values or by passing
     an array containing each line of the interface configuration
     """
+    name:str 
+    logger: logging.Logger = logging.getLogger(__name__)
+    name: str = None
+    description: Optional[str] = ""
+    abort: Optional[str] = None
+    address: dict = {}
+    allowed_vlan: set[int] = None
+    bandwidth: Optional[str] = None
+    bia: Optional[str] = None
+    bpduguard: bool = False
+    channel_group: Optional[int] = None
+    channel_protocol: Optional[str] = None
+    config: List[str] = None
+    counters: Optional[dict] = None
+    crc: Optional[str] = None
+    delay: Optional[str] = None
+    device: Optional[Switch] = None
+    duplex: Optional[str] = None
+    encapsulation: Optional[str] = None
+    hardware_type: Optional[str] = None
+    input_errors: Optional[str] = None
+    input_packets: Optional[str] = None
+    input_rate: Optional[str] = None
+    is_enabled: bool = True
+    is_up: bool = True
+    last_clearing: Optional[datetime] = None
+    last_in: Optional[datetime] = None
+    last_out_hang: Optional[datetime] = None
+    last_out: Optional[datetime] = None
+    mac_count: int = 0
+    mode: str = 'access'
+    mtu: Optional[int] = None
+    native_vlan: int = 1
+    neighbors: List[Dict['Interface', dict]] = []
+    output_errors: Optional[str] = None
+    output_packets: Optional[str] = None
+    output_rate: Optional[str] = None
+    parent_interface: Optional['Interface'] = None
+    protocol_status: Optional[str] = None
+    queue_strategy: Optional[str] = None
+    routed_port: bool = False
+    sort_order: Optional[int] = None
+    speed: Optional[int] = None
+    speed: Optional[str] = None
+    switch: Optional[Switch] = None
+    type_edge: bool = False
+    unparsed_lines: List[str] = []
+    voice_vlan: Optional[int] = None
+    vrf: str = "default"
+
+    class Config:
+        arbitrary_types_allowed = True
+        validate_assignment = True
 
     def __init__(self, **kwargs):
-        from netwalk.switch import Switch
-        self.logger = logging.getLogger(__name__)
-        self.name: str = kwargs.get('name', None)
-        self.description: Optional[str] = kwargs.get('description', "")
+        from netwalk import Switch
 
-        self.abort: Optional[str] = kwargs.get('abort', None)
-        self.address: dict = kwargs.get('address', {})
-        self.allowed_vlan: set = kwargs.get('allowed_vlan', None)
-        self.bandwidth: Optional[str] = kwargs.get('bandwidth', None)
-        self.bia: Optional[str] = kwargs.get('bia', None)
-        self.bpduguard: bool = kwargs.get('bpduguard', False)
-        self.channel_group: Optional[int] = kwargs.get('channel_group', None)
-        self.channel_protocol: Optional[str] = kwargs.get('channel_protocol', None)
-        self.config: List[str] = kwargs.get('config', None)
-        self.counters: Optional[dict] = kwargs.get('counters', None)
-        self.crc: Optional[str] = kwargs.get('crc', None)
-        self.delay: Optional[str] = kwargs.get('delay', None)
-        self.device: Optional[Switch] = kwargs.get('switch', None)
-        self.duplex: Optional[str] = kwargs.get('duplex', None)
-        self.encapsulation: Optional[str] = kwargs.get('encapsulation', None)
-        self.hardware_type: Optional[str] = kwargs.get('hardware_type', None)
-        self.input_errors: Optional[str] = kwargs.get('input_errors', None)
-        self.input_packets: Optional[str] = kwargs.get('input_packets', None)
-        self.input_rate: Optional[str] = kwargs.get('input_rate', None)
-        self.is_enabled: bool = kwargs.get('is_enabled', True)
-        self.is_up: bool = kwargs.get('is_up', True)
-        self.last_clearing: Optional[datetime] = kwargs.get('last_clear', None)
-        self.last_in: Optional[datetime] = kwargs.get('last_in', None)
-        self.last_out_hang: Optional[datetime] = kwargs.get('last_out_hang', None)
-        self.last_out: Optional[datetime] = kwargs.get('last_out', None)
-        self.mac_count: int = 0
-        self.media_type: Optional[str] = kwargs.get('media_type', None)
-        self.mode: str = kwargs.get('mode', 'access')
-        self.mtu: Optional[int] = kwargs.get('mtu', None)
-        self.native_vlan: int = kwargs.get('native_vlan', 1)
-        self.neighbors: List[Any[Interface, dict]] = kwargs.get('neighbors', [])
-        self.output_errors: Optional[str] = kwargs.get('output_errors', None)
-        self.output_packets: Optional[str] = kwargs.get('output_packets', None)
-        self.output_rate: Optional[str] = kwargs.get('output_rate', None)
-        self.parent_interface: Optional[Interface] = kwargs.get('parent_interface', None)
-        self.protocol_status: Optional[str] = kwargs.get('protocol_status', None)
-        self.queue_strategy: Optional[str] = kwargs.get('queue_strategy', None)
-        self.routed_port: bool = kwargs.get('routed_port', False)
-        self.sort_order: Optional[int] = kwargs.get('sort_order', None)
-        self.speed: Optional[int] = kwargs.get('speed', None)
-        self.speed: Optional[str] = kwargs.get('speed', None)
-        self.switch: Optional[Switch] = kwargs.get('switch', None)
-        self.type_edge: bool = kwargs.get('type_edge', False)
-        self.unparsed_lines: List[str] = kwargs.get('unparsed_lines', [])
-        self.voice_vlan: Optional[int] = kwargs.get('voice_vlan', None)
-        self.vrf: str = kwargs.get('vrf', "default")
+        # Retro compatibility to pre-pydantic
+        super().__init__(**kwargs)
+        self.update_forward_refs()
 
         if self.config is not None:
             self.parse_config()
