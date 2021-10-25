@@ -23,7 +23,7 @@ import logging
 import os
 from io import StringIO
 import datetime as dt
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from netaddr import EUI
 
 import napalm
@@ -60,6 +60,7 @@ class Switch():
         self.interfaces_ip = {}
         self.vlans: Optional[Dict[int, dict]] = None
         self.vlans_set = {x for x in range(1,4095)} # VLANs configured on the switch
+        self.local_admins: Optional[Dict[str, dict]] = None
         self.facts: dict = kwargs.get('facts', None)
 
         if self.config is not None:
@@ -70,6 +71,17 @@ class Switch():
                       password: str,
                       napalm_optional_args: dict = {},
                       scan_options: dict={}):
+
+        """
+        One-stop function to get data from switch.
+        
+        Args:
+        - username (str)
+        - password (str)
+        - napalm_optional_args (dict): check Napalm documentation
+        - scan_options (dict): Valid keys are 'whitelist' and 'blacklist'. Value must
+                               be a list of options to pass to _get_switch_data
+        """
 
         self.napalm_optional_args = napalm_optional_args
 
@@ -157,13 +169,50 @@ class Switch():
         else:
             TypeError("No interface loaded, cannot parse")
 
-    def _get_switch_data(self, 
-                         cdp_neighbors=True,
-                         interface_status=True,
-                         l3_int=True,
-                         mac_address=True,
-                         vlans=True,
-                         vtp=True):
+    def _get_switch_data(self,
+                         whitelist: Optional[List[str]] = None,
+                         blacklist: Optional[List[str]] = None):
+        
+        """
+        Get data from switch.
+        If no argument is passed, scan all modules
+
+        Args: 
+        - whitelist (list[str]): List of modules to scan
+        - blacklisst (list[str]): List of modules to exclude from scan
+
+        Either whitelist or blacklist can be passed.
+        If both are passed, whitelist takes precedence over blacklist.
+        
+        Valid values are:
+        - 'mac_address'
+        - 'interface_status'
+        - 'cdp_neighbors'
+        - 'vtp'
+        - 'vlans'
+        - 'l3_int'
+        - 'local_admins'
+
+        Running config is ALWAYS returned
+        """
+
+        allscans = ['mac_address', 'interface_status', 'cdp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins',]
+        scan_to_perform = []
+
+        if whitelist is not None:
+            for i in whitelist:
+                assert i in allscans, "Parameter not recognised in scan list. has to be any of ['mac_address', 'interface_status', 'cdp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins',]"
+
+            scan_to_perform = whitelist
+
+        elif blacklist is not None:
+            scan_to_perform = allscans
+            for i in blacklist:
+                assert i in allscans, "Parameter not recognised in scan list. has to be any of ['mac_address', 'interface_status', 'cdp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins',]"
+                scan_to_perform.remove(i)
+
+        else:
+            scan_to_perform = allscans
 
         self.facts = self.session.get_facts()
 
@@ -178,7 +227,7 @@ class Switch():
 
         self._parse_config()
 
-        if mac_address:
+        if 'mac_address' in scan_to_perform:
             # Get mac address table
             self.mac_table = {} # Clear before adding new data
             mactable = self.session.get_mac_address_table()
@@ -212,29 +261,33 @@ class Switch():
                 except KeyError:
                     pass
 
-        if interface_status:
+        if 'interface_status' in scan_to_perform:
             # Get interface status
             self._parse_show_interface()
 
-        if cdp_neighbors:
+        if 'cdp_neighbors' in scan_to_perform:
             self._parse_cdp_neighbors()
 
-        if vtp:
+        if 'vtp' in scan_to_perform:
             # Get VTP status
             command = "show vtp status"
             result = self.session.cli([command])
 
             self.vtp = result[command]
 
-        if vlans:
+        if 'vlans' in scan_to_perform:
             # Get VLANs
             self.vlans = self.session.get_vlans()
             self.vlans_set = set([int(k) for k, v in self.vlans.items()])
 
-        if l3_int:
+        if 'l3_int' in scan_to_perform:
             # Get l3 interfaces
             self.interfaces_ip = self.session.get_interfaces_ip()
             self.arp_table = self.session.get_arp_table()
+
+        if 'local_admins' in scan_to_perform:
+            # Get local admins
+            self.local_admins = self.session.get_users()
 
 
     def _parse_show_interface(self):

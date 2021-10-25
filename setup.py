@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name = "netwalk",
-    version = "1.1.3",
+    version = "1.1.4",
     author = "Federico Tabbò (Europe)",
     author_email = "federico.tabbo@global.ntt",
     description = "Network discovery and analysis tool",
