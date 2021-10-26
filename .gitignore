@@ -3,3 +3,6 @@ venv/
 .venv/
 *.pyc
 .vscode/
+docs/build/
+dist/
+netwalk.egg-info/
