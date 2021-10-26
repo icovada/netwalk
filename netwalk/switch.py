@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-"Define Switch object"
+"""Define Switch object"""
 
 import ipaddress
 import logging
@@ -35,7 +35,7 @@ from .interface import Interface
 class Switch():
     """
     Switch object to hold data
-    Initialize with name and hostname, call retrieve_data
+    Initialize with name and hostname, call retrieve_data()
     to connect to device and retrieve automaticlly or
     pass config as string to parse locally
     """
@@ -74,13 +74,15 @@ class Switch():
 
         """
         One-stop function to get data from switch.
-        
-        Args:
-        - username (str)
-        - password (str)
-        - napalm_optional_args (dict): check Napalm documentation
-        - scan_options (dict): Valid keys are 'whitelist' and 'blacklist'. Value must
-                               be a list of options to pass to _get_switch_data
+
+        :param username: username
+        :type username: str
+        :param password: password
+        :type password: str
+        :param napalm_optional_args: Refer to Napalm's documentation
+        :type napalm_optional_args: dict
+        :param scan_options: Valid keys are 'whitelist' and 'blacklist'. Value must be a list of options to pass to _get_switch_data
+        :type scan_options: dict(str, list(str))
         """
 
         self.napalm_optional_args = napalm_optional_args
@@ -91,6 +93,15 @@ class Switch():
         self.session.close()
 
     def connect(self, username: str, password: str, napalm_optional_args: dict = None) -> None:
+        """Connect to device
+
+        :param username: username
+        :type username: str
+        :param password: password
+        :type password: str
+        :param napalm_optional_args: Check Napalm's documentation about optional-args, defaults to None
+        :type napalm_optional_args: dict, optional
+        """
         driver = napalm.get_network_driver('ios')
 
         if napalm_optional_args is not None:
@@ -106,6 +117,12 @@ class Switch():
         self.session.open()
 
     def get_active_vlans(self):
+        """Get active vlans from switch.
+        Only lists vlans configured on ports
+
+        :return: [description]
+        :rtype: [type]
+        """
         vlans = set([1])
         for _, intdata in self.interfaces.items():
             vlans.add(intdata.native_vlan)
@@ -147,10 +164,17 @@ class Switch():
         return vlans
 
     def add_interface(self, intobject: Interface):
+        """Add interface to switch
+
+        :param intobject: Interface to add
+        :type intobject: netwalk.Interface
+        """
         intobject.device = self
         self.interfaces[intobject.name] = intobject
 
     def _parse_config(self):
+        """Parse show run
+        """
         if isinstance(self.config, str):
             running = StringIO()
             running.write(self.config)
@@ -177,9 +201,10 @@ class Switch():
         Get data from switch.
         If no argument is passed, scan all modules
 
-        Args: 
-        - whitelist (list[str]): List of modules to scan
-        - blacklisst (list[str]): List of modules to exclude from scan
+        :param whitelist: List of modules to scan, defaults to None
+        :type whitelist: list(str)
+        :param blacklist: List of modules to exclude from scan, defaults to None
+        :type blacklist: list(str)
 
         Either whitelist or blacklist can be passed.
         If both are passed, whitelist takes precedence over blacklist.
@@ -316,9 +341,7 @@ class Switch():
                     setattr(self.interfaces[intf['name']], k, v)
 
     def _parse_cdp_neighbors(self):
-        # Return parsed cdp neighbours
-        # [[empty, hostname, ip, platform, local interface, remote interface, version]]
-        # [['', 'SMba03_1_Piking', '10.19.6.15', 'cisco WS-C3560G-48TS', 'GigabitEthernet0/49', 'GigabitEthernet0/2', 'Cisco IOS Software, C3560 Software (C3560-IPBASE-M), Version 12.2(35)SE5, RELEASE SOFTWARE (fc1)']]
+        """Ask for and parse CDP neighbors"""
         self.session.device.write_channel("show cdp neigh detail")
         self.session.device.write_channel("\n")
         self.session.device.timeout = 30  # Could take ages...
@@ -344,6 +367,14 @@ class Switch():
             self.interfaces[nei[5]].neighbors.append(neigh_data)
 
     def _cisco_time_to_dt(self, time: str) -> dt.datetime:
+        """Converts time from now to absolute, starting when Switch object was initialised
+        
+        :param time: Cisco diff time (e.g. '00:00:01' or '5w4d')
+        :param type: str
+        
+        :return: Absolute time
+        :rtype: datetime.datetime
+        """
         weeks = 0
         days = 0
         hours = 0
@@ -391,6 +422,10 @@ class Switch():
         return self.init_time - delta
 
     def __str__(self):
+        """Return switch config from hostname and interfaces
+        
+        :return: Switch "show run" from internal data
+        :rtype: str"""
         showrun = f"! {self.hostname}"
 
         try:

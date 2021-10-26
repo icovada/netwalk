@@ -268,6 +268,7 @@ class Interface():
 
 
     def _calculate_sort_order(self) -> None:
+        """Generate unique sorting number from port id to sort interfaces meaningfully"""
         if 'Port-channel' in self.name:
             id = self.name.replace('Port-channel', '')
             self.sort_order = int(id) + 1000000
@@ -289,11 +290,11 @@ class Interface():
         """
         Expands vlan ranges
 
-        Args:
-          - vlanlist (str): String of vlans from config, i.e. 1,2,3-5
+        :param vlanlist: String of vlans from config, i.e. 1,2,3-5
+        :type vlanlist: str
 
-        Returns:
-          - set
+        :return: Set of vlans
+        :rtype: set
         """
 
         split = vlanlist.split(",")
@@ -308,6 +309,7 @@ class Interface():
         return out
 
     def __str__(self) -> str:
+        """Generate show run from self data"""
         if self.name is None:
             raise KeyError("Must define at least a name")
 
