@@ -9,7 +9,6 @@ Module contents
    :undoc-members:
    :show-inheritance:
    :private-members:
-   :special-members:
 
 
 Submodules
@@ -23,7 +22,6 @@ netwalk.fabric module
    :undoc-members:
    :show-inheritance:
    :private-members:
-   :special-members:
 
 netwalk.interface module
 ------------------------
@@ -33,7 +31,6 @@ netwalk.interface module
    :undoc-members:
    :show-inheritance:
    :private-members:
-   :special-members:
 
 netwalk.switch module
 ---------------------
@@ -43,4 +40,3 @@ netwalk.switch module
    :undoc-members:
    :show-inheritance:
    :private-members:
-   :special-members:
