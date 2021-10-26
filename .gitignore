@@ -6,3 +6,4 @@ venv/
 docs/build/
 dist/
 netwalk.egg-info/
+docs/_build/
