@@ -1,4 +1,4 @@
-netwalk package
+Netwalk package
 ===============
 
 Module contents
