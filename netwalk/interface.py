@@ -23,15 +23,96 @@ import logging
 import re
 import ipaddress
 
-from typing import List, Optional, Any
+from typing import ForwardRef, List, Optional, Any
 
+Switch = ForwardRef('Switch')
+Interface = ForwardRef('Interface')
 
 class Interface():
     """
     Define an interface
     Can be initialised with any of the values or by passing
-    an array containing each line of the interface configuration
+    an array containing each line of the interface configuration.
+
+    Converted to str it outputs the corresponding show running configuration.
+    All unparsed lines go to "unparsed_lines" and are returned when converted to str
     """
+
+    logger: logging.Logger
+    name: str
+    description: Optional[str]
+    #: data from show interface
+    abort: Optional[str]
+    address: dict
+    allowed_vlan: set
+    #: data from show interface
+    bandwidth: Optional[str]
+    #: data from show interface
+    bia: Optional[str]
+    bpduguard: bool
+    channel_group: Optional[int]
+    channel_protocol: Optional[str]
+    config: List[str]
+    counters: Optional[dict]
+    #: data from show interface
+    crc: Optional[str]
+    #: data from show interface
+    delay: Optional[str]
+    device: Optional[Switch]
+    #: data from show interface
+    duplex: Optional[str]
+    encapsulation: Optional[str]
+    #: data from show interface
+    hardware_type: Optional[str]
+    #: data from show interface
+    input_errors: Optional[str]
+    #: data from show interface
+    input_packets: Optional[str]
+    #: data from show interface
+    input_rate: Optional[str]
+    is_enabled: bool
+    is_up: bool
+    #: data from show interface
+    last_clearing: Optional[datetime]
+    #: data from show interface
+    last_in: Optional[datetime]
+    #: data from show interface
+    last_out_hang: Optional[datetime]
+    #: data from show interface
+    last_out: Optional[datetime]
+    #: Total number of mac addresses behind this interface
+    mac_count: int = 0
+    #: data from show interface
+    media_type: Optional[str]
+    mode: str
+    #: data from show interface
+    mtu: Optional[int]
+    native_vlan: int
+    # TODO: can be a list of either dict or Interface
+    #: List of neighbors connected to the interface. List because CDP might show more than one.
+    #: If the neighbour is another Switch, it's turned into the other end's Interface object
+    #: otherwise remains a dict containing all the parsed data.
+    neighbors: List[Any]
+    #: data from show interface
+    output_errors: Optional[str]
+    #: data from show interface
+    output_packets: Optional[str]
+    #: data from show interface
+    output_rate: Optional[str]
+    parent_interface: Optional[Interface]
+    protocol_status: Optional[str]
+    #: data from show interface
+    queue_strategy: Optional[str]
+    routed_port: bool
+    sort_order: Optional[int]
+    #: data from show interface
+    speed: Optional[str]
+    #: pointer to parent's Switch object
+    switch: Optional[Switch]
+    type_edge: bool
+    unparsed_lines: List[str]
+    voice_vlan: Optional[int]
+    vrf: str
 
     def __init__(self, **kwargs):
         from netwalk.switch import Switch
@@ -78,7 +159,6 @@ class Interface():
         self.queue_strategy: Optional[str] = kwargs.get('queue_strategy', None)
         self.routed_port: bool = kwargs.get('routed_port', False)
         self.sort_order: Optional[int] = kwargs.get('sort_order', None)
-        self.speed: Optional[int] = kwargs.get('speed', None)
         self.speed: Optional[str] = kwargs.get('speed', None)
         self.switch: Optional[Switch] = kwargs.get('switch', None)
         self.type_edge: bool = kwargs.get('type_edge', False)
