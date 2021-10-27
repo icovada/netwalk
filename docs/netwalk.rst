@@ -10,14 +10,13 @@ Module contents
    :show-inheritance:
    :private-members:
 
-
-Submodules
-----------
+Classes
+-------
 
 netwalk.fabric module
 ---------------------
 
-.. automodule:: netwalk.fabric
+.. autoclass:: netwalk.fabric
    :members:
    :undoc-members:
    :show-inheritance:
@@ -26,7 +25,7 @@ netwalk.fabric module
 netwalk.interface module
 ------------------------
 
-.. automodule:: netwalk.interface
+.. autoclass:: netwalk.interface
    :members:
    :undoc-members:
    :show-inheritance:
@@ -35,7 +34,7 @@ netwalk.interface module
 netwalk.switch module
 ---------------------
 
-.. automodule:: netwalk.switch
+.. autoclass:: netwalk.switch
    :members:
    :undoc-members:
    :show-inheritance:
