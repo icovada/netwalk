@@ -31,6 +31,7 @@ class Fabric():
     mac address table
 
     """
+    logger: logging.Logger
     #: A dictionary of {hostname: Switch}
     switches: dict[str, Switch]
 

@@ -43,6 +43,27 @@ class Switch():
     INTERFACE_TYPES = r"([Pp]ort-channel|\w*Ethernet|Vlan|Loopback)."
     INTERFACE_FILTER = r"^interface " + INTERFACE_TYPES
 
+    logger: logging.Logger
+    hostname: str
+    #: Dict of {name: Interface}
+    interfaces: Dict[str, Interface]
+    #: Pass at init time to parse config automatically
+    config: Optional[str]
+    #: Connection timeout
+    timeout: int
+    napalm_optional_args: dict
+    #: Time of object initialization. All timers will be calculated from it
+    init_time: dt.datetime
+    mac_table: Dict[EUI, dict]
+    vtp: Optional[str]
+    arp_table: Dict[ipaddress.IPv4Interface, dict]
+    interfaces_ip: dict
+    vlans: Optional[Dict[int, dict]]
+    vlans_set: set
+    local_admins: Optional[Dict[str, dict]]
+    facts: dict
+
+
     def __init__(self,
                  hostname: str,
                  **kwargs):
