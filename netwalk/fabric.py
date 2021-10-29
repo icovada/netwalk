@@ -250,8 +250,6 @@ class Fabric():
         for swname, swdata in self.switches.items():
             for intname, intdata in swdata.interfaces.items():
                 intdata.mac_count = 0
-                # TODO: Figure out why it wasn't forced already
-                intdata.switch = swdata
 
             for _, data in swdata.mac_table.items():
                 try:

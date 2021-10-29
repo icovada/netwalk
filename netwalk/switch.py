@@ -190,7 +190,7 @@ class Switch():
         :param intobject: Interface to add
         :type intobject: netwalk.Interface
         """
-        intobject.device = self
+        intobject.switch = self
         self.interfaces[intobject.name] = intobject
 
     def _parse_config(self):

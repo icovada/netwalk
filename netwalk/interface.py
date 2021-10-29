@@ -132,7 +132,6 @@ class Interface():
         self.counters: Optional[dict] = kwargs.get('counters', None)
         self.crc: Optional[str] = kwargs.get('crc', None)
         self.delay: Optional[str] = kwargs.get('delay', None)
-        self.device: Optional[Switch] = kwargs.get('switch', None)
         self.duplex: Optional[str] = kwargs.get('duplex', None)
         self.encapsulation: Optional[str] = kwargs.get('encapsulation', None)
         self.hardware_type: Optional[str] = kwargs.get('hardware_type', None)
