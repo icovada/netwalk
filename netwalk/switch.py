@@ -285,7 +285,7 @@ class Switch():
                     continue
 
                 v['interface'] = v['interface'].replace(
-                    "Fa", "FastEthernet").replace("Gi", "GigabitEthernet").replace("Po", "Port-channel")
+                    "Fa", "FastEthernet").replace("Gi", "GigabitEthernet").replace("Po", "Port-channel").replace("Twe", "TwentyFiveGigE")
 
                 v.pop('mac')
                 v.pop('static')
@@ -348,18 +348,22 @@ class Switch():
             fsm_results = re_table.ParseTextToDicts(showint)
 
         for intf in fsm_results:
-            for k, v in intf.items():
-                if k in ('last_in', 'last_out', 'last_out_hang', 'last_clearing'):
-                    setattr(self.interfaces[intf['name']], k, self._cisco_time_to_dt(v))
-                elif k == 'is_enabled':
-                    val = True if 'up' in v else False
-                    setattr(self.interfaces[intf['name']], k, val)
-                elif k == 'is_up':
-                    val = True if 'up' in v else False
-                    setattr(self.interfaces[intf['name']], k, val)
-                    setattr(self.interfaces[intf['name']], 'protocol_status', v)
-                else:
-                    setattr(self.interfaces[intf['name']], k, v)
+            if intf['name'] in self.interfaces:
+                for k, v in intf.items():
+                    if k in ('last_in', 'last_out', 'last_out_hang', 'last_clearing'):
+                        setattr(self.interfaces[intf['name']], k, self._cisco_time_to_dt(v))
+                    elif k == 'is_enabled':
+                        val = True if 'up' in v else False
+                        setattr(self.interfaces[intf['name']], k, val)
+                    elif k == 'is_up':
+                        val = True if 'up' in v else False
+                        setattr(self.interfaces[intf['name']], k, val)
+                        setattr(self.interfaces[intf['name']], 'protocol_status', v)
+                    else:
+                        setattr(self.interfaces[intf['name']], k, v)
+            else:
+                # Sometimes multi-type interfaces appear in one command and not in another
+                self.interfaces[intf['name']] = Interface(name=intf['name'])
 
     def _parse_cdp_neighbors(self):
         """Ask for and parse CDP neighbors"""
