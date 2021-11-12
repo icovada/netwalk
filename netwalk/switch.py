@@ -18,6 +18,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Define Switch object"""
 
+
+
+
 import ipaddress
 import logging
 import os
@@ -25,13 +28,10 @@ from io import StringIO
 import datetime as dt
 from typing import Dict, Optional, List
 from netaddr import EUI
-
 import napalm
 import ciscoconfparse
 import textfsm
 from .interface import Interface
-
-
 class Switch():
     """
     Switch object to hold data
@@ -63,7 +63,6 @@ class Switch():
     local_admins: Optional[Dict[str, dict]]
     facts: dict
 
-
     def __init__(self,
                  hostname: str,
                  **kwargs):
@@ -80,7 +79,8 @@ class Switch():
         self.arp_table: Dict[ipaddress.IPv4Interface, dict] = {}
         self.interfaces_ip = {}
         self.vlans: Optional[Dict[int, dict]] = None
-        self.vlans_set = {x for x in range(1,4095)} # VLANs configured on the switch
+        # VLANs configured on the switch
+        self.vlans_set = {x for x in range(1, 4095)}
         self.local_admins: Optional[Dict[str, dict]] = None
         self.facts: dict = kwargs.get('facts', None)
 
@@ -91,8 +91,7 @@ class Switch():
                       username: str,
                       password: str,
                       napalm_optional_args: dict = {},
-                      scan_options: dict={}):
-
+                      scan_options: dict = {}):
         """
         One-stop function to get data from switch.
 
@@ -217,7 +216,6 @@ class Switch():
     def _get_switch_data(self,
                          whitelist: Optional[List[str]] = None,
                          blacklist: Optional[List[str]] = None):
-        
         """
         Get data from switch.
         If no argument is passed, scan all modules
@@ -229,7 +227,7 @@ class Switch():
 
         Either whitelist or blacklist can be passed.
         If both are passed, whitelist takes precedence over blacklist.
-        
+
         Valid values are:
         - 'mac_address'
         - 'interface_status'
@@ -242,7 +240,8 @@ class Switch():
         Running config is ALWAYS returned
         """
 
-        allscans = ['mac_address', 'interface_status', 'cdp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins',]
+        allscans = ['mac_address', 'interface_status',
+                    'cdp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins', ]
         scan_to_perform = []
 
         if whitelist is not None:
@@ -275,7 +274,7 @@ class Switch():
 
         if 'mac_address' in scan_to_perform:
             # Get mac address table
-            self.mac_table = {} # Clear before adding new data
+            self.mac_table = {}  # Clear before adding new data
             mactable = self.session.get_mac_address_table()
 
             macdict = {EUI(x['mac']): x for x in mactable}
@@ -335,14 +334,14 @@ class Switch():
             # Get local admins
             self.local_admins = self.session.get_users()
 
-
     def _parse_show_interface(self):
         """Parse output of show inteface with greater data collection than napalm"""
         self.session.device.write_channel("show interface")
         self.session.device.write_channel("\n")
         self.session.device.timeout = 30  # Could take ages...
         showint = self.session.device.read_until_prompt(max_loops=3000)
-        fsmpath = os.path.dirname(os.path.realpath(__file__)) + "/textfsm_templates/show_interface.textfsm"
+        fsmpath = os.path.dirname(os.path.realpath(
+            __file__)) + "/textfsm_templates/show_interface.textfsm"
         with open(fsmpath, 'r') as fsmfile:
             re_table = textfsm.TextFSM(fsmfile)
             fsm_results = re_table.ParseTextToDicts(showint)
@@ -351,14 +350,16 @@ class Switch():
             if intf['name'] in self.interfaces:
                 for k, v in intf.items():
                     if k in ('last_in', 'last_out', 'last_out_hang', 'last_clearing'):
-                        setattr(self.interfaces[intf['name']], k, self._cisco_time_to_dt(v))
+                        setattr(self.interfaces[intf['name']],
+                                k, self._cisco_time_to_dt(v))
                     elif k == 'is_enabled':
                         val = True if 'up' in v else False
                         setattr(self.interfaces[intf['name']], k, val)
                     elif k == 'is_up':
                         val = True if 'up' in v else False
                         setattr(self.interfaces[intf['name']], k, val)
-                        setattr(self.interfaces[intf['name']], 'protocol_status', v)
+                        setattr(
+                            self.interfaces[intf['name']], 'protocol_status', v)
                     else:
                         setattr(self.interfaces[intf['name']], k, v)
             else:
@@ -371,16 +372,18 @@ class Switch():
         self.session.device.write_channel("\n")
         self.session.device.timeout = 30  # Could take ages...
         neighdetail = self.session.device.read_until_prompt(max_loops=3000)
-        fsmpath = os.path.dirname(os.path.realpath(__file__)) + "/textfsm_templates/show_cdp_neigh_detail.textfsm"
+        fsmpath = os.path.dirname(os.path.realpath(
+            __file__)) + "/textfsm_templates/show_cdp_neigh_detail.textfsm"
         with open(fsmpath, 'r') as fsmfile:
             re_table = textfsm.TextFSM(fsmfile)
             fsm_results = re_table.ParseText(neighdetail)
 
         for result in fsm_results:
-            self.logger.debug("Found CDP neighbor %s IP %s local int %s, remote int %s", result[1], result[2], result[5], result[4])
+            self.logger.debug("Found CDP neighbor %s IP %s local int %s, remote int %s",
+                              result[1], result[2], result[5], result[4])
 
         for intname, intdata in self.interfaces.items():
-            intdata.neighbors = [] # Clear before adding new data
+            intdata.neighbors = []  # Clear before adding new data
 
         for nei in fsm_results:
             neigh_data = {'hostname': nei[1],
@@ -393,10 +396,10 @@ class Switch():
 
     def _cisco_time_to_dt(self, time: str) -> dt.datetime:
         """Converts time from now to absolute, starting when Switch object was initialised
-        
+
         :param time: Cisco diff time (e.g. '00:00:01' or '5w4d')
         :param type: str
-        
+
         :return: Absolute time
         :rtype: datetime.datetime
         """
@@ -448,7 +451,7 @@ class Switch():
 
     def __str__(self):
         """Return switch config from hostname and interfaces
-        
+
         :return: Switch "show run" from internal data
         :rtype: str"""
         showrun = f"! {self.hostname}"
