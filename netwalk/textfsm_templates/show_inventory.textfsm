@@ -5,15 +5,15 @@ Value vid (.*)
 Value sn ([\w+\d+]+)
 
 Start
-  ^name:\s+"${name}",\s+descr:\s+"${descr}"
-  ^pid:\s+${pid}.*,.*vid:\s+${vid},.*sn:\s+${sn} -> Record
-  ^pid:\s+,.*vid:\s+${vid},.*sn: -> Record
-  ^pid:\s+${pid}.*,.*vid:\s+${vid},.*sn: -> Record
-  ^pid:\s+,.*vid:\s+${vid},.*sn:\s+${sn} -> Record
-  ^pid:\s+${pid}.*,.*vid:\s+${vid}.*
-  ^pid:\s+,.*vid:\s+${vid}.*
-  ^.*sn:\s+${sn} -> Record
-  ^.*sn: -> Record
+  ^NAME:\s+"${name}",\s+DESCR:\s+"${descr}"
+  ^PID:\s+${pid}.*,.*VID:\s+${vid},.*SN:\s+${sn} -> Record
+  ^PID:\s+,.*VID:\s+${vid},.*SN: -> Record
+  ^PID:\s+${pid}.*,.*vid:\s+${vid},.*SN: -> Record
+  ^PID:\s+,.*VID:\s+${vid},.*SN:\s+${sn} -> Record
+  ^PID:\s+${pid}.*,.*VID:\s+${vid}.*
+  ^PID:\s+,.*VID:\s+${vid}.*
+  ^.*SN:\s+${sn} -> Record
+  ^.*SN: -> Record
   # Capture time-stamp if vty line has command time-stamping turned on
   ^Load\s+for\s+
   ^Time\s+source\s+is
