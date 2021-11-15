@@ -248,14 +248,14 @@ class Switch():
 
         if whitelist is not None:
             for i in whitelist:
-                assert i in allscans, "Parameter not recognised in scan list. has to be any of ['mac_address', 'interface_status', 'cdp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins',]"
+                assert i in allscans, "Parameter not recognised in scan list. has to be any of ['mac_address', 'interface_status', 'cdp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins', 'inventory']"
 
             scan_to_perform = whitelist
 
         elif blacklist is not None:
             scan_to_perform = allscans
             for i in blacklist:
-                assert i in allscans, "Parameter not recognised in scan list. has to be any of ['mac_address', 'interface_status', 'cdp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins',]"
+                assert i in allscans, "Parameter not recognised in scan list. has to be any of ['mac_address', 'interface_status', 'cdp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins', 'inventory']"
                 scan_to_perform.remove(i)
 
         else:
@@ -343,7 +343,7 @@ class Switch():
 
     def _parse_inventory(self):
         command = "show inventory"
-        showinventory = self.session.cli([command])
+        showinventory = self.session.cli([command])[command]
 
         fsmpath = os.path.dirname(os.path.realpath(
             __file__)) + "/textfsm_templates/show_inventory.textfsm"
