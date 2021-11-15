@@ -54,7 +54,7 @@ class Switch():
     napalm_optional_args: dict
     #: Time of object initialization. All timers will be calculated from it
     init_time: dt.datetime
-    inventory: List[Dict[str,str]]
+    inventory: List[Dict[str,Dict[str,str]]]
     mac_table: Dict[EUI, dict]
     vtp: Optional[str]
     arp_table: Dict[ipaddress.IPv4Interface, dict]
@@ -351,7 +351,15 @@ class Switch():
             re_table = textfsm.TextFSM(fsmfile)
             fsm_results = re_table.ParseTextToDicts(showinventory)
 
-        return fsm_results
+        result = {}
+        for i in fsm_results:
+            result[i['name']] = {'descr': i['descr'],
+                                 'pid': i['pid'],
+                                 'vid': i['vid'],
+                                 'sn': i['sn'],
+            }
+
+        return result
 
 
     def _parse_show_interface(self):
