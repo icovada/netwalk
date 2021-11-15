@@ -54,6 +54,7 @@ class Switch():
     napalm_optional_args: dict
     #: Time of object initialization. All timers will be calculated from it
     init_time: dt.datetime
+    inventory: List[Dict[str,str]]
     mac_table: Dict[EUI, dict]
     vtp: Optional[str]
     arp_table: Dict[ipaddress.IPv4Interface, dict]
@@ -242,7 +243,7 @@ class Switch():
         """
 
         allscans = ['mac_address', 'interface_status',
-                    'cdp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins', ]
+                    'cdp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins', 'inventory']
         scan_to_perform = []
 
         if whitelist is not None:
@@ -337,8 +338,21 @@ class Switch():
 
         if 'inventory' in scan_to_perform:
             # Get inventory
-            command = "show inventory"
-            result = self.session.cli([command])
+            self.inventory = self._parse_inventory()
+
+
+    def _parse_inventory(self):
+        command = "show inventory"
+        showinventory = self.session.cli([command])
+
+        fsmpath = os.path.dirname(os.path.realpath(
+            __file__)) + "/textfsm_templates/show_inventory.textfsm"
+        with open(fsmpath, 'r') as fsmfile:
+            re_table = textfsm.TextFSM(fsmfile)
+            fsm_results = re_table.ParseTextToDicts(showinventory)
+
+        return fsm_results
+
 
     def _parse_show_interface(self):
         """Parse output of show inteface with greater data collection than napalm"""
