@@ -236,6 +236,7 @@ class Switch():
         - 'vlans'
         - 'l3_int'
         - 'local_admins'
+        - 'inventory'
 
         Running config is ALWAYS returned
         """
@@ -333,6 +334,11 @@ class Switch():
         if 'local_admins' in scan_to_perform:
             # Get local admins
             self.local_admins = self.session.get_users()
+
+        if 'inventory' in scan_to_perform:
+            # Get inventory
+            command = "show inventory"
+            result = self.session.cli([command])
 
     def _parse_show_interface(self):
         """Parse output of show inteface with greater data collection than napalm"""
