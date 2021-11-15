@@ -131,7 +131,7 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_core_role, nb_neigh
                 assert nb_device.device_type.model == swdata.facts['model']
                 assert nb_device.serial == swdata.facts['serial_number']
             except AssertionError:
-                logger.warning("Switch %s changed model from %s to %s", swdata.facts['hostname'], nb_device.device_type.display_name, swdata.facts['model'])
+                logger.warning("Switch %s changed model from %s to %s", swdata.facts['hostname'], nb_device.device_type.display, swdata.facts['model'])
                 nb_device.update({'device_type': nb_device_type.id,
                                   'serial': swdata.facts['serial_number']})
 
@@ -554,8 +554,42 @@ def add_software_versions(fabric):
             logger.info("Updating %s with version %s", hostname, swdata.facts['os_version'])
             thisdev.update({'custom_fields':{'software_version': swdata.facts['os_version']}})
         else:
-            logger.info("Skipping %s", hostname)
+            logger.info("%s already has correct software version", hostname)
         
+
+def add_inventory_items(fabric):
+    for swname, swdata in fabric.switches.items():
+        hostname = swname.replace(".veronesi.com", "")
+        logger.debug("Looking up %s", hostname)
+        thisdev = nb.dcim.devices.get(name=hostname)
+        assert thisdev is not None
+        manufacturer = thisdev.device_type.manufacturer
+        for invname, invdata in swdata.inventory.items():
+            nb_item = nb.dcim.inventory_items.get(device_id=thisdev.id, name=invname)
+            if nb_item is None:
+                logger.info("Creating item %s, serial %s on device %s", invname, invdata['sn'], thisdev.name)
+                nb.dcim.inventory_items.create(device=thisdev.id,
+                                               manufacturer=manufacturer.id,
+                                               name=invname,
+                                               part_id=invdata['pid'],
+                                               serial=invdata['sn'],
+                                               discovered=True)
+            
+            else:
+                if nb_item.serial != invdata['sn']:
+                    logger.info("Updating %s from serial %s PID %s to %s %s", invname, nb_item.serial, nb_item.part_id, invdata['sn'], invdata['pid'])
+                    nb_item.update({'serial': invdata['sn'],
+                                     'part_id': invdata['pid']})
+
+        all_inventory = nb.dcim.inventory_items.filter(device_id=thisdev.id)
+
+        for nb_inv in all_inventory:
+            if nb_inv.name not in swdata.inventory:
+                logger.info("Deleting %s on device %s", nb_inv.name, thisdev.name)
+                nb_inv.delete()
+
+
+
 
 def main(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
     add_l2_vlans(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site)
@@ -564,6 +598,7 @@ def main(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
     add_neighbor_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site)
     add_cables(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site)
     add_software_versions(fabric)
+    add_inventory_items(fabric)
 
 
 if __name__ == '__main__':
