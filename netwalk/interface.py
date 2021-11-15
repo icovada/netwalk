@@ -22,6 +22,7 @@ from datetime import datetime
 import logging
 import re
 import ipaddress
+from netaddr import EUI
 
 from typing import ForwardRef, List, Optional, Any
 
@@ -80,6 +81,7 @@ class Interface():
     last_out_hang: Optional[datetime]
     #: data from show interface
     last_out: Optional[datetime]
+    mac_address: Optional[EUI]
     #: Total number of mac addresses behind this interface
     mac_count: int = 0
     #: data from show interface
@@ -144,6 +146,7 @@ class Interface():
         self.last_in: Optional[datetime] = kwargs.get('last_in', None)
         self.last_out_hang: Optional[datetime] = kwargs.get('last_out_hang', None)
         self.last_out: Optional[datetime] = kwargs.get('last_out', None)
+        self.mac_address: Optional[EUI] = kwargs.get('mac_address', None)
         self.mac_count: int = 0
         self.media_type: Optional[str] = kwargs.get('media_type', None)
         self.mode: str = kwargs.get('mode', 'access')
