@@ -2,7 +2,7 @@ Value Required name (\S+)
 Value is_enabled (.+?)
 Value is_up (.+?)
 Value hardware_type ([\w ]+)
-Value address ([a-fA-F0-9]{4}\.[a-fA-F0-9]{4}\.[a-fA-F0-9]{4})
+Value mac_address ([a-fA-F0-9]{4}\.[a-fA-F0-9]{4}\.[a-fA-F0-9]{4})
 Value bia ([a-fA-F0-9]{4}\.[a-fA-F0-9]{4}\.[a-fA-F0-9]{4})
 Value description (.+?)
 Value mtu (\d+)
@@ -30,7 +30,7 @@ Start
   ^\S+\s+is\s+.+?,\s+line\s+protocol.*$$ -> Continue.Record
   ^${name}\s+is\s+${is_enabled},\s+line\s+protocol\s+is\s+${is_up}\s*$$
   ^\s+Hardware\s+is\s+${hardware_type} -> Continue
-  ^.+address\s+is\s+${address}\s+\(bia\s+${bia}\)\s*$$
+  ^.+address\s+is\s+${mac_address}\s+\(bia\s+${bia}\)\s*$$
   ^\s+Description:\s+${description}\s*$$
   ^\s+Internet\s+address\s+is.+$$
   ^\s+MTU\s+${mtu}.*BW\s+${bandwidth}.*DLY\s+${delay},\s*$$

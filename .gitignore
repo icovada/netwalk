@@ -1,9 +1,10 @@
 __pycache__/
-venv/
 .venv/
-*.pyc
 .vscode/
-docs/build/
+*.pyc
+build/
 dist/
-netwalk.egg-info/
 docs/_build/
+docs/build/
+netwalk.egg-info/
+venv/
