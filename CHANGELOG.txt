@@ -1,3 +1,6 @@
+v1.2
+- Add parsing of show inventory command
+
 v1.1.4
 - Get users from switch config
 - Allow to disable some information gathering from a switch (BREAKING CHANGE from v1.1.3 only)

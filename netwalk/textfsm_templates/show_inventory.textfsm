@@ -1,0 +1,19 @@
+Value name (.*)
+Value descr (.*)
+Value pid (([\S+]+|.*))
+Value vid (.*)
+Value sn ([\w+\d+]+)
+
+Start
+  ^NAME:\s+"${name}",\s+DESCR:\s+"${descr}"
+  ^PID:\s+${pid}.*,.*VID:\s+${vid},.*SN:\s+${sn} -> Record
+  ^PID:\s+,.*VID:\s+${vid},.*SN: -> Record
+  ^PID:\s+${pid}.*,.*vid:\s+${vid},.*SN: -> Record
+  ^PID:\s+,.*VID:\s+${vid},.*SN:\s+${sn} -> Record
+  ^PID:\s+${pid}.*,.*VID:\s+${vid}.*
+  ^PID:\s+,.*VID:\s+${vid}.*
+  ^.*SN:\s+${sn} -> Record
+  ^.*SN: -> Record
+  # Capture time-stamp if vty line has command time-stamping turned on
+  ^Load\s+for\s+
+  ^Time\s+source\s+is
