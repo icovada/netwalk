@@ -89,7 +89,8 @@ def create_cdp_neighbor(swdata, nb_site, nb_neigh_role, interface, nb_int=None):
             if nb_int is not None:
                 if nb_int.cable is not None:
                     try:
-                        assert nb_int.cable_peer.device.name == neighbor['hostname'].split(".")[0]
+                        assert nb_int.cable_peer.device.name == neighbor['hostname'].split(".")[
+                            0]
                         assert nb_int.cable_peer.name == neighbor['remote_int']
                     except AssertionError:
                         nb_int.cable.delete()
@@ -131,7 +132,8 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_core_role, nb_neigh
                 assert nb_device.device_type.model == swdata.facts['model']
                 assert nb_device.serial == swdata.facts['serial_number']
             except AssertionError:
-                logger.warning("Switch %s changed model from %s to %s", swdata.facts['hostname'], nb_device.device_type.display, swdata.facts['model'])
+                logger.warning("Switch %s changed model from %s to %s",
+                               swdata.facts['hostname'], nb_device.device_type.display, swdata.facts['model'])
                 nb_device.update({'device_type': nb_device_type.id,
                                   'serial': swdata.facts['serial_number']})
 
@@ -195,7 +197,8 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_core_role, nb_neigh
                         logger.info("Deleting old cable on %s", thisint.name)
                         nb_int.cable.delete()
                 else:
-                    create_cdp_neighbor(swdata, nb_site, interface, nb_neigh_role, nb_int=nb_int)
+                    create_cdp_neighbor(
+                        swdata, nb_site, interface, nb_neigh_role, nb_int=nb_int)
 
                 if thisint.description != nb_int.description:
                     intproperties['description'] = thisint.description if thisint.description is not None else ""
@@ -223,7 +226,8 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_core_role, nb_neigh
                 except AssertionError:
                     intproperties['untagged_vlan'] = vlans_dict[thisint.native_vlan]
                 except KeyError:
-                    logger.error("VLAN %s on interface %s %s does not exist", thisint.native_vlan, thisint.name, thisint.switch.hostname)
+                    logger.error("VLAN %s on interface %s %s does not exist",
+                                 thisint.native_vlan, thisint.name, thisint.switch.hostname)
                     continue
 
                 if thisint.is_enabled != nb_int.enabled:
@@ -233,7 +237,6 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_core_role, nb_neigh
                     logger.info("Updating interface %s on %s",
                                 interface, swname)
                     nb_int.update(intproperties)
-
 
         # Delete interfaces that no longer exist
         for k, v in nb_all_interfaces.items():
@@ -355,13 +358,15 @@ def add_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_sit
                     if v.assigned_object is not None:
                         if v.assigned_object.name.lower() == "vlan901":
                             if v.role is None:
-                                logger.info("Assign %s as primary ip for %s", v, swname)
+                                logger.info(
+                                    "Assign %s as primary ip for %s", v, swname)
                                 nb_device.update({'primary_ip4': v.id})
                         elif len(swdata.interfaces_ip.items()) == 1:
-                            logger.info("Assign %s as primary ip for %s", v, swname)
+                            logger.info(
+                                "Assign %s as primary ip for %s", v, swname)
                             nb_device.update({'primary_ip4': v.id})
 
- 
+
 def add_neighbor_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
     for swname, swdata in fabric.switches.items():
         for intname, intdata in swdata.interfaces.items():
@@ -378,9 +383,10 @@ def add_neighbor_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_rol
                     name=neighbor['hostname'])
 
                 if nb_neigh_device is None:
-                    create_cdp_neighbor(swdata, nb_site, nb_neigh_role, intname)
+                    create_cdp_neighbor(
+                        swdata, nb_site, nb_neigh_role, intname)
                     nb_neigh_device = nb.dcim.devices.get(
-                                            name=neighbor['hostname'])
+                        name=neighbor['hostname'])
 
             nb_neigh_interface = nb.dcim.interfaces.get(name=neighbor['remote_int'],
                                                         device_id=nb_neigh_device.id)
@@ -515,7 +521,7 @@ def add_cables(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
                     continue
 
                 sw_cables = [x for x in nb.dcim.cables.filter(
-                                device_id=nb_term_a.device.id)]
+                    device_id=nb_term_a.device.id)]
                 try:
                     for cable in sw_cables:
                         assert nb_term_a != cable.termination_a
@@ -526,7 +532,7 @@ def add_cables(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
                     continue
 
                 sw_cables = [x for x in nb.dcim.cables.filter(
-                                device_id=nb_term_b.device.id)]
+                    device_id=nb_term_b.device.id)]
                 try:
                     for cable in sw_cables:
                         assert nb_term_a != cable.termination_a
@@ -544,6 +550,7 @@ def add_cables(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
             except IndexError:
                 pass
 
+
 def add_software_versions(fabric):
     for swname, swdata in fabric.switches.items():
         hostname = swname.replace(".veronesi.com", "")
@@ -551,11 +558,13 @@ def add_software_versions(fabric):
         thisdev = nb.dcim.devices.get(name=hostname)
         assert thisdev is not None
         if thisdev['custom_fields']['software_version'] != swdata.facts['os_version']:
-            logger.info("Updating %s with version %s", hostname, swdata.facts['os_version'])
-            thisdev.update({'custom_fields':{'software_version': swdata.facts['os_version']}})
+            logger.info("Updating %s with version %s",
+                        hostname, swdata.facts['os_version'])
+            thisdev.update(
+                {'custom_fields': {'software_version': swdata.facts['os_version']}})
         else:
             logger.info("%s already has correct software version", hostname)
-        
+
 
 def add_inventory_items(fabric):
     for swname, swdata in fabric.switches.items():
@@ -565,37 +574,42 @@ def add_inventory_items(fabric):
         assert thisdev is not None
         manufacturer = thisdev.device_type.manufacturer
         for invname, invdata in swdata.inventory.items():
-            nb_item = nb.dcim.inventory_items.get(device_id=thisdev.id, name=invname)
+            nb_item = nb.dcim.inventory_items.get(
+                device_id=thisdev.id, name=invname)
             if nb_item is None:
-                logger.info("Creating item %s, serial %s on device %s", invname, invdata['sn'], thisdev.name)
+                logger.info("Creating item %s, serial %s on device %s",
+                            invname, invdata['sn'], thisdev.name)
                 nb.dcim.inventory_items.create(device=thisdev.id,
                                                manufacturer=manufacturer.id,
                                                name=invname,
                                                part_id=invdata['pid'],
                                                serial=invdata['sn'],
                                                discovered=True)
-            
+
             else:
                 if nb_item.serial != invdata['sn']:
-                    logger.info("Updating %s from serial %s PID %s to %s %s", invname, nb_item.serial, nb_item.part_id, invdata['sn'], invdata['pid'])
+                    logger.info("Updating %s from serial %s PID %s to %s %s", invname,
+                                nb_item.serial, nb_item.part_id, invdata['sn'], invdata['pid'])
                     nb_item.update({'serial': invdata['sn'],
-                                     'part_id': invdata['pid']})
+                                    'part_id': invdata['pid']})
 
         all_inventory = nb.dcim.inventory_items.filter(device_id=thisdev.id)
 
         for nb_inv in all_inventory:
             if nb_inv.name not in swdata.inventory:
-                logger.info("Deleting %s on device %s", nb_inv.name, thisdev.name)
+                logger.info("Deleting %s on device %s",
+                            nb_inv.name, thisdev.name)
                 nb_inv.delete()
-
-
 
 
 def main(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
     add_l2_vlans(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site)
-    create_devices_and_interfaces(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site)
-    add_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site)
-    add_neighbor_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site)
+    create_devices_and_interfaces(
+        fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site)
+    add_ip_addresses(fabric, nb_access_role,
+                     nb_core_role, nb_neigh_role, nb_site)
+    add_neighbor_ip_addresses(fabric, nb_access_role,
+                              nb_core_role, nb_neigh_role, nb_site)
     add_cables(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site)
     add_software_versions(fabric)
     add_inventory_items(fabric)
@@ -603,7 +617,7 @@ def main(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
 
 if __name__ == '__main__':
     for f in glob.glob("bindata/*"):
-        sitename = f.replace("bindata/", "").replace(".bin","")
+        sitename = f.replace("bindata/", "").replace(".bin", "")
         logger.info("Opening %s", f)
         with open(f, "rb") as bindata:
             fabric = pickle.load(bindata)
