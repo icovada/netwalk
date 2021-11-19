@@ -181,7 +181,8 @@ class Interface():
         "Parse configuration from show run"
         if isinstance(self.config, str):
             self.config = self.config.split("\n")
-            self.unparsed_lines = self.config
+        
+        self.unparsed_lines = self.config
 
         # Parse port mode first. Some switches have it first, some last, so check it first thing
         for line in self.unparsed_lines:
