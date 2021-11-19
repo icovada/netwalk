@@ -341,6 +341,7 @@ class Interface():
 
                 if command == 'version':
                     self.address['hsrp']['version'] = int(argument)
+                    self.unparsed_lines.remove(line)
                     continue
 
                 try:
