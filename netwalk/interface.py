@@ -179,18 +179,21 @@ class Interface():
         "Parse configuration from show run"
         if isinstance(self.config, str):
             self.config = self.config.split("\n")
-        
+            self.unparsed_lines = self.config
+
         # Parse port mode first. Some switches have it first, some last, so check it first thing
-        for line in self.config:
+        for line in self.unparsed_lines:
             cleanline = line.strip()
             match = re.search(r"switchport mode (.*)$", cleanline)
             if match is not None:
                 self.mode = match.groups()[0].strip()
                 if self.mode == 'trunk' and self.allowed_vlan is None:
                     self.allowed_vlan = set([x for x in range(1, 4095)])
+                self.unparsed_lines.remove(line)
                 continue
 
-        for line in self.config:
+        # Cycle through lines, make second array so we don't modify data we are looping over
+        for line in [x for x in self.unparsed_lines]:
             cleanline = line.strip()
             
             # L2 data
@@ -202,17 +205,15 @@ class Interface():
                     self.routed_port = True
                     self.mode = 'access'
                     self.native_vlan = int(self.name.lower().replace("vlan",""))
-                continue
 
-            # Port mode. Already parsed, skip and do not add to unparsed lines
-            match = re.search(r"switchport mode (.*)$", cleanline)
-            if match is not None:
+                self.unparsed_lines.remove(line)
                 continue
 
             # Find description
             match = re.search(r"description (.*)$", cleanline)
             if match is not None:
                 self.description = match.groups()[0]
+                self.unparsed_lines.remove(line)
                 continue
 
             # Find port-channel properties
@@ -220,24 +221,28 @@ class Interface():
             if match is not None:
                 self.channel_group = int(match.groups()[0])
                 self.channel_protocol = match.groups()[1]
+                self.unparsed_lines.remove(line)
                 continue
 
             # Native vlan
             match = re.search(r"switchport access vlan (.*)$", cleanline)
             if match is not None and self.mode != 'trunk':
                 self.native_vlan = int(match.groups()[0])
+                self.unparsed_lines.remove(line)
                 continue
 
             # Voice native vlan
             match = re.search(r"switchport voice vlan (.*)$", cleanline)
             if match is not None and self.mode == 'access':
                 self.voice_vlan = int(match.groups()[0])
+                self.unparsed_lines.remove(line)
                 continue
 
             # Trunk native vlan
             match = re.search(r"switchport trunk native vlan (.*)$", cleanline)
             if match is not None and self.mode == 'trunk':
                 self.native_vlan = int(match.groups()[0])
+                self.unparsed_lines.remove(line)
                 continue
 
             # Trunk allowed vlan
@@ -246,6 +251,7 @@ class Interface():
             if match is not None:
                 self.allowed_vlan = self._allowed_vlan_to_list(
                     match.groups()[0])
+                self.unparsed_lines.remove(line)
                 continue
 
             # Trunk allowed vlan add
@@ -254,6 +260,7 @@ class Interface():
             if match is not None:
                 new_vlans = self._allowed_vlan_to_list(match.groups()[0])
                 self.allowed_vlan.update(list(new_vlans))
+                self.unparsed_lines.remove(line)
                 continue
 
             # Portfast
@@ -265,23 +272,28 @@ class Interface():
                 elif "trunk" not in cleanline and self.mode == "access":
                     self.type_edge = True
                 
+                self.unparsed_lines.remove(line)
                 continue
 
             match = re.search(
                 r"spanning-tree bpduguard", cleanline)
             if match is not None:
                 self.bpduguard = True
+                self.unparsed_lines.remove(line)
                 continue
 
             if "no shutdown" in line:
                 self.is_enabled = True
+                self.unparsed_lines.remove(line)
                 continue
             elif "shutdown" in line:
                 self.is_enabled = False
+                self.unparsed_lines.remove(line)
                 continue
 
             # Legacy syntax, ignore
             if "switchport trunk encapsulation" in line:
+                self.unparsed_lines.remove(line)
                 continue
 
             # L3 parsing
@@ -290,6 +302,7 @@ class Interface():
                 r'vrf forwarding (.*)', cleanline)
             if match is not None:
                 self.vrf = match.groups()[0]
+                self.unparsed_lines.remove(line)
                 continue
 
             # Parse 'normal' ipv4 address
@@ -308,6 +321,7 @@ class Interface():
                 
                 self.address['ipv4'][addrobj] = {'type': addr_type}
                 self.routed_port = True
+                self.unparsed_lines.remove(line)
                 continue
 
             # Parse HSRP addresses
@@ -343,10 +357,9 @@ class Interface():
                     self.address['hsrp']['groups'][grpid]['priority'] = int(argument)
                 elif command == 'preempt':
                     self.address['hsrp']['groups'][grpid]['preempt'] = True
-                continue
 
-            if cleanline != '' and cleanline != '!':
-                self.unparsed_lines.append(cleanline)
+                self.unparsed_lines.remove(line)
+                continue
 
 
     def _calculate_sort_order(self) -> None:
