@@ -53,6 +53,7 @@ class Interface():
     bpduguard: bool
     channel_group: Optional[int]
     channel_protocol: Optional[str]
+    child_interfaces: List[Interface]
     config: List[str]
     counters: Optional[dict]
     #: data from show interface
@@ -130,6 +131,7 @@ class Interface():
         self.bpduguard: bool = kwargs.get('bpduguard', False)
         self.channel_group: Optional[int] = kwargs.get('channel_group', None)
         self.channel_protocol: Optional[str] = kwargs.get('channel_protocol', None)
+        self.child_interfaces: List[Interface] = kwargs.get('child_interfaces', [])
         self.config: List[str] = kwargs.get('config', None)
         self.counters: Optional[dict] = kwargs.get('counters', None)
         self.crc: Optional[str] = kwargs.get('crc', None)
@@ -216,12 +218,18 @@ class Interface():
                 self.unparsed_lines.remove(line)
                 continue
 
-            # Find port-channel properties
-            match = re.search(r"channel-group (\d*) mode (\w*)", cleanline)
+            # Port channel ownership
+            match = re.search(r"channel\-group (\d+) mode (\w+)", cleanline)
             if match is not None:
-                self.channel_group = int(match.groups()[0])
-                self.channel_protocol = match.groups()[1]
-                self.unparsed_lines.remove(line)
+                po_id, mode = match.groups()
+                if self.switch is not None:
+                    parent_po = self.switch.interfaces.get(f'Port-channel{str(po_id)}', None)
+                    if parent_po is not None:
+                        parent_po.add_child_interface(self)
+                    self.unparsed_lines.remove(line)
+                
+                self.channel_group = po_id
+                self.channel_protocol = mode
                 continue
 
             # Native vlan
@@ -365,6 +373,10 @@ class Interface():
             if cleanline == '' or cleanline == '!':
                 self.unparsed_lines.remove(line)
 
+    def add_child_interface(self, child_interface) -> None:
+        """Method to add interface to child interfaces and assign it a parent"""
+        self.child_interfaces.append(child_interface)
+        child_interface.parent_interface = self
 
     def _calculate_sort_order(self) -> None:
         """Generate unique sorting number from port id to sort interfaces meaningfully"""
@@ -416,6 +428,10 @@ class Interface():
 
         if self.description != "":
             fullconfig = fullconfig + f" description {self.description}\n"
+        
+        if isinstance(self.parent_interface, Interface):
+            if "Port-channel" in self.parent_interface.name:
+                fullconfig += f" channel-group {self.channel_group} mode {self.channel_protocol}\n"
 
         if not self.routed_port:
             fullconfig = fullconfig + f" switchport mode {self.mode}\n"
