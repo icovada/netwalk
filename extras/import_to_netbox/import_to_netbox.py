@@ -141,40 +141,39 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_core_role, nb_neigh
             x.name: x for x in nb.dcim.interfaces.filter(device_id=nb_device.id)}
 
         # Create new interfaces
-        for interface in swdata.interfaces.keys():
+        for intname, intdata in swdata.interfaces.items():
             intproperties = {}
-            if interface not in nb_all_interfaces:
-                logger.info("Interface %s on switch %s", interface, swname)
-                if "Fast" in interface:
+            if intname not in nb_all_interfaces:
+                logger.info("Interface %s on switch %s", intname, swname)
+                if "Fast" in intname:
                     int_type = "100base-tx"
-                elif "Te" in interface:
+                elif "Te" in intname:
                     int_type = "10gbase-x-sfpp"
-                elif "Gigabit" in interface:
+                elif "Gigabit" in intname:
                     int_type = "1000base-t"
-                elif "Vlan" in interface:
+                elif "Vlan" in intname:
                     int_type = "virtual"
-                elif "channel" in interface:
+                elif "channel" in intname:
                     int_type = "lag"
                 else:
                     int_type = 'virtual'
 
                 try:
-                    thisint = swdata.interfaces[interface]
-                    if thisint.description is not None:
+                    if intdata.description is not None:
                         intproperties['description'] = thisint.description
 
-                    if thisint.mode == "trunk":
-                        if len(thisint.allowed_vlan) == 4094:
+                    if intdata.mode == "trunk":
+                        if len(intdata.allowed_vlan) == 4094:
                             intproperties['mode'] = "tagged-all"
                         else:
                             intproperties['mode'] = "tagged"
                             intproperties['tagged_vlans'] = [
-                                vlans_dict[x].id for x in thisint.allowed_vlan]
+                                vlans_dict[x].id for x in intdata.allowed_vlan]
                     else:
                         intproperties['mode'] = "access"
 
-                    if "vlan" in interface.lower():
-                        vlanid = int(interface.lower().replace("vlan", ""))
+                    if "vlan" in intname.lower():
+                        vlanid = int(intname.lower().replace("vlan", ""))
                         intproperties['untagged_vlan'] = vlans_dict[vlanid].id
                     else:
                         intproperties['untagged_vlan'] = vlans_dict[thisint.native_vlan].id
@@ -183,60 +182,77 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_core_role, nb_neigh
                     pass
 
                 nb_interface = nb.dcim.interfaces.create(device=nb_device.id,
-                                                         name=interface,
+                                                         name=intname,
                                                          type=int_type,
                                                          **intproperties)
-                create_cdp_neighbor(swdata, nb_site, nb_neigh_role, interface)
+
+                # If this is a port channel, tag child interfaces, if they exist
+                if "Port-channel" in intname:
+                    for intname, intdata in intdata.child_interfaces.items():
+                        child = nb.dcim.interfaces.get(device_id=nb_device.id, name=intname)
+                        if child is not None and child.lag is not None:
+                            if child.lag.id != nb_interface.id:
+                                logger.info("Adding %s under %s", intname, nb_interface.name)
+                                child.update({'lag': nb_interface.id})
+
+                create_cdp_neighbor(swdata, nb_site, nb_neigh_role, intname)
 
             else:
-                thisint = swdata.interfaces[interface]
-                nb_int = nb_all_interfaces[interface]
+                nb_interface = nb_all_interfaces[intname]
 
-                if len(thisint.neighbors) == 0:
-                    if nb_int.cable is not None:
-                        logger.info("Deleting old cable on %s", thisint.name)
-                        nb_int.cable.delete()
+                if len(intdata.neighbors) == 0:
+                    if nb_interface.cable is not None:
+                        logger.info("Deleting old cable on %s", intdata.name)
+                        nb_interface.cable.delete()
                 else:
                     create_cdp_neighbor(
-                        swdata, nb_site, interface, nb_neigh_role, nb_int=nb_int)
+                        swdata, nb_site, intname, nb_neigh_role, nb_int=nb_interface)
 
-                if thisint.description != nb_int.description:
-                    intproperties['description'] = thisint.description if thisint.description is not None else ""
+                if intdata.description != nb_interface.description:
+                    intproperties['description'] = intdata.description if intdata.description is not None else ""
 
-                if thisint.mode == 'trunk':
-                    if len(thisint.allowed_vlan) == 4094:
+                if intdata.mode == 'trunk':
+                    if len(intdata.allowed_vlan) == 4094:
                         try:
-                            assert nb_int.mode.value == 'tagged-all'
+                            assert nb_interface.mode.value == 'tagged-all'
                         except (AssertionError, AttributeError):
                             intproperties['mode'] = 'tagged-all'
                     else:
                         try:
-                            assert nb_int.mode.value == 'tagged'
+                            assert nb_interface.mode.value == 'tagged'
                         except (AssertionError, AttributeError):
                             intproperties['mode'] = 'tagged'
 
-                elif thisint.mode == 'access':
+                elif intdata.mode == 'access':
                     try:
-                        assert nb_int.mode.value == 'access'
+                        assert nb_interface.mode.value == 'access'
                     except (AssertionError, AttributeError):
                         intproperties['mode'] = 'access'
 
                 try:
-                    assert nb_int.untagged_vlan == vlans_dict[thisint.native_vlan]
+                    assert nb_interface.untagged_vlan == vlans_dict[intdata.native_vlan]
                 except AssertionError:
-                    intproperties['untagged_vlan'] = vlans_dict[thisint.native_vlan]
+                    intproperties['untagged_vlan'] = vlans_dict[intdata.native_vlan]
                 except KeyError:
                     logger.error("VLAN %s on interface %s %s does not exist",
-                                 thisint.native_vlan, thisint.name, thisint.switch.hostname)
+                                 intdata.native_vlan, intdata.name, intdata.switch.hostname)
                     continue
 
-                if thisint.is_enabled != nb_int.enabled:
-                    intproperties['enabled'] = thisint.is_enabled
+                if intdata.is_enabled != nb_interface.enabled:
+                    intproperties['enabled'] = intdata.is_enabled
+
+                if "Port-channel" in intname:
+                    for childint in intdata.child_interfaces:
+                        child = nb.dcim.interfaces.get(device_id=nb_device.id, name=childint.name)
+                        if child is not None and child.lag is not None:
+                            if child.lag.id != nb_interface.id:
+                                logger.info("Adding %s under %s", childint.name, nb_interface.name)
+                                child.update({'lag': nb_interface.id})
 
                 if len(intproperties) > 0:
                     logger.info("Updating interface %s on %s",
-                                interface, swname)
-                    nb_int.update(intproperties)
+                                intname, swname)
+                    nb_interface.update(intproperties)
 
         # Delete interfaces that no longer exist
         for k, v in nb_all_interfaces.items():
