@@ -50,7 +50,7 @@ class BaseInterfaceTester(unittest.TestCase):
 
         interface = netwalk.Interface(config=config)
 
-        assert interface.unparsed_lines == ["antani mascetti perozzi", ]
+        assert interface.unparsed_lines == [" antani mascetti perozzi", ]
 
     def test_description(self):
         config = ("interface E0\n"
