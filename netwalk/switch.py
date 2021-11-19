@@ -193,6 +193,9 @@ class Switch():
         intobject.switch = self
         self.interfaces[intobject.name] = intobject
 
+        for k, v in self.interfaces.items():
+            v.parse_config()
+
     def _parse_config(self):
         """Parse show run
         """
@@ -203,7 +206,7 @@ class Switch():
             # Be kind rewind
             running.seek(0)
 
-            # Get show run an interface access/trunk status
+            # Get show run and interface access/trunk status
             self.parsed_conf = ciscoconfparse.CiscoConfParse(running)
             interface_config_list: list = self.parsed_conf.find_objects(
                 self.INTERFACE_FILTER)
