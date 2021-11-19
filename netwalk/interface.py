@@ -361,6 +361,9 @@ class Interface():
                 self.unparsed_lines.remove(line)
                 continue
 
+            if cleanline == '' or cleanline == '!':
+                self.unparsed_lines.remove(line)
+
 
     def _calculate_sort_order(self) -> None:
         """Generate unique sorting number from port id to sort interfaces meaningfully"""
