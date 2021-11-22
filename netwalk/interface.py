@@ -393,8 +393,17 @@ class Interface():
                 
             sortid = ""
             port_number = portid.split('/')
-            for i in port_number:
-                sortid = sortid + str(i).zfill(3)
+
+            if "." in port_number[-1]:
+                last_port, subint = port_number[-1].split(".")
+            else:
+                last_port = port_number[-1]
+                subint = 0
+            for i in port_number[0:-1]:
+                sortid += str(i).zfill(3)
+
+            sortid += str(last_port).zfill(3)
+            sortid += str(subint).zfill(4)
 
             self.sort_order = int(sortid)
 
