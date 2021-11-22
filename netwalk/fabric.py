@@ -151,6 +151,16 @@ class Fabric():
                         self.logger.error('%r generated an exception: %s' %
                                           (hostname, exc))
                         self.discovery_status[hostname] = "Failed"
+                        
+                        # We do not have the switch because fut.result returned an error
+                        # Find it looping the fabric
+
+                        for swname, swdata in self.switches.items():
+                            if swdata.hostname == hostname:
+                                swobject = swdata
+                                break
+
+                        self.logger.info("Demote %s back to Device from Switch", swobject.hostname)
                         swobject.__class__ = Device
                         swobject.discovery_status = dt.now()
                     else:
