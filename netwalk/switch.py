@@ -469,7 +469,9 @@ class Switch(Device):
 
                     self.fabric.switches[nei[1]] = neigh_device
 
-            self.interfaces[nei[5]].neighbors.append(neigh_int)
+            # Add bidirectional link
+            self.interfaces[nei[5]].neighbors.append(neigh_int) if neigh_int not in self.interfaces[nei[5]].neighbors else None
+            neigh_int.neighbors.append(self.interfaces[nei[5]]) if self.interfaces[nei[5]] not in neigh_int.neighbors else None
 
     def _cisco_time_to_dt(self, time: str) -> dt.datetime:
         """Converts time from now to absolute, starting when Switch object was initialised
