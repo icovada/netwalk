@@ -233,7 +233,13 @@ class Switch(Device):
 
             for intf in interface_config_list:
                 thisint = Interface(config=intf.ioscfg)
-                self.add_interface(thisint)
+                localint = self.interfaces.get(thisint.name, None)
+                if localint is not None:
+                    localint.config = intf.ioscfg
+                    localint.parse_config()
+                else:
+                    self.add_interface(thisint)
+
         else:
             TypeError("No interface loaded, cannot parse")
 
