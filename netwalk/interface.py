@@ -132,7 +132,7 @@ class Interface():
         self.channel_group: Optional[int] = kwargs.get('channel_group', None)
         self.channel_protocol: Optional[str] = kwargs.get('channel_protocol', None)
         self.child_interfaces: List[Interface] = kwargs.get('child_interfaces', [])
-        self.config: List[str] = kwargs.get('config', None)
+        self.config: List[str] = kwargs.get('config', [])
         self.counters: Optional[dict] = kwargs.get('counters', None)
         self.crc: Optional[str] = kwargs.get('crc', None)
         self.delay: Optional[str] = kwargs.get('delay', None)
@@ -181,7 +181,7 @@ class Interface():
         "Parse configuration from show run"
         if isinstance(self.config, str):
             self.config = self.config.split("\n")
-        
+
         self.unparsed_lines = self.config
 
         # Parse port mode first. Some switches have it first, some last, so check it first thing
