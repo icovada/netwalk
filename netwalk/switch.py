@@ -65,6 +65,7 @@ class Switch(Device):
     vlans_set: set
     local_admins: Optional[Dict[str, dict]]
     facts: dict
+    fabric: 'Fabric'
 
     
 
@@ -87,6 +88,7 @@ class Switch(Device):
         self.vlans_set = {x for x in range(1, 4095)}
         self.local_admins: Optional[Dict[str, dict]] = None
         self.facts: dict = kwargs.get('facts', None)
+        self.fabric: 'Fabric' = kwargs.get('fabric', None)
 
         if self.config is not None:
             self._parse_config()
@@ -186,18 +188,6 @@ class Switch(Device):
         # Remove vlans not explicitly configured
         vlans.intersection_update(self.vlans_set)
         return vlans
-
-    def add_interface(self, intobject: Interface):
-        """Add interface to switch
-
-        :param intobject: Interface to add
-        :type intobject: netwalk.Interface
-        """
-        intobject.switch = self
-        self.interfaces[intobject.name] = intobject
-
-        for k, v in self.interfaces.items():
-            v.parse_config()
 
     def _parse_config(self):
         """Parse show run
