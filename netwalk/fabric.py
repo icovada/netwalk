@@ -22,8 +22,8 @@ import concurrent.futures
 from netaddr import EUI
 from netmiko.ssh_exception import NetMikoAuthenticationException
 from napalm.base.exceptions import ConnectionException
-from .interface import Interface
-from .switch import Switch
+from netwalk.objects import Device
+from netwalk.switch import Switch
 
 
 class Fabric():
@@ -55,7 +55,8 @@ class Fabric():
     def add_switch(self,
                    host,
                    credentials,
-                   napalm_optional_args=[None]):
+                   napalm_optional_args=[None],
+                   **kwargs):
         """
         Try to connect to, and if successful add to fabric, a new switch
 
@@ -67,8 +68,15 @@ class Fabric():
         :type napalm_optional_args: list(dict)
         """
 
-        self.logger.info("Creating switch %s", host)
-        thisswitch = Switch(host, fabric=self)
+        if not isinstance(host, Device):
+            thisswitch = Switch(host,
+                                fabric=self,
+                                discovery_status=kwargs.get('discovery_status', None))
+        else:
+            host.__class__ = Switch
+            thisswitch = host
+
+        self.logger.info("Creating switch %s", thisswitch.hostname)
         connected = False
         for optional_arg in napalm_optional_args:
             if connected:
@@ -120,15 +128,13 @@ class Fabric():
         # We can use a with statement to ensure threads are cleaned up promptly
         with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_threads) as executor:
             # Start the load operations and mark each future with its URL
-            for x in seed_hosts:
-                self.discovery_status[x] = "Queued"
-
             self.logger.debug("Adding seed hosts to loop")
             future_switch_data = {executor.submit(
                 self.add_switch,
                 x,
                 credentials,
-                napalm_optional_args): x for x in seed_hosts}
+                napalm_optional_args,
+                discovery_status = "Queued"): x for x in seed_hosts}
 
             while future_switch_data:
                 self.logger.info(
@@ -147,40 +153,26 @@ class Fabric():
                         self.discovery_status[hostname] = "Failed"
                     else:
                         fqdn = swobject.facts['fqdn'].replace(".not set", "")
-                        self.discovery_status[hostname] = dt.now()
+                        swobject.discovery_status = dt.now()
                         self.logger.info(
                             "Completed discovery of %s %s", swobject.facts['fqdn'], swobject.hostname)
                         # Check if it has cdp neighbors
 
                         for _, intdata in swobject.interfaces.items():
-                            if hasattr(intdata, "neighbors"):
-                                for nei in intdata.neighbors:
-                                    if not isinstance(nei, Interface):
-                                        self.logger.debug(
-                                            "Evaluating neighbour %s", nei['hostname'])
-                                        if nei['hostname'] not in self.switches and nei['ip'] not in self.discovery_status:
-                                            try:
-                                                assert "AIR" not in nei['platform']
-                                                assert "CAP" not in nei['platform']
-                                                assert "N77" not in nei['platform']
-                                                assert "axis" not in nei['hostname']
-                                            except AssertionError:
-                                                self.logger.debug(
-                                                    "Skipping %s, %s", nei['hostname'], nei['platform'])
-                                                continue
+                            for nei in intdata.neighbors:
+                                self.logger.debug(
+                                    "Evaluating neighbour %s", nei.switch.hostname)
+                                if nei.switch.discovery_status is None:
+                                    self.logger.info(
+                                        "Queueing discover for %s", nei.switch.hostname)
+                                    nei.switch.discovery_status = "Queued"
 
-                                            self.logger.info(
-                                                "Queueing discover for %s", nei['hostname'])
-                                            self.discovery_status[nei['ip']
-                                                                  ] = "Queued"
-
-                                            future_switch_data[executor.submit(self.add_switch,
-                                                                               nei['ip'],
-                                                                               credentials,
-                                                                               napalm_optional_args)] = nei['ip']
-                                        else:
-                                            self.logger.debug(
-                                                "Skipping %s, already discovered", nei['hostname'])
+                                    future_switch_data[executor.submit(self.add_switch(nei.switch,
+                                                                              credentials,
+                                                                              napalm_optional_args))] = nei.switch.hostname
+                                else:
+                                    self.logger.debug(
+                                        "Skipping %s, already discovered", nei.hostname)
 
         self.logger.info("Discovery complete, crunching data")
         self.refresh_global_information()
