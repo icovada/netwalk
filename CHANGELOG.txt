@@ -1,3 +1,9 @@
+v1.3.1 (bufgix)
+- Do not delete line from unparsed_lines if no PO interface is found
+
+v1.3
+- Add parsing of port channels
+
 v1.2
 - Add parsing of show inventory command
 
