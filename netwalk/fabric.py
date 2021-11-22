@@ -22,8 +22,8 @@ import concurrent.futures
 from netaddr import EUI
 from netmiko.ssh_exception import NetMikoAuthenticationException
 from napalm.base.exceptions import ConnectionException
-from netwalk.objects import Device
-from netwalk.switch import Switch
+from netwalk.switch import Device, Switch
+from netwalk.interface import Interface
 
 
 class Fabric():
