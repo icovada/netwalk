@@ -32,15 +32,12 @@ import napalm
 import ciscoconfparse
 import textfsm
 import datetime
-
 from netwalk.interface import Interface
-
 class Device():
     hostname: str
     #: Dict of {name: Interface}
     interfaces: Dict[str, 'Interface']
     discovery_status: Optional[Union[str, datetime.datetime]]
-    
 
     def __init__(self, hostname, **kwargs) -> None:
         self.logger = logging.getLogger(__name__ + hostname)
@@ -60,6 +57,8 @@ class Device():
         if type(self) == Switch:
             for k, v in self.interfaces.items():
                 v.parse_config()
+
+
 class Switch(Device):
     """
     Switch object to hold data
@@ -79,7 +78,7 @@ class Switch(Device):
     config: Optional[str]
     napalm_optional_args: dict
     #: Time of object initialization. All timers will be calculated from it
-    inventory: List[Dict[str,Dict[str,str]]]
+    inventory: List[Dict[str, Dict[str, str]]]
     vtp: Optional[str]
     arp_table: Dict[ipaddress.IPv4Interface, dict]
     interfaces_ip: dict
@@ -89,10 +88,8 @@ class Switch(Device):
     facts: dict
     fabric: 'Fabric'
 
-    
-
     def __init__(self,
-                hostname,
+                 hostname,
                  **kwargs):
 
         super().__init__(hostname, **kwargs)
@@ -355,7 +352,6 @@ class Switch(Device):
             # Get inventory
             self.inventory = self._parse_inventory()
 
-
     def _parse_inventory(self):
         command = "show inventory"
         showinventory = self.session.cli([command])[command]
@@ -372,10 +368,9 @@ class Switch(Device):
                                  'pid': i['pid'],
                                  'vid': i['vid'],
                                  'sn': i['sn'],
-            }
+                                 }
 
         return result
-
 
     def _parse_show_interface(self):
         """Parse output of show inteface with greater data collection than napalm"""
@@ -431,16 +426,16 @@ class Switch(Device):
         for nei in fsm_results:
             if self.fabric is None:
                 neigh_device = Device(hostname=nei[2],
-                                facts={'platform': nei[3]})
+                                      facts={'platform': nei[3]})
                 neigh_int = Interface(name=nei[4],
-                                          address=ipaddress.ip_address(nei[2]))
+                                      address=ipaddress.ip_address(nei[2]))
                 neigh_device.add_interface(neigh_int)
 
             else:
                 neigh_device = self.fabric.switches.get(nei[1], None)
                 if neigh_device is None:
                     neigh_device = Device(hostname=nei[2],
-                                    facts={'platform': nei[3]})
+                                          facts={'platform': nei[3]})
                     self.fabric.switches[nei[1]] = neigh_device
 
                 neigh_int = neigh_device.interfaces.get(nei[4], None)
@@ -448,9 +443,9 @@ class Switch(Device):
                     neigh_int = Interface(name=nei[4],
                                           address=ipaddress.ip_address(nei[2]))
                     neigh_device.add_interface(neigh_int)
-                
+
                 self.fabric.switches[nei[1]] = neigh_device
-                
+
             self.interfaces[nei[5]].neighbors.append(neigh_int)
 
     def _cisco_time_to_dt(self, time: str) -> dt.datetime:
