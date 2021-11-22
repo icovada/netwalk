@@ -31,8 +31,10 @@ from netaddr import EUI
 import napalm
 import ciscoconfparse
 import textfsm
-from .interface import Interface
-class Switch():
+
+from netwalk.objects import Device
+from netwalk.objects import Interface
+class Switch(Device):
     """
     Switch object to hold data
     Initialize with name and hostname, call retrieve_data()
@@ -64,13 +66,14 @@ class Switch():
     local_admins: Optional[Dict[str, dict]]
     facts: dict
 
+    
+
     def __init__(self,
-                 hostname: str,
+                hostname,
                  **kwargs):
 
+        super().__init__(hostname, **kwargs)
         self.logger = logging.getLogger(__name__ + hostname)
-        self.hostname: str = hostname
-        self.interfaces: Dict[str, Interface] = {}
         self.config: Optional[str] = kwargs.get('config', None)
         self.timeout = 30
         self.napalm_optional_args = kwargs.get('napalm_optional_args', None)
