@@ -141,9 +141,14 @@ class Switch(Device):
         self.napalm_optional_args = napalm_optional_args
 
         self.connect(username, password, napalm_optional_args)
+        try:
+            self._get_switch_data(**scan_options)
+        except Exception as e:
+            self.session.close()
+            raise e
 
-        self._get_switch_data(**scan_options)
-        self.session.close()
+        else:
+            self.session.close()
 
     def connect(self, username: str, password: str, napalm_optional_args: dict = None) -> None:
         """Connect to device
