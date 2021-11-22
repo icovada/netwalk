@@ -26,14 +26,40 @@ import logging
 import os
 from io import StringIO
 import datetime as dt
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Union
 from netaddr import EUI
 import napalm
 import ciscoconfparse
 import textfsm
+import datetime
 
-from netwalk.objects import Device
-from netwalk.objects import Interface
+from netwalk.interface import Interface
+
+class Device():
+    hostname: str
+    #: Dict of {name: Interface}
+    interfaces: Dict[str, 'Interface']
+    discovery_status: Optional[Union[str, datetime.datetime]]
+    
+
+    def __init__(self, hostname, **kwargs) -> None:
+        self.logger = logging.getLogger(__name__ + hostname)
+        self.hostname: str = hostname
+        self.interfaces: Dict[str, 'Interface'] = {}
+        self.discovery_status = kwargs.get('discovery_status', None)
+
+    def add_interface(self, intobject: Interface):
+        """Add interface to device
+
+        :param intobject: Interface to add
+        :type intobject: netwalk.Interface
+        """
+        intobject.switch = self
+        self.interfaces[intobject.name] = intobject
+
+        if type(self) == Switch:
+            for k, v in self.interfaces.items():
+                v.parse_config()
 class Switch(Device):
     """
     Switch object to hold data
@@ -51,13 +77,9 @@ class Switch(Device):
     interfaces: Dict[str, Interface]
     #: Pass at init time to parse config automatically
     config: Optional[str]
-    #: Connection timeout
-    timeout: int
     napalm_optional_args: dict
     #: Time of object initialization. All timers will be calculated from it
-    init_time: dt.datetime
     inventory: List[Dict[str,Dict[str,str]]]
-    mac_table: Dict[EUI, dict]
     vtp: Optional[str]
     arp_table: Dict[ipaddress.IPv4Interface, dict]
     interfaces_ip: dict
@@ -76,10 +98,7 @@ class Switch(Device):
         super().__init__(hostname, **kwargs)
         self.logger = logging.getLogger(__name__ + hostname)
         self.config: Optional[str] = kwargs.get('config', None)
-        self.timeout = 30
         self.napalm_optional_args = kwargs.get('napalm_optional_args', None)
-        self.init_time = dt.datetime.now()
-        self.mac_table: Dict[EUI, dict] = {}
         self.vtp: Optional[str] = None
         self.arp_table: Dict[ipaddress.IPv4Interface, dict] = {}
         self.interfaces_ip = {}
@@ -410,10 +429,17 @@ class Switch(Device):
             intdata.neighbors = []  # Clear before adding new data
 
         for nei in fsm_results:
-            if self.fabric is not None:
+            if self.fabric is None:
+                neigh_device = Device(hostname=nei[2],
+                                facts={'platform': nei[3]})
+                neigh_int = Interface(name=nei[4],
+                                          address=ipaddress.ip_address(nei[2]))
+                neigh_device.add_interface(neigh_int)
+
+            else:
                 neigh_device = self.fabric.switches.get(nei[1], None)
                 if neigh_device is None:
-                    neigh_device = Device(hostname=nei[1],
+                    neigh_device = Device(hostname=nei[2],
                                     facts={'platform': nei[3]})
                     self.fabric.switches[nei[1]] = neigh_device
 
@@ -422,13 +448,8 @@ class Switch(Device):
                     neigh_int = Interface(name=nei[4],
                                           address=ipaddress.ip_address(nei[2]))
                     neigh_device.add_interface(neigh_int)
-
-            else:
-                neigh_device = Device(hostname=nei[2],
-                                facts={'platform': nei[3]})
-                neigh_int = Interface(name=nei[4],
-                                          address=ipaddress.ip_address(nei[2]))
-                neigh_device.add_interface(neigh_int)
+                
+                self.fabric.switches[nei[1]] = neigh_device
                 
             self.interfaces[nei[5]].neighbors.append(neigh_int)
 
