@@ -227,7 +227,7 @@ class Interface():
                     parent_po = self.switch.interfaces.get(f'Port-channel{str(po_id)}', None)
                     if parent_po is not None:
                         parent_po.add_child_interface(self)
-                    self.unparsed_lines.remove(line)
+                        self.unparsed_lines.remove(line)
                 
                 self.channel_group = po_id
                 self.channel_protocol = mode
