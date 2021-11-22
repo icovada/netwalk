@@ -38,12 +38,14 @@ class Device():
     #: Dict of {name: Interface}
     interfaces: Dict[str, 'Interface']
     discovery_status: Optional[Union[str, datetime.datetime]]
+    fabric: 'Fabric'
 
     def __init__(self, hostname, **kwargs) -> None:
         self.logger = logging.getLogger(__name__ + hostname)
         self.hostname: str = hostname
-        self.interfaces: Dict[str, 'Interface'] = {}
+        self.interfaces: Dict[str, 'Interface'] = kwargs.get('interfaces', {})
         self.discovery_status = kwargs.get('discovery_status', None)
+        self.fabric: 'Fabric' = kwargs.get('fabric', None)
 
     def add_interface(self, intobject: Interface):
         """Add interface to device
@@ -57,6 +59,13 @@ class Device():
         if type(self) == Switch:
             for k, v in self.interfaces.items():
                 v.parse_config()
+
+    def promote_to_switch(self):
+        self.__class__ = Switch
+        self.__init__(hostname = self.hostname,
+                      interfaces = self.interfaces,
+                      discovery_status = self.discovery_status,
+                      fabric = self.fabric)
 
 
 class Switch(Device):
@@ -86,7 +95,8 @@ class Switch(Device):
     vlans_set: set
     local_admins: Optional[Dict[str, dict]]
     facts: dict
-    fabric: 'Fabric'
+    timeout: int
+    mac_table: dict
 
     def __init__(self,
                  hostname,
@@ -104,7 +114,8 @@ class Switch(Device):
         self.vlans_set = {x for x in range(1, 4095)}
         self.local_admins: Optional[Dict[str, dict]] = None
         self.facts: dict = kwargs.get('facts', None)
-        self.fabric: 'Fabric' = kwargs.get('fabric', None)
+        self.timeout = 30
+        self.mac_table = {}
 
         if self.config is not None:
             self._parse_config()
@@ -435,7 +446,8 @@ class Switch(Device):
                 neigh_device = self.fabric.switches.get(nei[1], None)
                 if neigh_device is None:
                     neigh_device = Device(hostname=nei[2],
-                                          facts={'platform': nei[3]})
+                                          facts={'platform': nei[3]},
+                                          fabric=self.fabric)
                     self.fabric.switches[nei[1]] = neigh_device
 
                 neigh_int = neigh_device.interfaces.get(nei[4], None)
@@ -444,7 +456,7 @@ class Switch(Device):
                                           address=ipaddress.ip_address(nei[2]))
                     neigh_device.add_interface(neigh_int)
 
-                self.fabric.switches[nei[1]] = neigh_device
+                    self.fabric.switches[nei[1]] = neigh_device
 
             self.interfaces[nei[5]].neighbors.append(neigh_int)
 
@@ -463,7 +475,7 @@ class Switch(Device):
         minutes = 0
         seconds = 0
 
-        if time == 'never':
+        if time == 'never' or time == '':
             # TODO: return uptime
             return dt.datetime(1970, 1, 1, 0, 0, 0)
 

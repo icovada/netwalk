@@ -68,12 +68,12 @@ class Fabric():
         :type napalm_optional_args: list(dict)
         """
 
-        if not isinstance(host, Device):
+        if type(host) == str:
             thisswitch = Switch(host,
                                 fabric=self,
                                 discovery_status=kwargs.get('discovery_status', None))
-        else:
-            host.__class__ = Switch
+        elif type(host) == Device:
+            host.promote_to_switch()
             thisswitch = host
 
         self.logger.info("Creating switch %s", thisswitch.hostname)
@@ -151,6 +151,8 @@ class Fabric():
                         self.logger.error('%r generated an exception: %s' %
                                           (hostname, exc))
                         self.discovery_status[hostname] = "Failed"
+                        swobject.__class__ = Device
+                        swobject.discovery_status = dt.now()
                     else:
                         fqdn = swobject.facts['fqdn'].replace(".not set", "")
                         swobject.discovery_status = dt.now()
@@ -162,17 +164,18 @@ class Fabric():
                             for nei in intdata.neighbors:
                                 self.logger.debug(
                                     "Evaluating neighbour %s", nei.switch.hostname)
-                                if nei.switch.discovery_status is None:
+                                if type(nei.switch) == Device and nei.switch.discovery_status is None:
                                     self.logger.info(
                                         "Queueing discover for %s", nei.switch.hostname)
                                     nei.switch.discovery_status = "Queued"
 
-                                    future_switch_data[executor.submit(self.add_switch(nei.switch,
-                                                                              credentials,
-                                                                              napalm_optional_args))] = nei.switch.hostname
+                                    future_switch_data[executor.submit(self.add_switch,
+                                                                       nei.switch,
+                                                                       credentials,
+                                                                       napalm_optional_args)] = nei.switch.hostname
                                 else:
                                     self.logger.debug(
-                                        "Skipping %s, already discovered", nei.hostname)
+                                        "Skipping %s, already discovered", nei.switch.hostname)
 
         self.logger.info("Discovery complete, crunching data")
         self.refresh_global_information()
@@ -191,8 +194,13 @@ class Fabric():
         Join switches by CDP neighborship
         """
         short_fabric = {k[:40]: v for k, v in self.switches.items()}
-        hostname_only_fabric = {
-            v.facts['hostname']: v for k, v in self.switches.items()}
+        hostname_only_fabric = {}
+        
+        for k, v in self.switches.items():
+            if v.facts is not None:
+                hostname_only_fabric[v.facts['hostname']] =  v
+            else:
+                hostname_only_fabric[k] =  k
 
         for sw, swdata in self.switches.items():
             for intf, intfdata in swdata.interfaces.items():
