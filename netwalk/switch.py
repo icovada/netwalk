@@ -424,13 +424,13 @@ class Switch(Device):
                     neigh_device.add_interface(neigh_int)
 
             else:
-                neigh_device = Device(hostname=nei[1],
+                neigh_device = Device(hostname=nei[2],
                                 facts={'platform': nei[3]})
                 neigh_int = Interface(name=nei[4],
                                           address=ipaddress.ip_address(nei[2]))
                 neigh_device.add_interface(neigh_int)
                 
-            self.interfaces[nei[5]].neighbors.append(neigh_device)
+            self.interfaces[nei[5]].neighbors.append(neigh_int)
 
     def _cisco_time_to_dt(self, time: str) -> dt.datetime:
         """Converts time from now to absolute, starting when Switch object was initialised
