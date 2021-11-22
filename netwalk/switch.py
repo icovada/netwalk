@@ -410,16 +410,27 @@ class Switch(Device):
             intdata.neighbors = []  # Clear before adding new data
 
         for nei in fsm_results:
-            neighbor = Device(hostname=nei[1],
-                              facts={'platform': nei[3]})
+            if self.fabric is not None:
+                neigh_device = self.fabric.switches.get(nei[1], None)
+                if neigh_device is None:
+                    neigh_device = Device(hostname=nei[1],
+                                    facts={'platform': nei[3]})
+                    self.fabric.switches[nei[1]] = neigh_device
+
+                neigh_int = neigh_device.interfaces.get(nei[4], None)
+                if neigh_int is None:
+                    neigh_int = Interface(name=nei[4],
+                                          address=ipaddress.ip_address(nei[2]))
+                    neigh_device.add_interface(neigh_int)
+
+            else:
+                neigh_device = Device(hostname=nei[1],
+                                facts={'platform': nei[3]})
+                neigh_int = Interface(name=nei[4],
+                                          address=ipaddress.ip_address(nei[2]))
+                neigh_device.add_interface(neigh_int)
                 
-            neigh_int = Interface(name=nei[4],
-                                  address=ipaddress.ipaddress.ip_address(nei[2]))
-
-            
-            neighbor.add_interface(neigh_int)
-
-            self.interfaces[nei[5]].neighbors.append(neighbor)
+            self.interfaces[nei[5]].neighbors.append(neigh_device)
 
     def _cisco_time_to_dt(self, time: str) -> dt.datetime:
         """Converts time from now to absolute, starting when Switch object was initialised
