@@ -88,7 +88,7 @@ class Fabric():
                                              napalm_optional_args=optional_arg)
                     connected = True
                     self.logger.info(
-                        "Connection to switch %s successful", host)
+                        "Connection to switch %s successful", thisswitch.hostname)
                     break
                 except (ConnectionException, NetMikoAuthenticationException, ConnectionRefusedError):
                     self.logger.warning(
@@ -262,7 +262,7 @@ class Fabric():
                 try:
                     if self.mac_table[mac]['interface'].mac_count > macdata['interface'].mac_count:
                         self.logger.debug("Found better interface %s %s for %s",
-                                          macdata['interface'], macdata['interface'].switch.facts['fqdn'], str(mac))
+                                          macdata['interface'].name, macdata['interface'].switch.facts['fqdn'], str(mac))
                         self.mac_table[mac] = macdata
                 except KeyError:
                     self.mac_table[mac] = macdata
