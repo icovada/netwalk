@@ -68,7 +68,7 @@ class Fabric():
         """
 
         self.logger.info("Creating switch %s", host)
-        thisswitch = Switch(host)
+        thisswitch = Switch(host, fabric=self)
         connected = False
         for optional_arg in napalm_optional_args:
             if connected:
