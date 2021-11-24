@@ -325,15 +325,11 @@ def add_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_sit
                 else:
                     if nb_device.primary_ip4 != v:
                         if v.assigned_object is not None:
-                            if v.assigned_object.name.lower() == "vlan901":
+                            if ipaddress.ip_interface(v).ip == swdata.mgmt_address:
                                 if v.role is None:
                                     logger.info(
                                         "Assign %s as primary ip for %s", v, swname)
                                     nb_device.update({'primary_ip4': v.id})
-                            elif len(swdata.interfaces_ip.items()) == 1:
-                                logger.info(
-                                    "Assign %s as primary ip for %s", v, swname)
-                                nb_device.update({'primary_ip4': v.id})
 
 
 def add_neighbor_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
