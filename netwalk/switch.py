@@ -459,7 +459,8 @@ class Switch(Device):
             if self.fabric is None:
                 neigh_device = Device(mgmt_address=ipaddress.ip_address(nei['mgmt_ip']),
                                       hostname=nei['dest_host'],
-                                      facts={'platform': nei['platform']})
+                                      facts={'platform': nei['platform'],
+                                             'os_version': nei['version']})
                 neigh_int = Interface(name=nei['remote_port'])
                 neigh_device.add_interface(neigh_int)
 
@@ -468,7 +469,8 @@ class Switch(Device):
                 if neigh_device is None:
                     neigh_device = Device(mgmt_address=ipaddress.ip_address(nei['mgmt_ip']),
                                           hostname=nei['dest_host'],
-                                          facts={'platform': nei['platform']},
+                                          facts={'platform': nei['platform'],
+                                                 'os_version': nei['version']},
                                           fabric=self.fabric)
                     self.fabric.switches[nei['dest_host']] = neigh_device
 

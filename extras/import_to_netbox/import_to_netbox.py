@@ -494,17 +494,16 @@ def add_cables(fabric, nb_site):
 
 def add_software_versions(fabric):
     for swname, swdata in fabric.switches.items():
-        if isinstance(swdata, netwalk.Switch):
-            logger.debug("Looking up %s", swdata.hostname)
-            thisdev = nb.dcim.devices.get(name=swdata.hostname)
-            assert thisdev is not None
-            if thisdev['custom_fields']['software_version'] != swdata.facts['os_version']:
-                logger.info("Updating %s with version %s",
-                            swdata.hostname, swdata.facts['os_version'])
-                thisdev.update(
-                    {'custom_fields': {'software_version': swdata.facts['os_version']}})
-            else:
-                logger.info("%s already has correct software version", swdata.hostname)
+        logger.debug("Looking up %s", swdata.hostname)
+        thisdev = nb.dcim.devices.get(name=swdata.hostname)
+        assert thisdev is not None
+        if thisdev['custom_fields']['software_version'] != swdata.facts['os_version']:
+            logger.info("Updating %s with version %s",
+                        swdata.hostname, swdata.facts['os_version'])
+            thisdev.update(
+                {'custom_fields': {'software_version': swdata.facts['os_version']}})
+        else:
+            logger.info("%s already has correct software version", swdata.hostname)
 
 
 def add_inventory_items(fabric):
