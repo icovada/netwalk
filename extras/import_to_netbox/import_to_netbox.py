@@ -383,7 +383,7 @@ def add_neighbor_ip_addresses(fabric):
                         nb.ipam.ip_addresses.create(address=finalip))
 
                 for nb_neigh_ip in nb_neigh_ips:
-                    if str(ipaddress.ip_interface(nb_neigh_ip.address).ip) != swdata.mgmt_address:
+                    if ipaddress.ip_interface(nb_neigh_ip.address).ip != swdata.mgmt_address:
                         logger.warning("Deleting old IP %s from %s",
                                     nb_neigh_ip.address, swdata.hostname)
                         nb_neigh_ip.update({'assigned_object_type': None,
