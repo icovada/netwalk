@@ -335,48 +335,28 @@ def add_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_sit
 def add_neighbor_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
     for swname, swdata in fabric.switches.items():
         if type(swdata) == netwalk.switch.Device:
+            logger.info("Checking Device %s", swdata.hostname)
+            nb_neigh_device = nb.dcim.devices.get(name=swdata.hostname)
             for intname, intdata in swdata.interfaces.items():
-                try:
-                    neighbor = swdata.interfaces[intname].neighbors[0]
-                    assert isinstance(neighbor, dict)
-                except (AssertionError, KeyError, IndexError):
-                    continue
-
-                try:
-                    nb_neigh_device = neighbor['nb_device']
-                except KeyError:
-                    nb_neigh_device = nb.dcim.devices.get(
-                        name=neighbor['hostname'])
-
-                nb_neigh_interface = nb.dcim.interfaces.get(name=neighbor['remote_int'],
+                nb_neigh_interface = nb.dcim.interfaces.get(name=intdata.name,
                                                             device_id=nb_neigh_device.id)
-
-                try:
-                    assert nb_neigh_interface is not None
-                except AssertionError:
-                    nb_neigh_interface = nb.dcim.interfaces.create(device=nb_neigh_device.id,
-                                                                name=neighbor['remote_int'],
-                                                                type="1000base-t")
-
-                    logger.info("Creating interface %s for AP %s, model %s",
-                                neighbor['remote_int'], neighbor['hostname'], neighbor['platform'])
 
                 # Search IP
                 logger.debug("Searching IP %s for %s",
-                            neighbor['ip'], neighbor['hostname'])
+                            swdata.mgmt_address, swdata.hostname)
                 nb_neigh_ips = [x for x in nb.ipam.ip_addresses.filter(
                     device_id=nb_neigh_device.id)]
 
                 if any([x.assigned_object_id != nb_neigh_interface.id for x in nb_neigh_ips]):
                     logger.error(
-                        "Error, neighbor device %s has IPs on more interfaces than discovered, is this an error?", neighbor['hostname'])
+                        "Error, neighbor device %s has IPs on more interfaces than discovered, is this an error?", swdata.hostname)
                     continue
 
                 if len(nb_neigh_ips) == 0:
                     # No ip found, figure out smallest prefix configured that contains the IP
                     logger.debug(
-                        "IP %s not found, looking for prefixes", neighbor['ip'])
-                    nb_prefixes = nb.ipam.prefixes.filter(q=neighbor['ip'])
+                        "IP %s not found, looking for prefixes", swdata.mgmt_address)
+                    nb_prefixes = nb.ipam.prefixes.filter(q=swdata.mgmt_address)
                     if len(nb_prefixes) > 0:
                         # Search smallest prefix
                         prefixlen = 0
@@ -395,18 +375,19 @@ def add_neighbor_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_rol
 
                     # Now we have the smallest prefix length we can create the ip address
 
-                        finalip = f"{neighbor['ip']}/{smallestprefix.prefixlen}"
+                        finalip = f"{swdata.mgmt_address}/{smallestprefix.prefixlen}"
                     else:
-                        finalip = neighbor['ip'] + "/32"
+                        finalip = swdata.mgmt_address + "/32"
                     logger.debug("Creating IP %s", finalip)
                     nb_neigh_ips.append(
                         nb.ipam.ip_addresses.create(address=finalip))
 
                 for nb_neigh_ip in nb_neigh_ips:
-                    if str(ipaddress.ip_interface(nb_neigh_ip.address).ip) != neighbor['ip']:
-                        logger.warning("Deleting old IP %s form %s",
-                                    nb_neigh_ip.address, neighbor['hostname'])
-                        nb_neigh_ip.delete()
+                    if str(ipaddress.ip_interface(nb_neigh_ip.address).ip) != swdata.mgmt_address:
+                        logger.warning("Deleting old IP %s from %s",
+                                    nb_neigh_ip.address, swdata.hostname)
+                        nb_neigh_ip.update({'assigned_object_type': None,
+                                            'assigned_object_id': None})
 
                     if nb_neigh_ip.assigned_object_id != nb_neigh_interface.id:
                         logger.debug("Associating IP %s to interface %s",
@@ -415,7 +396,6 @@ def add_neighbor_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_rol
                                             'assigned_object_id': nb_neigh_interface.id})
 
                         nb_neigh_device.update({'primary_ip4': nb_neigh_ip.id})
-
 
 def add_l2_vlans(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
     nb_all_vlans = [x for x in nb.ipam.vlans.filter(site_id=nb_site.id)]
