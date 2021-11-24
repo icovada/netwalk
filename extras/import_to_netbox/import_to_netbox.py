@@ -174,7 +174,7 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_core_role, nb_neigh
 
                 try:
                     if intdata.description is not None:
-                        intproperties['description'] = thisint.description
+                        intproperties['description'] = intdata.description
 
                     if intdata.mode == "trunk":
                         if len(intdata.allowed_vlan) == 4094:
@@ -190,8 +190,8 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_core_role, nb_neigh
                         vlanid = int(intname.lower().replace("vlan", ""))
                         intproperties['untagged_vlan'] = vlans_dict[vlanid].id
                     else:
-                        intproperties['untagged_vlan'] = vlans_dict[thisint.native_vlan].id
-                    intproperties['enabled'] = thisint.is_enabled
+                        intproperties['untagged_vlan'] = vlans_dict[intdata.native_vlan].id
+                    intproperties['enabled'] = intdata.is_enabled
                 except:
                     pass
 
@@ -401,7 +401,7 @@ def add_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_sit
 
 def add_neighbor_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
     for swname, swdata in fabric.switches.items():
-        if type(swdata) == netwalk.objects.Device:
+        if type(swdata) == netwalk.switch.Device:
             for intname, intdata in swdata.interfaces.items():
                 try:
                     neighbor = swdata.interfaces[intname].neighbors[0]
