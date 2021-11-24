@@ -39,13 +39,18 @@ class Device():
     interfaces: Dict[str, 'Interface']
     discovery_status: Optional[Union[str, datetime.datetime]]
     fabric: 'Fabric'
+    mgmt_address: Union[ipaddress.ip_address, str]
 
-    def __init__(self, hostname, **kwargs) -> None:
-        self.logger = logging.getLogger(__name__ + hostname)
-        self.hostname: str = hostname
+    def __init__(self, mgmt_address, **kwargs) -> None:
+        self.mgmt_address = mgmt_address
+        self.hostname: str = kwargs.get('hostname', None)
         self.interfaces: Dict[str, 'Interface'] = kwargs.get('interfaces', {})
         self.discovery_status = kwargs.get('discovery_status', None)
         self.fabric: 'Fabric' = kwargs.get('fabric', None)
+        if self.hostname is None:
+            self.logger = logging.getLogger(__name__ + str(self.mgmt_address))
+        else:
+            self.logger = logging.getLogger(__name__ + self.hostname)
 
     def add_interface(self, intobject: Interface):
         """Add interface to device
@@ -62,7 +67,8 @@ class Device():
 
     def promote_to_switch(self):
         self.__class__ = Switch
-        self.__init__(hostname = self.hostname,
+        self.__init__(mgmt_address = self.mgmt_address,
+                      hostname = self.hostname,
                       interfaces = self.interfaces,
                       discovery_status = self.discovery_status,
                       fabric = self.fabric)
@@ -99,11 +105,10 @@ class Switch(Device):
     mac_table: dict
 
     def __init__(self,
-                 hostname,
+                 mgmt_address,
                  **kwargs):
 
-        super().__init__(hostname, **kwargs)
-        self.logger = logging.getLogger(__name__ + hostname)
+        super().__init__(mgmt_address, **kwargs)
         self.config: Optional[str] = kwargs.get('config', None)
         self.napalm_optional_args = kwargs.get('napalm_optional_args', None)
         self.vtp: Optional[str] = None
@@ -165,13 +170,13 @@ class Switch(Device):
         if napalm_optional_args is not None:
             self.napalm_optional_args = napalm_optional_args
 
-        self.session = driver(self.hostname,
+        self.session = driver(str(self.mgmt_address),
                               username=username,
                               password=password,
                               timeout=self.timeout,
                               optional_args=self.napalm_optional_args)
 
-        self.logger.info("Connecting to %s", self.hostname)
+        self.logger.info("Connecting to %s", self.mgmt_address)
         self.session.open()
 
     def get_active_vlans(self):
@@ -296,6 +301,9 @@ class Switch(Device):
             scan_to_perform = allscans
 
         self.facts = self.session.get_facts()
+
+        if self.hostname is None:
+            self.hostname = self.facts['hostname']
 
         self.init_time = dt.datetime.now()
 
@@ -436,42 +444,47 @@ class Switch(Device):
             __file__)) + "/textfsm_templates/show_cdp_neigh_detail.textfsm"
         with open(fsmpath, 'r') as fsmfile:
             re_table = textfsm.TextFSM(fsmfile)
-            fsm_results = re_table.ParseText(neighdetail)
+            fsm_results = re_table.ParseTextToDicts(neighdetail)
 
         for result in fsm_results:
             self.logger.debug("Found CDP neighbor %s IP %s local int %s, remote int %s",
-                              result[1], result[2], result[5], result[4])
+                              result['dest_host'], result['mgmt_ip'], result['local_port'], result['remote_port'])
 
         for intname, intdata in self.interfaces.items():
             intdata.neighbors = []  # Clear before adding new data
 
         for nei in fsm_results:
             if self.fabric is None:
-                neigh_device = Device(hostname=nei[2],
-                                      facts={'platform': nei[3]})
-                neigh_int = Interface(name=nei[4],
-                                      address=ipaddress.ip_address(nei[2]))
+                neigh_device = Device(mgmt_address=ipaddress.ip_address(nei['mgmt_ip']),
+                                      hostname=nei['dest_host'],
+                                      facts={'platform': nei['platform']})
+                neigh_int = Interface(name=nei['remote_port'])
                 neigh_device.add_interface(neigh_int)
 
             else:
-                neigh_device = self.fabric.switches.get(nei[1], None)
+                neigh_device = self.fabric.switches.get(nei['dest_host'], None)
                 if neigh_device is None:
-                    neigh_device = Device(hostname=nei[2],
-                                          facts={'platform': nei[3]},
+                    neigh_device = Device(mgmt_address=ipaddress.ip_address(nei['mgmt_ip']),
+                                          hostname=nei['dest_host'],
+                                          facts={'platform': nei['platform']},
                                           fabric=self.fabric)
-                    self.fabric.switches[nei[1]] = neigh_device
+                    self.fabric.switches[nei['dest_host']] = neigh_device
 
-                neigh_int = neigh_device.interfaces.get(nei[4], None)
+                if neigh_device.mgmt_address is None:
+                    neigh_device.mgmt_address = ipaddress.ip_address(nei['mgmt_ip'])
+                elif neigh_device.mgmt_address != ipaddress.ip_address(nei['mgmt_ip']) and not isinstance(neigh_device, Switch):
+                    raise ValueError("Found two different management addresses for the same device")
+
+                neigh_int = neigh_device.interfaces.get(nei['remote_port'], None)
                 if neigh_int is None:
-                    neigh_int = Interface(name=nei[4],
-                                          address=ipaddress.ip_address(nei[2]))
+                    neigh_int = Interface(name=nei['remote_port'])
                     neigh_device.add_interface(neigh_int)
 
-                    self.fabric.switches[nei[1]] = neigh_device
+                    self.fabric.switches[nei['dest_host']] = neigh_device
 
             # Add bidirectional link
-            self.interfaces[nei[5]].neighbors.append(neigh_int) if neigh_int not in self.interfaces[nei[5]].neighbors else None
-            neigh_int.neighbors.append(self.interfaces[nei[5]]) if self.interfaces[nei[5]] not in neigh_int.neighbors else None
+            self.interfaces[nei['local_port']].neighbors.append(neigh_int) if neigh_int not in self.interfaces[nei['local_port']].neighbors else None
+            neigh_int.neighbors.append(self.interfaces[nei['local_port']]) if self.interfaces[nei['local_port']] not in neigh_int.neighbors else None
 
     def _cisco_time_to_dt(self, time: str) -> dt.datetime:
         """Converts time from now to absolute, starting when Switch object was initialised

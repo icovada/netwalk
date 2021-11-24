@@ -76,7 +76,7 @@ class Fabric():
             host.promote_to_switch()
             thisswitch = host
 
-        self.logger.info("Creating switch %s", thisswitch.hostname)
+        self.logger.info("Creating switch %s", thisswitch.mgmt_address)
         connected = False
         for optional_arg in napalm_optional_args:
             if connected:
@@ -88,7 +88,7 @@ class Fabric():
                                              napalm_optional_args=optional_arg)
                     connected = True
                     self.logger.info(
-                        "Connection to switch %s successful", thisswitch.hostname)
+                        "Connection to switch %s successful", thisswitch.mgmt_address)
                     break
                 except (ConnectionException, NetMikoAuthenticationException, ConnectionRefusedError):
                     self.logger.warning(
