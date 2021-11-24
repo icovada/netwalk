@@ -258,8 +258,11 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_core_role, nb_neigh
                 if "Port-channel" in intname:
                     for childint in intdata.child_interfaces:
                         child = nb.dcim.interfaces.get(device_id=nb_device.id, name=childint.name)
-                        if child is not None and child.lag is not None:
-                            if child.lag.id != nb_interface.id:
+                        if child is not None:
+                            if child.lag is None:
+                                logger.info("Adding %s under %s", childint.name, nb_interface.name)
+                                child.update({'lag': nb_interface.id})
+                            elif child.lag.id != nb_interface.id:
                                 logger.info("Adding %s under %s", childint.name, nb_interface.name)
                                 child.update({'lag': nb_interface.id})
 
