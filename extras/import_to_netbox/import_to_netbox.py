@@ -40,67 +40,6 @@ nb = pynetbox.api(
 )
 
 
-def create_cdp_neighbor(swdata, nb_site, nb_neigh_role, interface, nb_int=None):
-    # Create undiscovered CDP neighbors
-    try:
-        neighbor = swdata.interfaces[interface].neighbors[0]
-        assert isinstance(neighbor, dict)
-        logger.debug("Parsing neighbor %s on %s ip %s platform %s",
-                     neighbor['hostname'], neighbor['remote_int'], neighbor['ip'], neighbor['platform'])
-
-        try:
-            vendor, model = neighbor['platform'].split()
-        except ValueError:
-            model = neighbor['platform']
-            vendor = "Unknown"
-
-        nb_manufacturer = nb.dcim.manufacturers.get(slug=slugify(vendor))
-
-        if nb_manufacturer is None:
-            nb_manufacturer = nb.dcim.manufacturers.create(
-                name=vendor, slug=slugify(vendor))
-
-        nb_device_ap = nb.dcim.devices.get(name=neighbor['hostname'])
-        if nb_device_ap is None:
-            nb_device_type = nb.dcim.device_types.get(
-                slug=slugify(model))
-            if nb_device_type is None:
-                nb_device_type = nb.dcim.device_types.create(model=model,
-                                                             manufacturer=nb_manufacturer.id,
-                                                             slug=slugify(model))
-
-                logger.warning("Created device type " +
-                               vendor + " " + model)
-
-            logger.info("Creating neighbor %s", neighbor['hostname'])
-            nb_device_ap = nb.dcim.devices.create(name=neighbor['hostname'],
-                                                  device_role=nb_neigh_role.id,
-                                                  device_type=nb_device_type.id,
-                                                  site=nb_site.id)
-
-            logger.info("Creating interface %s on neighbor %s",
-                        neighbor['remote_int'], neighbor['hostname'])
-            nb_interface = nb.dcim.interfaces.create(device=nb_device_ap.id,
-                                                     name=neighbor['remote_int'],
-                                                     type="1000base-t")
-
-            neighbor['nb_device'] = nb_device_ap
-        else:
-            if nb_int is not None:
-                if nb_int.cable is not None:
-                    try:
-                        assert nb_int.cable_peer.device.name == neighbor['hostname'].split(".")[
-                            0]
-                        assert nb_int.cable_peer.name == neighbor['remote_int']
-                    except AssertionError:
-                        nb_int.cable.delete()
-
-            neighbor['nb_device'] = nb_device_ap
-
-    except (AssertionError, KeyError, IndexError):
-        pass
-
-
 def create_devices_and_interfaces(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
     # Create devices and interfaces
     site_vlans = nb.ipam.vlans.filter(site_id=nb_site.id)
@@ -209,8 +148,6 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_core_role, nb_neigh
                                 logger.info("Adding %s under %s", intname, nb_interface.name)
                                 child.update({'lag': nb_interface.id})
 
-                create_cdp_neighbor(swdata, nb_site, nb_neigh_role, intdata.name)
-
             else:
                 nb_interface = nb_all_interfaces[intname]
 
@@ -218,9 +155,6 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_core_role, nb_neigh
                     if nb_interface.cable is not None:
                         logger.info("Deleting old cable on %s", intdata.name)
                         nb_interface.cable.delete()
-                else:
-                    create_cdp_neighbor(
-                        swdata, nb_site, intname, nb_neigh_role, nb_int=nb_interface)
 
                 if intdata.description != nb_interface.description:
                     intproperties['description'] = intdata.description if intdata.description is not None else ""
@@ -417,12 +351,6 @@ def add_neighbor_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_rol
                 except KeyError:
                     nb_neigh_device = nb.dcim.devices.get(
                         name=neighbor['hostname'])
-
-                    if nb_neigh_device is None:
-                        create_cdp_neighbor(
-                            swdata, nb_site, nb_neigh_role, intname)
-                        nb_neigh_device = nb.dcim.devices.get(
-                            name=neighbor['hostname'])
 
                 nb_neigh_interface = nb.dcim.interfaces.get(name=neighbor['remote_int'],
                                                             device_id=nb_neigh_device.id)
