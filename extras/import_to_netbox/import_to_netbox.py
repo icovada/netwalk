@@ -40,7 +40,7 @@ nb = pynetbox.api(
 )
 
 
-def create_devices_and_interfaces(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
+def create_devices_and_interfaces(fabric, nb_access_role, nb_site):
     # Create devices and interfaces
     site_vlans = nb.ipam.vlans.filter(site_id=nb_site.id)
     vlans_dict = {x.vid: x for x in site_vlans}
@@ -212,7 +212,7 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_core_role, nb_neigh
                 v.delete()
 
 
-def add_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
+def add_ip_addresses(fabric, nb_site):
     for swname, swdata in fabric.switches.items():
         if isinstance(swdata, netwalk.Switch):
             nb_device = nb.dcim.devices.get(name=swname)
@@ -332,7 +332,7 @@ def add_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_sit
                                     nb_device.update({'primary_ip4': v.id})
 
 
-def add_neighbor_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
+def add_neighbor_ip_addresses(fabric):
     for swname, swdata in fabric.switches.items():
         if type(swdata) == netwalk.switch.Device:
             logger.info("Checking Device %s", swdata.hostname)
@@ -397,7 +397,7 @@ def add_neighbor_ip_addresses(fabric, nb_access_role, nb_core_role, nb_neigh_rol
 
                         nb_neigh_device.update({'primary_ip4': nb_neigh_ip.id})
 
-def add_l2_vlans(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
+def add_l2_vlans(fabric, nb_site):
     nb_all_vlans = [x for x in nb.ipam.vlans.filter(site_id=nb_site.id)]
     vlan_dict = {x.vid: x for x in nb_all_vlans}
     for swname, swdata in fabric.switches.items():
@@ -411,7 +411,7 @@ def add_l2_vlans(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
                     vlan_dict[int(vlanid)] = nb_vlan
 
 
-def add_cables(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
+def add_cables(fabric, nb_site):
     logger.info("Adding cables")
     all_nb_devices = {
         x.name: x for x in nb.dcim.devices.filter(site_id=nb_site.id)}
@@ -543,15 +543,13 @@ def add_inventory_items(fabric):
                     nb_inv.delete()
 
 
-def main(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site):
-    add_l2_vlans(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site)
+def main(fabric, nb_access_role, nb_site):
+    add_l2_vlans(fabric, nb_site)
     create_devices_and_interfaces(
-        fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site)
-    add_ip_addresses(fabric, nb_access_role,
-                     nb_core_role, nb_neigh_role, nb_site)
-    add_neighbor_ip_addresses(fabric, nb_access_role,
-                              nb_core_role, nb_neigh_role, nb_site)
-    add_cables(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site)
+        fabric, nb_access_role, nb_site)
+    add_ip_addresses(fabric, nb_site)
+    add_neighbor_ip_addresses(fabric)
+    add_cables(fabric, nb_site)
     add_software_versions(fabric)
     add_inventory_items(fabric)
 
@@ -564,7 +562,5 @@ if __name__ == '__main__':
             fabric = pickle.load(bindata)
 
         nb_access_role = nb.dcim.device_roles.get(name="Access Switch")
-        nb_core_role = nb.dcim.device_roles.get(name="Core Switch")
-        nb_neigh_role = nb.dcim.device_roles.get(name="Access Point")
         nb_site = nb.dcim.sites.get(slug=sitename)
-        main(fabric, nb_access_role, nb_core_role, nb_neigh_role, nb_site)
+        main(fabric, nb_access_role, nb_site)
