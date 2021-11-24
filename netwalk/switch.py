@@ -40,6 +40,7 @@ class Device():
     discovery_status: Optional[Union[str, datetime.datetime]]
     fabric: 'Fabric'
     mgmt_address: Union[ipaddress.ip_address, str]
+    facts: dict
 
     def __init__(self, mgmt_address, **kwargs) -> None:
         self.mgmt_address = mgmt_address
@@ -47,6 +48,7 @@ class Device():
         self.interfaces: Dict[str, 'Interface'] = kwargs.get('interfaces', {})
         self.discovery_status = kwargs.get('discovery_status', None)
         self.fabric: 'Fabric' = kwargs.get('fabric', None)
+        self.facts: dict = kwargs.get('facts', None)
         if self.hostname is None:
             self.logger = logging.getLogger(__name__ + str(self.mgmt_address))
         else:
@@ -71,7 +73,8 @@ class Device():
                       hostname = self.hostname,
                       interfaces = self.interfaces,
                       discovery_status = self.discovery_status,
-                      fabric = self.fabric)
+                      fabric = self.fabric,
+                      facts = self.facts)
 
 
 class Switch(Device):
@@ -100,7 +103,6 @@ class Switch(Device):
     vlans: Optional[Dict[int, dict]]
     vlans_set: set
     local_admins: Optional[Dict[str, dict]]
-    facts: dict
     timeout: int
     mac_table: dict
 
@@ -118,7 +120,6 @@ class Switch(Device):
         # VLANs configured on the switch
         self.vlans_set = {x for x in range(1, 4095)}
         self.local_admins: Optional[Dict[str, dict]] = None
-        self.facts: dict = kwargs.get('facts', None)
         self.timeout = 30
         self.mac_table = {}
 
