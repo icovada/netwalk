@@ -177,13 +177,14 @@ class Interface():
             self._calculate_sort_order()
             
 
-    def parse_config(self):
+    def parse_config(self, second_pass=False):
         "Parse configuration from show run"
         if isinstance(self.config, str):
             self.config = self.config.split("\n")
 
-        # Pass values to unparsed_lines as value not reference
-        self.unparsed_lines = self.config[:]
+        if not second_pass:
+            # Pass values to unparsed_lines as value not reference
+            self.unparsed_lines = self.config[:]
 
         # Parse port mode first. Some switches have it first, some last, so check it first thing
         for line in self.unparsed_lines:

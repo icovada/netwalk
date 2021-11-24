@@ -63,7 +63,7 @@ class Device():
 
         if type(self) == Switch:
             for k, v in self.interfaces.items():
-                v.parse_config()
+                v.parse_config(second_pass=True)
 
     def promote_to_switch(self):
         self.__class__ = Switch
@@ -248,6 +248,7 @@ class Switch(Device):
                     localint.config = intf.ioscfg
                     localint.parse_config()
                 else:
+                    thisint.parse_config()
                     self.add_interface(thisint)
 
         else:
@@ -303,7 +304,7 @@ class Switch(Device):
         self.facts = self.session.get_facts()
 
         if self.hostname is None:
-            self.hostname = self.facts['hostname']
+            self.hostname = self.facts['fqdn']
 
         self.init_time = dt.datetime.now()
 
@@ -479,8 +480,6 @@ class Switch(Device):
                 if neigh_int is None:
                     neigh_int = Interface(name=nei['remote_port'])
                     neigh_device.add_interface(neigh_int)
-
-                    self.fabric.switches[nei['dest_host']] = neigh_device
 
             # Add bidirectional link
             self.interfaces[nei['local_port']].neighbors.append(neigh_int) if neigh_int not in self.interfaces[nei['local_port']].neighbors else None
