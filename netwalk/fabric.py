@@ -151,6 +151,7 @@ class Fabric():
                         self.logger.error('%r generated an exception: %s' %
                                           (hostname, exc))
                         self.discovery_status[hostname] = "Failed"
+                        #raise exc
                         
                         # We do not have the switch because fut.result returned an error
                         # Find it looping the fabric
@@ -204,24 +205,26 @@ class Fabric():
         Tries to guess where mac addresses are by assigning them to the interface with the lowest total mac count
         """
         for swname, swdata in self.switches.items():
-            for intname, intdata in swdata.interfaces.items():
-                intdata.mac_count = 0
+            if isinstance(swdata, Switch):
+                for intname, intdata in swdata.interfaces.items():
+                    intdata.mac_count = 0
 
-            for _, data in swdata.mac_table.items():
-                try:
-                    data['interface'].mac_count += 1
-                except KeyError:
-                    pass
+                for _, data in swdata.mac_table.items():
+                    try:
+                        data['interface'].mac_count += 1
+                    except KeyError:
+                        pass
 
         for swname, swdata in self.switches.items():
-            for mac, macdata in swdata.mac_table.items():
-                try:
-                    if self.mac_table[mac]['interface'].mac_count > macdata['interface'].mac_count:
-                        self.logger.debug("Found better interface %s %s for %s",
-                                          macdata['interface'].name, macdata['interface'].switch.facts['fqdn'], str(mac))
+            if isinstance(swdata, Switch):
+                for mac, macdata in swdata.mac_table.items():
+                    try:
+                        if self.mac_table[mac]['interface'].mac_count > macdata['interface'].mac_count:
+                            self.logger.debug("Found better interface %s %s for %s",
+                                            macdata['interface'].name, macdata['interface'].switch.facts['fqdn'], str(mac))
+                            self.mac_table[mac] = macdata
+                    except KeyError:
                         self.mac_table[mac] = macdata
-                except KeyError:
-                    self.mac_table[mac] = macdata
 
     def find_paths(self, start_sw, end_sw):
         """
