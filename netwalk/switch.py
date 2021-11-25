@@ -33,6 +33,7 @@ import ciscoconfparse
 import textfsm
 import datetime
 from netwalk.interface import Interface
+from netwalk.libs import interface_name_expander
 class Device():
     hostname: str
     #: Dict of {name: Interface}
@@ -329,8 +330,7 @@ class Switch(Device):
                 if v['interface'] == '':
                     continue
 
-                v['interface'] = v['interface'].replace(
-                    "Fa", "FastEthernet").replace("Gi", "GigabitEthernet").replace("Po", "Port-channel").replace("Twe", "TwentyFiveGigE")
+                v['interface'] = interface_name_expander(v['interface'])
 
                 v.pop('mac')
                 v.pop('static')
