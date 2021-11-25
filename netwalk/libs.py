@@ -9,5 +9,6 @@ def interface_name_expander(name):
     
     for k, v in mapping.items():
         if name.startswith(k):
-            name.replace(k, v)
-            return name
+            return name.replace(k, v)
+    
+    return name
