@@ -26,6 +26,8 @@ import logging
 import ipaddress
 import os
 
+from netwalk.interface import Switch
+
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.DEBUG)
 
@@ -98,18 +100,22 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_site):
             intproperties = {}
             if intname not in nb_all_interfaces:
                 logger.info("Interface %s on switch %s", intname, swname)
-                if "Fast" in intname:
-                    int_type = "100base-tx"
-                elif "Te" in intname:
-                    int_type = "10gbase-x-sfpp"
-                elif "Gigabit" in intname:
-                    int_type = "1000base-t"
-                elif "Vlan" in intname:
-                    int_type = "virtual"
-                elif "channel" in intname:
-                    int_type = "lag"
+                if isinstance(swdata, netwalk.Switch):
+                    if "Fast" in intname:
+                        int_type = "100base-tx"
+                    elif "Te" in intname:
+                        int_type = "10gbase-x-sfpp"
+                    elif "Gigabit" in intname:
+                        int_type = "1000base-t"
+                    elif "Vlan" in intname:
+                        int_type = "virtual"
+                    elif "channel" in intname:
+                        int_type = "lag"
+                    else:
+                        int_type = 'virtual'
+
                 else:
-                    int_type = 'virtual'
+                    int_type = "1000base-t"
 
                 try:
                     if intdata.description is not None:
