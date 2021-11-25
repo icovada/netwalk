@@ -275,6 +275,7 @@ class Switch(Device):
         - 'mac_address'
         - 'interface_status'
         - 'cdp_neighbors'
+        - 'lldp_neighbors'
         - 'vtp'
         - 'vlans'
         - 'l3_int'
@@ -285,19 +286,19 @@ class Switch(Device):
         """
 
         allscans = ['mac_address', 'interface_status',
-                    'cdp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins', 'inventory']
+                    'cdp_neighbors', 'lldp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins', 'inventory']
         scan_to_perform = []
 
         if whitelist is not None:
             for i in whitelist:
-                assert i in allscans, "Parameter not recognised in scan list. has to be any of ['mac_address', 'interface_status', 'cdp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins', 'inventory']"
+                assert i in allscans, "Parameter not recognised in scan list. has to be any of ['mac_address', 'interface_status', 'cdp_neighbors', 'lldp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins', 'inventory']"
 
             scan_to_perform = whitelist
 
         elif blacklist is not None:
             scan_to_perform = allscans
             for i in blacklist:
-                assert i in allscans, "Parameter not recognised in scan list. has to be any of ['mac_address', 'interface_status', 'cdp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins', 'inventory']"
+                assert i in allscans, "Parameter not recognised in scan list. has to be any of ['mac_address', 'interface_status', 'cdp_neighbors', 'lldp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins', 'inventory']"
                 scan_to_perform.remove(i)
 
         else:
@@ -358,6 +359,9 @@ class Switch(Device):
 
         if 'cdp_neighbors' in scan_to_perform:
             self._parse_cdp_neighbors()
+
+        if 'lldp_neighbors' in scan_to_perform:
+            self._parse_lldp_neighbors()
 
         if 'vtp' in scan_to_perform:
             # Get VTP status
@@ -487,6 +491,63 @@ class Switch(Device):
             # Add bidirectional link
             self.interfaces[nei['local_port']].neighbors.append(neigh_int) if neigh_int not in self.interfaces[nei['local_port']].neighbors else None
             neigh_int.neighbors.append(self.interfaces[nei['local_port']]) if self.interfaces[nei['local_port']] not in neigh_int.neighbors else None
+
+    def _parse_lldp_neighbors(self):
+        """Ask for and parse LLDP neighbors"""
+        self.session.device.write_channel("show lldp neigh detail")
+        self.session.device.write_channel("\n")
+        self.session.device.timeout = 30  # Could take ages...
+        neighdetail = self.session.device.read_until_prompt(max_loops=3000)
+
+        if "LLDP is not enabled" in neighdetail:
+            return None
+
+        fsmpath = os.path.dirname(os.path.realpath(
+            __file__)) + "/textfsm_templates/show_lldp_neigh_detail.textfsm"
+        with open(fsmpath, 'r') as fsmfile:
+            re_table = textfsm.TextFSM(fsmfile)
+            fsm_results = re_table.ParseTextToDicts(neighdetail)
+
+        for result in fsm_results:
+            self.logger.debug("Found CDP neighbor %s IP %s local int %s, remote int %s",
+                              result['dest_host'], result['mgmt_ip'], result['local_port'], result['remote_port'])
+
+        for intname, intdata in self.interfaces.items():
+            intdata.neighbors = []  # Clear before adding new data
+
+        for nei in fsm_results:
+            if self.fabric is None:
+                neigh_device = Device(mgmt_address=ipaddress.ip_address(nei['mgmt_ip']),
+                                      hostname=nei['dest_host'],
+                                      facts={'platform': nei['platform'],
+                                             'os_version': nei['version']})
+                neigh_int = Interface(name=nei['remote_port'])
+                neigh_device.add_interface(neigh_int)
+
+            else:
+                neigh_device = self.fabric.switches.get(nei['dest_host'], None)
+                if neigh_device is None:
+                    neigh_device = Device(mgmt_address=ipaddress.ip_address(nei['mgmt_ip']),
+                                          hostname=nei['dest_host'],
+                                          facts={'platform': nei['platform'],
+                                                 'os_version': nei['version']},
+                                          fabric=self.fabric)
+                    self.fabric.switches[nei['dest_host']] = neigh_device
+
+                if neigh_device.mgmt_address is None:
+                    neigh_device.mgmt_address = ipaddress.ip_address(nei['mgmt_ip'])
+                elif neigh_device.mgmt_address != ipaddress.ip_address(nei['mgmt_ip']) and not isinstance(neigh_device, Switch):
+                    raise ValueError("Found two different management addresses for the same device")
+
+                neigh_int = neigh_device.interfaces.get(nei['remote_port'], None)
+                if neigh_int is None:
+                    neigh_int = Interface(name=nei['remote_port'])
+                    neigh_device.add_interface(neigh_int)
+
+            # Add bidirectional link
+            self.interfaces[nei['local_port']].neighbors.append(neigh_int) if neigh_int not in self.interfaces[nei['local_port']].neighbors else None
+            neigh_int.neighbors.append(self.interfaces[nei['local_port']]) if self.interfaces[nei['local_port']] not in neigh_int.neighbors else None
+
 
     def _cisco_time_to_dt(self, time: str) -> dt.datetime:
         """Converts time from now to absolute, starting when Switch object was initialised
