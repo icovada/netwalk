@@ -1,3 +1,4 @@
+Value Filldown local_host (\S+)
 Value local_port (\S+)
 Value chassis_id (\S+)
 Value remote_port_id (.*)
@@ -52,7 +53,6 @@ Start
   # Capture time-stamp if vty line has command time-stamping turned on
   ^Load\s+for\s+
   ^Time\s+source\s+is
-  ^.*$$ -> Error
 
 GetDescription
   ^${system_description} -> IgnoreDescription
