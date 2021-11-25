@@ -28,9 +28,9 @@ class TestSwitchBasic(unittest.TestCase):
                   "interface GigabitEthernet0/2\n"
                   " switchport mode access\n"
                   "!\n")
-        sw = Switch("testsw", config = config)
+        sw = Switch("192.168.1.1", config = config)
 
-        assert sw.hostname == "testsw"
+        assert sw.mgmt_address == "192.168.1.1"
         assert len(sw.interfaces) == 2
         assert "GigabitEthernet0/1" in sw.interfaces
         assert "GigabitEthernet0/2" in sw.interfaces

@@ -29,10 +29,10 @@ class TestFabricBase(unittest.TestCase):
         """
 
         f = Fabric()
-        a = Switch(hostname="A", facts={'hostname': 'A', 'fqdn': 'A.not set'})
-        b = Switch(hostname="B", facts={'hostname': 'B', 'fqdn': 'B.not set'})
-        c = Switch(hostname="C", facts={'hostname': 'C', 'fqdn': 'C.not set'})
-        d = Switch(hostname="D", facts={'hostname': 'D', 'fqdn': 'D.not set'})
+        a = Switch(mgmt_address="A", facts={'hostname': 'A', 'fqdn': 'A.not set'})
+        b = Switch(mgmt_address="B", facts={'hostname': 'B', 'fqdn': 'B.not set'})
+        c = Switch(mgmt_address="C", facts={'hostname': 'C', 'fqdn': 'C.not set'})
+        d = Switch(mgmt_address="D", facts={'hostname': 'D', 'fqdn': 'D.not set'})
 
         f.switches = {'A': a,
                       'B': b,
@@ -75,7 +75,6 @@ class TestFabricBase(unittest.TestCase):
                                                                     'remote_int': 'GigabitEthernet0/1'}],
                                                         switch=b)}
 
-        f._find_links()
         assert f.switches['A'].interfaces['GigabitEthernet0/0'].neighbors[0] == f.switches['B'].interfaces['GigabitEthernet0/0']
         assert f.switches['A'].interfaces['GigabitEthernet0/1'].neighbors[0] == f.switches['C'].interfaces['GigabitEthernet0/1']
         assert f.switches['B'].interfaces['GigabitEthernet0/0'].neighbors[0] == f.switches['A'].interfaces['GigabitEthernet0/0']
@@ -94,10 +93,10 @@ class TestFabricBase(unittest.TestCase):
         """
 
         f = Fabric()
-        a = Switch(hostname="A", facts={'hostname': 'A', 'fqdn': 'A.not set'})
-        b = Switch(hostname="B", facts={'hostname': 'B', 'fqdn': 'B.not set'})
-        c = Switch(hostname="C", facts={'hostname': 'C', 'fqdn': 'C.not set'})
-        d = Switch(hostname="D", facts={'hostname': 'D', 'fqdn': 'D.not set'})
+        a = Switch(mgmt_address="A", facts={'hostname': 'A', 'fqdn': 'A.not set'})
+        b = Switch(mgmt_address="B", facts={'hostname': 'B', 'fqdn': 'B.not set'})
+        c = Switch(mgmt_address="C", facts={'hostname': 'C', 'fqdn': 'C.not set'})
+        d = Switch(mgmt_address="D", facts={'hostname': 'D', 'fqdn': 'D.not set'})
 
         f.switches = {'A': a,
                       'B': b,
@@ -140,7 +139,6 @@ class TestFabricBase(unittest.TestCase):
                                                                     'remote_int': 'GigabitEthernet0/1'}],
                                                         switch=d)}
 
-        f._find_links()
 
         paths = f.find_paths(c, [a])
         assert c.interfaces['GigabitEthernet0/0'] in paths[0]
@@ -162,10 +160,10 @@ class TestFabricBase(unittest.TestCase):
         """
 
         f = Fabric()
-        a = Switch(hostname="A", facts={'hostname': 'A', 'fqdn': 'A.not set'})
-        b = Switch(hostname="B", facts={'hostname': 'B', 'fqdn': 'B.not set'})
-        c = Switch(hostname="C", facts={'hostname': 'C', 'fqdn': 'C.not set'})
-        d = Switch(hostname="D", facts={'hostname': 'D', 'fqdn': 'D.not set'})
+        a = Switch(mgmt_address="A", facts={'hostname': 'A', 'fqdn': 'A.not set'})
+        b = Switch(mgmt_address="B", facts={'hostname': 'B', 'fqdn': 'B.not set'})
+        c = Switch(mgmt_address="C", facts={'hostname': 'C', 'fqdn': 'C.not set'})
+        d = Switch(mgmt_address="D", facts={'hostname': 'D', 'fqdn': 'D.not set'})
 
         f.switches = {'A': a,
                       'B': b,
@@ -208,7 +206,6 @@ class TestFabricBase(unittest.TestCase):
                                                                     'remote_int': 'GigabitEthernet0/1'}],
                                                         switch=d)}
 
-        f._find_links()
 
         paths = f.find_paths(c, [a, b])
         assert c.interfaces['GigabitEthernet0/0'] in paths[0]
@@ -232,11 +229,11 @@ class TestFabricBase(unittest.TestCase):
         """
 
         f = Fabric()
-        a = Switch(hostname="A", facts={'hostname': 'A', 'fqdn': 'A.not set'})
-        b = Switch(hostname="B", facts={'hostname': 'B', 'fqdn': 'B.not set'})
-        c = Switch(hostname="C", facts={'hostname': 'C', 'fqdn': 'C.not set'})
-        d = Switch(hostname="D", facts={'hostname': 'D', 'fqdn': 'D.not set'})
-        e = Switch(hostname="E", facts={'hostname': 'E', 'fqdn': 'E.not set'})
+        a = Switch(mgmt_address="A", facts={'hostname': 'A', 'fqdn': 'A.not set'})
+        b = Switch(mgmt_address="B", facts={'hostname': 'B', 'fqdn': 'B.not set'})
+        c = Switch(mgmt_address="C", facts={'hostname': 'C', 'fqdn': 'C.not set'})
+        d = Switch(mgmt_address="D", facts={'hostname': 'D', 'fqdn': 'D.not set'})
+        e = Switch(mgmt_address="E", facts={'hostname': 'E', 'fqdn': 'E.not set'})
 
         f.switches = {'A': a,
                       'B': b,
@@ -289,7 +286,6 @@ class TestFabricBase(unittest.TestCase):
                                                                     'remote_int': 'GigabitEthernet0/2'}],
                                                         switch=d)}
 
-        f._find_links()
 
         paths = f.find_paths(c, [a, b])
         assert e.interfaces['GigabitEthernet0/2'] not in paths[0]
@@ -306,10 +302,10 @@ class TestFabricBase(unittest.TestCase):
         """
 
         f = Fabric()
-        a = Switch(hostname="A", facts={'hostname': 'A', 'fqdn': 'A.not set'})
-        b = Switch(hostname="B", facts={'hostname': 'B', 'fqdn': 'B.not set'})
-        c = Switch(hostname="C", facts={'hostname': 'C', 'fqdn': 'C.not set'})
-        d = Switch(hostname="D", facts={'hostname': 'D', 'fqdn': 'D.not set'})
+        a = Switch(mgmt_address="A", facts={'hostname': 'A', 'fqdn': 'A.not set'})
+        b = Switch(mgmt_address="B", facts={'hostname': 'B', 'fqdn': 'B.not set'})
+        c = Switch(mgmt_address="C", facts={'hostname': 'C', 'fqdn': 'C.not set'})
+        d = Switch(mgmt_address="D", facts={'hostname': 'D', 'fqdn': 'D.not set'})
 
         f.switches = {'A': a,
                       'B': b,
