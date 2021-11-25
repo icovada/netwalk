@@ -456,9 +456,6 @@ class Switch(Device):
             self.logger.debug("Found CDP neighbor %s IP %s local int %s, remote int %s",
                               result['dest_host'], result['mgmt_ip'], result['local_port'], result['remote_port'])
 
-        for intname, intdata in self.interfaces.items():
-            intdata.neighbors = []  # Clear before adding new data
-
         for nei in fsm_results:
             self.create_neighbor_device(hostname=nei['dest_host'],
                                         mgmt_address=nei['mgmt_ip'],
@@ -483,9 +480,6 @@ class Switch(Device):
         for result in fsm_results:
             self.logger.debug("Found LLDP neighbor %s IP %s local int %s, remote int %s",
                               result['neighbor'], result['mgmt_ip'], result['local_port'], result['remote_port'])
-
-        for intname, intdata in self.interfaces.items():
-            intdata.neighbors = []  # Clear before adding new data
 
         for nei in fsm_results:
             if nei['neighbor'] == '':
