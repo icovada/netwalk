@@ -532,9 +532,7 @@ class Switch(Device):
                 neigh_int = Interface(name=remote_interface)
                 neigh_device.add_interface(neigh_int)
 
-        # Add bidirectional link
-        local_interface.neighbors.append(neigh_int) if neigh_int not in local_interface.neighbors else None
-        neigh_int.neighbors.append(local_interface) if local_interface not in neigh_int.neighbors else None
+        local_interface.add_neighbor(neigh_int)
 
     def _cisco_time_to_dt(self, time: str) -> dt.datetime:
         """Converts time from now to absolute, starting when Switch object was initialised

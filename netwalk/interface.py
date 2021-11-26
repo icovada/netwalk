@@ -381,6 +381,12 @@ class Interface():
         self.child_interfaces.append(child_interface)
         child_interface.parent_interface = self
 
+    def add_neighbor(self, neigh_int: Interface) -> None:
+        "Method to add bidirectional neighborship to an interface"
+        # Add bidirectional link
+        self.neighbors.append(neigh_int) if neigh_int not in self.neighbors else None
+        neigh_int.neighbors.append(self) if self not in neigh_int.neighbors else None
+
     def _calculate_sort_order(self) -> None:
         """Generate unique sorting number from port id to sort interfaces meaningfully"""
         if 'Port-channel' in self.name:
