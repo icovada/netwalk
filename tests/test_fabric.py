@@ -21,69 +21,6 @@ from netwalk import Fabric, Switch, Interface
 
 
 class TestFabricBase(unittest.TestCase):
-    def test_cdp_neighborship(self):
-        """
-        A --- B
-        |     |
-        C --- D
-        """
-
-        f = Fabric()
-        a = Switch(mgmt_address="A", facts={'hostname': 'A', 'fqdn': 'A.not set'})
-        b = Switch(mgmt_address="B", facts={'hostname': 'B', 'fqdn': 'B.not set'})
-        c = Switch(mgmt_address="C", facts={'hostname': 'C', 'fqdn': 'C.not set'})
-        d = Switch(mgmt_address="D", facts={'hostname': 'D', 'fqdn': 'D.not set'})
-
-        f.switches = {'A': a,
-                      'B': b,
-                      'C': c,
-                      'D': d}
-
-        a.interfaces = {'GigabitEthernet0/0': Interface(name='GigabitEthernet0/0',
-                                                        neighbors=[{'hostname': 'B',
-                                                                    'remote_int': 'GigabitEthernet0/0'}],
-                                                        switch=b),
-                        'GigabitEthernet0/1': Interface(name='GigabitEthernet0/1',
-                                                        neighbors=[{'hostname': 'C',
-                                                                    'remote_int': 'GigabitEthernet0/1'}],
-                                                        switch=c)}
-
-        b.interfaces = {'GigabitEthernet0/0': Interface(name='GigabitEthernet0/0',
-                                                        neighbors=[{'hostname': 'A',
-                                                                    'remote_int': 'GigabitEthernet0/0'}],
-                                                        switch=a),
-                        'GigabitEthernet0/1': Interface(name='GigabitEthernet0/1',
-                                                        neighbors=[{'hostname': 'D',
-                                                                    'remote_int': 'GigabitEthernet0/1'}],
-                                                        switch=d)}
-
-        c.interfaces = {'GigabitEthernet0/0': Interface(name='GigabitEthernet0/0',
-                                                        neighbors=[{'hostname': 'D',
-                                                                    'remote_int': 'GigabitEthernet0/0'}],
-                                                        switch=d),
-                        'GigabitEthernet0/1': Interface(name='GigabitEthernet0/1',
-                                                        neighbors=[{'hostname': 'A',
-                                                                    'remote_int': 'GigabitEthernet0/1'}],
-                                                        switch=a)}
-
-        d.interfaces = {'GigabitEthernet0/0': Interface(name='GigabitEthernet0/0',
-                                                        neighbors=[{'hostname': 'C',
-                                                                    'remote_int': 'GigabitEthernet0/0'}],
-                                                        switch=c),
-                        'GigabitEthernet0/1': Interface(name='GigabitEthernet0/1',
-                                                        neighbors=[{'hostname': 'B',
-                                                                    'remote_int': 'GigabitEthernet0/1'}],
-                                                        switch=b)}
-
-        assert f.switches['A'].interfaces['GigabitEthernet0/0'].neighbors[0] == f.switches['B'].interfaces['GigabitEthernet0/0']
-        assert f.switches['A'].interfaces['GigabitEthernet0/1'].neighbors[0] == f.switches['C'].interfaces['GigabitEthernet0/1']
-        assert f.switches['B'].interfaces['GigabitEthernet0/0'].neighbors[0] == f.switches['A'].interfaces['GigabitEthernet0/0']
-        assert f.switches['B'].interfaces['GigabitEthernet0/1'].neighbors[0] == f.switches['D'].interfaces['GigabitEthernet0/1']
-        assert f.switches['C'].interfaces['GigabitEthernet0/0'].neighbors[0] == f.switches['D'].interfaces['GigabitEthernet0/0']
-        assert f.switches['C'].interfaces['GigabitEthernet0/1'].neighbors[0] == f.switches['A'].interfaces['GigabitEthernet0/1']
-        assert f.switches['D'].interfaces['GigabitEthernet0/0'].neighbors[0] == f.switches['C'].interfaces['GigabitEthernet0/0']
-        assert f.switches['D'].interfaces['GigabitEthernet0/1'].neighbors[0] == f.switches['B'].interfaces['GigabitEthernet0/1']
-
     def test_pathfinding_one_target(self):
         """
         A --- B
