@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import unittest
 import ipaddress
 import netwalk
+from netwalk.interface import Interface
 
 
 class BaseInterfaceTester(unittest.TestCase):
@@ -523,6 +524,17 @@ class TestPortChannel(unittest.TestCase):
 
         assert interface.parent_interface==po
         assert interface in po.child_interfaces
+
+class TestSelfFunctions(unittest.TestCase):
+    def test_add_neighbor(self):
+        side_a = Interface(name='SideA')
+        side_b = Interface(name='SideB')
+
+        side_a.add_neighbor(side_b)
+
+        assert side_b in side_a.neighbors
+        assert side_a in side_b.neighbors
+
 
 
 if __name__ == '__main__':
