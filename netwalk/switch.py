@@ -306,8 +306,7 @@ class Switch(Device):
 
         self.facts = self.session.get_facts()
 
-        if self.hostname is None:
-            self.hostname = self.facts['fqdn']
+        self.hostname = self.facts['fqdn'] if self.facts['fqdn'] != 'Unknown' else self.facts['hostname']
 
         self.init_time = dt.datetime.now()
 
