@@ -165,7 +165,6 @@ class Fabric():
                         swobject.__class__ = Device
                         swobject.discovery_status = dt.now()
                     else:
-                        fqdn = swobject.facts['fqdn'].replace(".not set", "")
                         swobject.discovery_status = dt.now()
                         self.logger.info(
                             "Completed discovery of %s %s", swobject.facts['fqdn'], swobject.hostname)
@@ -221,7 +220,7 @@ class Fabric():
                     try:
                         if self.mac_table[mac]['interface'].mac_count > macdata['interface'].mac_count:
                             self.logger.debug("Found better interface %s %s for %s",
-                                            macdata['interface'].name, macdata['interface'].switch.facts['fqdn'], str(mac))
+                                            macdata['interface'].name, macdata['interface'].switch.hostname, str(mac))
                             self.mac_table[mac] = macdata
                     except KeyError:
                         self.mac_table[mac] = macdata
