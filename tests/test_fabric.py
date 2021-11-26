@@ -97,52 +97,51 @@ class TestFabricBase(unittest.TestCase):
         """
 
         f = Fabric()
-        a = Switch(mgmt_address="A", facts={'hostname': 'A', 'fqdn': 'A.not set'})
-        b = Switch(mgmt_address="B", facts={'hostname': 'B', 'fqdn': 'B.not set'})
-        c = Switch(mgmt_address="C", facts={'hostname': 'C', 'fqdn': 'C.not set'})
-        d = Switch(mgmt_address="D", facts={'hostname': 'D', 'fqdn': 'D.not set'})
+        a = Switch(mgmt_address='A', hostname='A', fabric=f)
+        b = Switch(mgmt_address='B', hostname='B', fabric=f)
+        c = Switch(mgmt_address='C', hostname='C', fabric=f)
+        d = Switch(mgmt_address='D', hostname='D', fabric=f)
 
         f.switches = {'A': a,
                       'B': b,
                       'C': c,
                       'D': d}
 
-        a.interfaces = {'GigabitEthernet0/0': Interface(name='GigabitEthernet0/0',
-                                                        neighbors=[{'hostname': 'B',
-                                                                    'remote_int': 'GigabitEthernet0/0'}],
-                                                        switch=a),
-                        'GigabitEthernet0/1': Interface(name='GigabitEthernet0/1',
-                                                        neighbors=[{'hostname': 'C',
-                                                                    'remote_int': 'GigabitEthernet0/1'}],
-                                                        switch=a)}
+        inta0 = Interface(name='GigabitEthernet0/0')
+        inta1 = Interface(name='GigabitEthernet0/1')
 
-        b.interfaces = {'GigabitEthernet0/0': Interface(name='GigabitEthernet0/0',
-                                                        neighbors=[{'hostname': 'A',
-                                                                    'remote_int': 'GigabitEthernet0/0'}],
-                                                        switch=b),
-                        'GigabitEthernet0/1': Interface(name='GigabitEthernet0/1',
-                                                        neighbors=[{'hostname': 'D',
-                                                                    'remote_int': 'GigabitEthernet0/1'}],
-                                                        switch=b)}
+        intb0 = Interface(name='GigabitEthernet0/0')
+        intb1 = Interface(name='GigabitEthernet0/1')
 
-        c.interfaces = {'GigabitEthernet0/0': Interface(name='GigabitEthernet0/0',
-                                                        neighbors=[{'hostname': 'D',
-                                                                    'remote_int': 'GigabitEthernet0/0'}],
-                                                        switch=c),
-                        'GigabitEthernet0/1': Interface(name='GigabitEthernet0/1',
-                                                        neighbors=[{'hostname': 'A',
-                                                                    'remote_int': 'GigabitEthernet0/1'}],
-                                                        switch=c)}
+        intc0 = Interface(name='GigabitEthernet0/0')
+        intc1 = Interface(name='GigabitEthernet0/1')
 
-        d.interfaces = {'GigabitEthernet0/0': Interface(name='GigabitEthernet0/0',
-                                                        neighbors=[{'hostname': 'C',
-                                                                    'remote_int': 'GigabitEthernet0/0'}],
-                                                        switch=d),
-                        'GigabitEthernet0/1': Interface(name='GigabitEthernet0/1',
-                                                        neighbors=[{'hostname': 'B',
-                                                                    'remote_int': 'GigabitEthernet0/1'}],
-                                                        switch=d)}
+        intd0 = Interface(name='GigabitEthernet0/0')
+        intd1 = Interface(name='GigabitEthernet0/1')
 
+        a.add_interface(inta0)
+        a.add_interface(inta1)
+
+        b.add_interface(intb0)
+        b.add_interface(intb1)
+
+        c.add_interface(intc0)
+        c.add_interface(intc1)
+
+        d.add_interface(intd0)
+        d.add_interface(intd1)
+
+        inta0.add_neighbor(intb0)
+        inta1.add_neighbor(intc1)
+
+        intb0.add_neighbor(inta0)
+        intb1.add_neighbor(intd1)
+
+        intc0.add_neighbor(intd0)
+        intc1.add_neighbor(inta1)
+
+        intd0.add_neighbor(intc0)
+        intd1.add_neighbor(intb1)
 
         paths = f.find_paths(c, [a, b])
         assert c.interfaces['GigabitEthernet0/0'] in paths[0]
@@ -166,11 +165,11 @@ class TestFabricBase(unittest.TestCase):
         """
 
         f = Fabric()
-        a = Switch(mgmt_address="A", facts={'hostname': 'A', 'fqdn': 'A.not set'})
-        b = Switch(mgmt_address="B", facts={'hostname': 'B', 'fqdn': 'B.not set'})
-        c = Switch(mgmt_address="C", facts={'hostname': 'C', 'fqdn': 'C.not set'})
-        d = Switch(mgmt_address="D", facts={'hostname': 'D', 'fqdn': 'D.not set'})
-        e = Switch(mgmt_address="E", facts={'hostname': 'E', 'fqdn': 'E.not set'})
+        a = Switch(mgmt_address='A', hostname='A', fabric=f)
+        b = Switch(mgmt_address='B', hostname='B', fabric=f)
+        c = Switch(mgmt_address='C', hostname='C', fabric=f)
+        d = Switch(mgmt_address='D', hostname='D', fabric=f)
+        e = Switch(mgmt_address='E', hostname='E', fabric=f)
 
         f.switches = {'A': a,
                       'B': b,
@@ -178,51 +177,50 @@ class TestFabricBase(unittest.TestCase):
                       'D': d,
                       'E': e}
 
-        a.interfaces = {'GigabitEthernet0/0': Interface(name='GigabitEthernet0/0',
-                                                        neighbors=[{'hostname': 'B',
-                                                                    'remote_int': 'GigabitEthernet0/0'}],
-                                                        switch=a),
-                        'GigabitEthernet0/1': Interface(name='GigabitEthernet0/1',
-                                                        neighbors=[{'hostname': 'C',
-                                                                    'remote_int': 'GigabitEthernet0/1'}],
-                                                        switch=a)}
+        inta0 = Interface(name='GigabitEthernet0/0')
+        inta1 = Interface(name='GigabitEthernet0/1')
 
-        b.interfaces = {'GigabitEthernet0/0': Interface(name='GigabitEthernet0/0',
-                                                        neighbors=[{'hostname': 'A',
-                                                                    'remote_int': 'GigabitEthernet0/0'}],
-                                                        switch=b),
-                        'GigabitEthernet0/1': Interface(name='GigabitEthernet0/1',
-                                                        neighbors=[{'hostname': 'D',
-                                                                    'remote_int': 'GigabitEthernet0/1'}],
-                                                        switch=b)}
+        intb0 = Interface(name='GigabitEthernet0/0')
+        intb1 = Interface(name='GigabitEthernet0/1')
 
-        c.interfaces = {'GigabitEthernet0/0': Interface(name='GigabitEthernet0/0',
-                                                        neighbors=[{'hostname': 'D',
-                                                                    'remote_int': 'GigabitEthernet0/0'}],
-                                                        switch=c),
-                        'GigabitEthernet0/1': Interface(name='GigabitEthernet0/1',
-                                                        neighbors=[{'hostname': 'A',
-                                                                    'remote_int': 'GigabitEthernet0/1'}],
-                                                        switch=c)}
+        intc0 = Interface(name='GigabitEthernet0/0')
+        intc1 = Interface(name='GigabitEthernet0/1')
 
-        d.interfaces = {'GigabitEthernet0/0': Interface(name='GigabitEthernet0/0',
-                                                        neighbors=[{'hostname': 'C',
-                                                                    'remote_int': 'GigabitEthernet0/0'}],
-                                                        switch=d),
-                        'GigabitEthernet0/1': Interface(name='GigabitEthernet0/1',
-                                                        neighbors=[{'hostname': 'B',
-                                                                    'remote_int': 'GigabitEthernet0/1'}],
-                                                        switch=d),
-                        'GigabitEthernet0/2': Interface(name='GigabitEthernet0/2',
-                                                        neighbors=[{'hostname': 'E',
-                                                                    'remote_int': 'GigabitEthernet0/2'}],
-                                                        switch=d)}
+        intd0 = Interface(name='GigabitEthernet0/0')
+        intd1 = Interface(name='GigabitEthernet0/1')
+        intd2 = Interface(name='GigabitEthernet0/2')
+        
+        inte2 = Interface(name='GigabitEthernet0/2')
 
-        e.interfaces = {'GigabitEthernet0/2': Interface(name='GigabitEthernet0/2',
-                                                        neighbors=[{'hostname': 'D',
-                                                                    'remote_int': 'GigabitEthernet0/2'}],
-                                                        switch=d)}
+        a.add_interface(inta0)
+        a.add_interface(inta1)
 
+        b.add_interface(intb0)
+        b.add_interface(intb1)
+
+        c.add_interface(intc0)
+        c.add_interface(intc1)
+
+        d.add_interface(intd0)
+        d.add_interface(intd1)
+        d.add_interface(intd2)
+
+        e.add_interface(inte2)
+
+        inta0.add_neighbor(intb0)
+        inta1.add_neighbor(intc1)
+
+        intb0.add_neighbor(inta0)
+        intb1.add_neighbor(intd1)
+
+        intc0.add_neighbor(intd0)
+        intc1.add_neighbor(inta1)
+
+        intd0.add_neighbor(intc0)
+        intd1.add_neighbor(intb1)
+        intd2.add_neighbor(inte2)
+
+        inte2.add_neighbor(intd2)
 
         paths = f.find_paths(c, [a, b])
         assert e.interfaces['GigabitEthernet0/2'] not in paths[0]
