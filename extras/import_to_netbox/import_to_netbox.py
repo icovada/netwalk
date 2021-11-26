@@ -69,7 +69,7 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_site):
                                                 device_role=nb_access_role.id,
                                                 device_type=nb_device_type.id,
                                                 site=nb_site.id,
-                                                serial_number=swdata.facts['serial_number'])
+                                                serial=swdata.facts['serial_number'])
             else:
                 try:
                     assert nb_device.device_type.model == swdata.facts['model']
@@ -78,7 +78,7 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_site):
                     logger.warning("Switch %s changed model from %s to %s",
                                 swdata.hostname, nb_device.device_type.display, swdata.facts['model'])
                     nb_device.update({'device_type': nb_device_type.id,
-                                    'serial': swdata.facts['serial_number']})
+                                      'serial': swdata.facts['serial_number']})
 
         else:
             logger.info("Device %s", swname)
@@ -560,7 +560,7 @@ def main(fabric, nb_access_role, nb_site):
 
 
 if __name__ == '__main__':
-    for f in glob.glob("bindata/*"):
+    for f in glob.glob("bindata/*.bin"):
         sitename = f.replace("bindata/", "").replace(".bin", "")
         logger.info("Opening %s", f)
         with open(f, "rb") as bindata:
