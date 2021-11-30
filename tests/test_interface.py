@@ -535,7 +535,18 @@ class TestSelfFunctions(unittest.TestCase):
         assert side_b in side_a.neighbors
         assert side_a in side_b.neighbors
 
+    def test_add_neighbor_twice(self):
+        side_a = Interface(name='SideA')
+        side_b = Interface(name='SideB')
 
+        side_a.add_neighbor(side_b)
+        side_b.add_neighbor(side_a)
+
+        assert side_b in side_a.neighbors
+        assert side_a in side_b.neighbors
+
+        assert len(side_a.neighbors) == 1
+        assert len(side_b.neighbors) == 1
 
 if __name__ == '__main__':
     unittest.main()
