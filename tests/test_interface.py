@@ -536,6 +536,17 @@ class TestSelfFunctions(unittest.TestCase):
         assert side_a in side_b.neighbors
 
 
+class TestRouterInterfaces(unittest.TestCase):
+    def test_encapsulation_dot1q(self):
+        config = ("interface GigabitEthernet0/0/0\n"
+                  " encapsulation dot1q 10\n"
+                  "!\n")
+
+        testint = Interface(config=config)
+
+        assert testint.mode == "access"
+        assert testint.native_vlan == 10
+
 
 if __name__ == '__main__':
     unittest.main()

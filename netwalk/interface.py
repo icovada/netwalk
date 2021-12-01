@@ -274,6 +274,12 @@ class Interface():
                 self.unparsed_lines.remove(line)
                 continue
 
+            # Tagged routed interface
+            match = re.search(
+                r"encapsulation dot1q (.*)$", cleanline)
+            if match is not None:
+                self.native_vlan = int(match.groups()[0])
+
             # Portfast
             match = re.search(
                 r"spanning-tree portfast", cleanline)
