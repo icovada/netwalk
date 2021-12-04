@@ -513,8 +513,19 @@ class Switch(Device):
             neigh_device.add_interface(neigh_int)
 
         else:
-            neigh_device = self.fabric.switches.get(hostname, None)
+            if len(hostname) == 40:
+                # generate a mapping of self.fabric.switches.keys() to their 40-char counterpart
+                cdp_completemapping = {x[:40]: x for x in self.fabric.switches.keys()}
+
+                if hostname in cdp_completemapping:
+                    neigh_device = self.fabric.switches.get(cdp_completemapping[hostname], None)
+                else:
+                    neigh_device = None
+            else:
+                neigh_device = self.fabric.switches.get(hostname, None)
+    
             if neigh_device is None:
+                # CDP is limited to 40 characters so lookup a cut name if hostname is 40 char long
                 neigh_device = Device(mgmt_address=mgmt_address,
                                         hostname=hostname,
                                         facts={'platform': platform,
