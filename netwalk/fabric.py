@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from typing import Any, Dict
 from datetime import datetime as dt
 import logging
+from socket import timeout as socket_timeout
 import concurrent.futures
 from netaddr import EUI
 from netmiko.ssh_exception import NetMikoAuthenticationException
@@ -90,7 +91,7 @@ class Fabric():
                     self.logger.info(
                         "Connection to switch %s successful", thisswitch.mgmt_address)
                     break
-                except (ConnectionException, NetMikoAuthenticationException, ConnectionRefusedError):
+                except (ConnectionException, NetMikoAuthenticationException, ConnectionRefusedError, socket_timeout):
                     self.logger.warning(
                         "Login failed, trying next method if available")
                     continue
