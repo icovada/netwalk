@@ -524,8 +524,6 @@ class Switch(Device):
 
             if neigh_device.mgmt_address is None:
                 neigh_device.mgmt_address = mgmt_address
-            elif neigh_device.mgmt_address != mgmt_address and not isinstance(neigh_device, Switch):
-                raise ValueError("Found two different management addresses for the same device")
 
             neigh_int = neigh_device.interfaces.get(remote_interface, None)
             if neigh_int is None:
