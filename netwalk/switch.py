@@ -44,7 +44,11 @@ class Device():
     facts: dict
 
     def __init__(self, mgmt_address, **kwargs) -> None:
-        self.mgmt_address = mgmt_address
+        if isinstance(mgmt_address, str):
+            self.mgmt_address = ipaddress.ip_address(mgmt_address)
+        else:
+            self.mgmt_address = mgmt_address
+
         self.hostname: str = kwargs.get('hostname', None)
         self.interfaces: Dict[str, 'Interface'] = kwargs.get('interfaces', {})
         self.discovery_status = kwargs.get('discovery_status', None)
@@ -513,19 +517,10 @@ class Switch(Device):
             neigh_device.add_interface(neigh_int)
 
         else:
-            if len(hostname) == 40:
-                # generate a mapping of self.fabric.switches.keys() to their 40-char counterpart
-                cdp_completemapping = {x[:40]: x for x in self.fabric.switches.keys()}
-
-                if hostname in cdp_completemapping:
-                    neigh_device = self.fabric.switches.get(cdp_completemapping[hostname], None)
-                else:
-                    neigh_device = None
-            else:
-                neigh_device = self.fabric.switches.get(hostname, None)
+            # CDP is limited to 40 characters so lookup a cut name
+            neigh_device = self.fabric.switches.get(hostname[:40], None)
     
             if neigh_device is None:
-                # CDP is limited to 40 characters so lookup a cut name if hostname is 40 char long
                 neigh_device = Device(mgmt_address=mgmt_address,
                                         hostname=hostname,
                                         facts={'platform': platform,

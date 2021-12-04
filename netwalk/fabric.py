@@ -107,20 +107,9 @@ class Fabric():
         # Check if Switch is already in fabric.
         # Hostname is not enough because CDP stops at 40 characters and it might have been added
         # with a cut-off hostname
-        keys_to_delete = []
-        for k, v in self.switches.items():
-            if v == thisswitch:
-                if k != thisswitch.hostname:
-                    keys_to_delete.append(k)
-
-        if len(keys_to_delete) > 0:
-            self.logger.info("Add switch %s to fabric", thisswitch.hostname)
-            self.switches[thisswitch.hostname] = thisswitch
+        if thisswitch.hostname[:40] not in self.switches:
+            self.switches[thisswitch.hostname[:40]] = thisswitch
         
-        for x in keys_to_delete:
-            self.logger.debug("Delete wrong hostname %s for %s", x, thisswitch.hostname)
-            del self.switches[x]
-                
         return thisswitch
 
     def init_from_seed_device(self,
