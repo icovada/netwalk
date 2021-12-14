@@ -30,10 +30,10 @@ class TestFabricBase(unittest.TestCase):
         """
 
         f = Fabric()
-        a = Switch(mgmt_address='A', hostname='A', fabric=f)
-        b = Switch(mgmt_address='B', hostname='B', fabric=f)
-        c = Switch(mgmt_address='C', hostname='C', fabric=f)
-        d = Switch(mgmt_address='D', hostname='D', fabric=f)
+        a = Switch(mgmt_address='1.1.1.1', hostname='A', fabric=f)
+        b = Switch(mgmt_address='2.2.2.2', hostname='B', fabric=f)
+        c = Switch(mgmt_address='3.3.3.3', hostname='C', fabric=f)
+        d = Switch(mgmt_address='4.4.4.4', hostname='D', fabric=f)
 
         f.switches = {'A': a,
                       'B': b,
@@ -97,10 +97,10 @@ class TestFabricBase(unittest.TestCase):
         """
 
         f = Fabric()
-        a = Switch(mgmt_address='A', hostname='A', fabric=f)
-        b = Switch(mgmt_address='B', hostname='B', fabric=f)
-        c = Switch(mgmt_address='C', hostname='C', fabric=f)
-        d = Switch(mgmt_address='D', hostname='D', fabric=f)
+        a = Switch(mgmt_address='1.1.1.1', hostname='A', fabric=f)
+        b = Switch(mgmt_address='2.2.2.2', hostname='B', fabric=f)
+        c = Switch(mgmt_address='3.3.3.3', hostname='C', fabric=f)
+        d = Switch(mgmt_address='4.4.4.4', hostname='D', fabric=f)
 
         f.switches = {'A': a,
                       'B': b,
@@ -165,11 +165,11 @@ class TestFabricBase(unittest.TestCase):
         """
 
         f = Fabric()
-        a = Switch(mgmt_address='A', hostname='A', fabric=f)
-        b = Switch(mgmt_address='B', hostname='B', fabric=f)
-        c = Switch(mgmt_address='C', hostname='C', fabric=f)
-        d = Switch(mgmt_address='D', hostname='D', fabric=f)
-        e = Switch(mgmt_address='E', hostname='E', fabric=f)
+        a = Switch(mgmt_address='1.1.1.1', hostname='A', fabric=f)
+        b = Switch(mgmt_address='2.2.2.2', hostname='B', fabric=f)
+        c = Switch(mgmt_address='3.3.3.3', hostname='C', fabric=f)
+        d = Switch(mgmt_address='4.4.4.4', hostname='D', fabric=f)
+        e = Switch(mgmt_address='5.5.5.5', hostname='E', fabric=f)
 
         f.switches = {'A': a,
                       'B': b,
@@ -237,10 +237,10 @@ class TestFabricBase(unittest.TestCase):
         """
 
         f = Fabric()
-        a = Switch(mgmt_address="A", facts={'hostname': 'A', 'fqdn': 'A.not set'})
-        b = Switch(mgmt_address="B", facts={'hostname': 'B', 'fqdn': 'B.not set'})
-        c = Switch(mgmt_address="C", facts={'hostname': 'C', 'fqdn': 'C.not set'})
-        d = Switch(mgmt_address="D", facts={'hostname': 'D', 'fqdn': 'D.not set'})
+        a = Switch(mgmt_address='1.1.1.1', facts={'hostname': 'A', 'fqdn': 'A.not set'})
+        b = Switch(mgmt_address='2.2.2.2', facts={'hostname': 'B', 'fqdn': 'B.not set'})
+        c = Switch(mgmt_address='3.3.3.3', facts={'hostname': 'C', 'fqdn': 'C.not set'})
+        d = Switch(mgmt_address='4.4.4.4', facts={'hostname': 'D', 'fqdn': 'D.not set'})
 
         f.switches = {'A': a,
                       'B': b,

@@ -516,7 +516,7 @@ class TestPortChannel(unittest.TestCase):
         
         po = netwalk.Interface(config=config)
 
-        switch = netwalk.Switch(mgmt_address="testswitch")
+        switch = netwalk.Switch(mgmt_address="1.1.1.1")
         switch.add_interface(interface)
         switch.add_interface(po)
 
