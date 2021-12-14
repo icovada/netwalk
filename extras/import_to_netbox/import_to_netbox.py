@@ -63,9 +63,9 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_site):
                                                             manufacturer=nb_manufacturer.id,
                                                             slug=slugify(swdata.facts['model']))
 
-            nb_device = nb.dcim.devices.get(name=swname)
+            nb_device = nb.dcim.devices.get(name=swdata.hostname)
             if nb_device is None:
-                nb_device = nb.dcim.devices.create(name=swname,
+                nb_device = nb.dcim.devices.create(name=swdata.hostname,
                                                 device_role=nb_access_role.id,
                                                 device_type=nb_device_type.id,
                                                 site=nb_site.id,
@@ -221,7 +221,7 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_site):
 def add_ip_addresses(fabric, nb_site):
     for swname, swdata in fabric.switches.items():
         if isinstance(swdata, netwalk.Switch):
-            nb_device = nb.dcim.devices.get(name=swname)
+            nb_device = nb.dcim.devices.get(name=swdata.hostname)
 
             nb_device_addresses = {ipaddress.ip_interface(
                 x): x for x in nb.ipam.ip_addresses.filter(device_id=nb_device.id)}
@@ -527,7 +527,7 @@ def add_inventory_items(fabric):
                                 invname, invdata['sn'], thisdev.name)
                     nb.dcim.inventory_items.create(device=thisdev.id,
                                                 manufacturer=manufacturer.id,
-                                                name=invname,
+                                                name=invname[:64],
                                                 part_id=invdata['pid'],
                                                 serial=invdata['sn'],
                                                 discovered=True)
@@ -564,8 +564,8 @@ if __name__ == '__main__':
         sitename = f.replace("bindata/", "").replace(".bin", "")
         logger.info("Opening %s", f)
         with open(f, "rb") as bindata:
-            fabric = pickle.load(bindata)
+        fabric = pickle.load(bindata)
 
-        nb_access_role = nb.dcim.device_roles.get(name="Access Switch")
-        nb_site = nb.dcim.sites.get(slug=sitename)
-        main(fabric, nb_access_role, nb_site)
+    nb_access_role = nb.dcim.device_roles.get(name="Access Switch")
+    nb_site = nb.dcim.sites.get(slug=sitename)
+    main(fabric, nb_access_role, nb_site)
