@@ -76,7 +76,6 @@ class TestFabricBase(unittest.TestCase):
         intd0.add_neighbor(intc0)
         intd1.add_neighbor(intb1)
 
-
         paths = f.find_paths(c, [a])
         assert c.interfaces['GigabitEthernet0/0'] in paths[0]
         assert d.interfaces['GigabitEthernet0/1'] in paths[0]
@@ -189,7 +188,7 @@ class TestFabricBase(unittest.TestCase):
         intd0 = Interface(name='GigabitEthernet0/0')
         intd1 = Interface(name='GigabitEthernet0/1')
         intd2 = Interface(name='GigabitEthernet0/2')
-        
+
         inte2 = Interface(name='GigabitEthernet0/2')
 
         a.add_interface(inta0)
@@ -237,10 +236,14 @@ class TestFabricBase(unittest.TestCase):
         """
 
         f = Fabric()
-        a = Switch(mgmt_address='1.1.1.1', facts={'hostname': 'A', 'fqdn': 'A.not set'})
-        b = Switch(mgmt_address='2.2.2.2', facts={'hostname': 'B', 'fqdn': 'B.not set'})
-        c = Switch(mgmt_address='3.3.3.3', facts={'hostname': 'C', 'fqdn': 'C.not set'})
-        d = Switch(mgmt_address='4.4.4.4', facts={'hostname': 'D', 'fqdn': 'D.not set'})
+        a = Switch(mgmt_address='1.1.1.1', facts={
+                   'hostname': 'A', 'fqdn': 'A.not set'})
+        b = Switch(mgmt_address='2.2.2.2', facts={
+                   'hostname': 'B', 'fqdn': 'B.not set'})
+        c = Switch(mgmt_address='3.3.3.3', facts={
+                   'hostname': 'C', 'fqdn': 'C.not set'})
+        d = Switch(mgmt_address='4.4.4.4', facts={
+                   'hostname': 'D', 'fqdn': 'D.not set'})
 
         f.switches = {'A': a,
                       'B': b,
@@ -323,7 +326,8 @@ class TestFabricBase(unittest.TestCase):
 
         f.refresh_global_information()
 
-        assert f.mac_table[pcmac] == {'interface' : c.interfaces['GigabitEthernet0/2']}
+        assert f.mac_table[pcmac] == {
+            'interface': c.interfaces['GigabitEthernet0/2']}
         assert c.interfaces['GigabitEthernet0/2'].mac_count == 1
 
 
