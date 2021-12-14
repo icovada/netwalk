@@ -542,7 +542,7 @@ def add_inventory_items(fabric):
             all_inventory = nb.dcim.inventory_items.filter(device_id=thisdev.id)
 
             for nb_inv in all_inventory:
-                if nb_inv.name not in swdata.inventory:
+                if nb_inv.name not in {k[:64]: v for k, v in swdata.inventory.items()}:
                     logger.info("Deleting %s on device %s",
                                 nb_inv.name, thisdev.name)
                     nb_inv.delete()
