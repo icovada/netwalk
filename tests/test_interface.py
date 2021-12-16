@@ -563,6 +563,16 @@ class TestRouterInterfaces(unittest.TestCase):
         assert testint.mode == "access"
         assert testint.native_vlan == 10
 
+    def test_encapsulation_dot1Q(self):
+        config = ("interface GigabitEthernet0/0/0\n"
+                  " encapsulation dot1Q 99\n"
+                  "!\n")
+
+        testint = Interface(config=config)
+
+        assert testint.mode == "access"
+        assert testint.native_vlan == 99
+
 
 if __name__ == '__main__':
     unittest.main()

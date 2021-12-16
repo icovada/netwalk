@@ -276,7 +276,7 @@ class Interface():
 
             # Tagged routed interface
             match = re.search(
-                r"encapsulation dot1q (.*)$", cleanline)
+                r"encapsulation dot1q?Q? (.*)$", cleanline)
             if match is not None:
                 self.native_vlan = int(match.groups()[0])
 
