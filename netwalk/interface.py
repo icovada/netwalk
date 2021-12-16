@@ -276,9 +276,14 @@ class Interface():
 
             # Tagged routed interface
             match = re.search(
-                r"encapsulation dot1q?Q? (.*)$", cleanline)
+                r"encapsulation dot1q?Q? (\d*)( native)?$", cleanline)
             if match is not None:
-                self.native_vlan = int(match.groups()[0])
+                if match.groups()[1] == " native":
+                    self.mode = "access"
+                    self.native_vlan = int(match.groups()[0])
+                else:
+                    self.mode = "trunk"
+                    self.allowed_vlan = set([int(match.groups()[0])])
 
             # Portfast
             match = re.search(
