@@ -310,7 +310,10 @@ class Switch(Device):
 
         self.facts = self.session.get_facts()
 
-        self.hostname = self.facts['fqdn'] if self.facts['fqdn'] != 'Unknown' else self.facts['hostname']
+        try:
+            self.hostname = self.facts['fqdn'] if self.facts['fqdn'] != 'Unknown' else self.facts['hostname']
+        except KeyError:
+            pass
 
         self.init_time = dt.datetime.now()
 
