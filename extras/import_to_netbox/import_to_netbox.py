@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import glob
 import pickle
 import pynetbox
+from pynetbox.core.query import RequestError
 import netwalk
 from slugify import slugify
 import logging
@@ -81,8 +82,19 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_site):
                                       'serial': swdata.facts['serial_number']})
 
         else:
+            # Check if device already exists as mac address
+            # Meraki access points advertise their mac address vis cdp instead of the hostname
             logger.info("Device %s", swname)
-            nb_device = nb.dcim.devices.get(name=swname)
+            try:
+                nb_interface = nb.dcim.interfaces.get(mac_address=swdata.hostname)
+            except RequestError:
+                nb_interface = None
+            
+            if nb_interface is not None:
+                nb_device = nb_interface.device
+            else:
+                nb_device = nb.dcim.devices.get(name=swname)
+                
             nb_device_type = nb.dcim.device_types.get(model="Unknown")
 
             if nb_device is None:
@@ -564,8 +576,8 @@ if __name__ == '__main__':
         sitename = f.replace("bindata/", "").replace(".bin", "")
         logger.info("Opening %s", f)
         with open(f, "rb") as bindata:
-        fabric = pickle.load(bindata)
+            fabric = pickle.load(bindata)
 
-    nb_access_role = nb.dcim.device_roles.get(name="Access Switch")
-    nb_site = nb.dcim.sites.get(slug=sitename)
-    main(fabric, nb_access_role, nb_site)
+        nb_access_role = nb.dcim.device_roles.get(name="Access Switch")
+        nb_site = nb.dcim.sites.get(slug=sitename)
+        main(fabric, nb_access_role, nb_site)
