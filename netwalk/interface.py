@@ -203,7 +203,7 @@ class Interface():
             
             # L2 data
             # Find interface name
-            match = re.search(r"^interface ([A-Za-z\-]*(\/*\d*)+)", cleanline)
+            match = re.search(r"^interface ([A-Za-z\-]*(\/*\d*)+\.?\d*)", cleanline)
             if match is not None:
                 self.name = match.groups()[0]
                 if "vlan" in self.name.lower():
