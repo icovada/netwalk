@@ -278,15 +278,10 @@ class Interface():
             match = re.search(
                 r"encapsulation dot1q?Q? (\d*)( native)?$", cleanline)
             if match is not None:
-                if match.groups()[1] == " native":
-                    self.mode = "access"
-                    self.native_vlan = int(match.groups()[0])
-                else:
-                    self.mode = "trunk"
-                    self.allowed_vlan = set([int(match.groups()[0])])
+                self.mode = "access"
+                self.native_vlan = int(match.groups()[0])
                 self.unparsed_lines.remove(line)
                 continue
-
 
             # Portfast
             match = re.search(
