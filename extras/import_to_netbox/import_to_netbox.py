@@ -42,6 +42,25 @@ nb = pynetbox.api(
     token="95db86f3b2fe48482bdeee0686051e4451f36665"
 )
 
+def get_device_by_hostname_or_mac(swdata):
+    """
+    Get devices either by hostname or mac of an interface
+    Meraki APs advertise their mac as CDP hostname
+    """
+    
+    try:
+        assert len(swdata.hostname) == 12
+        nb_interface = nb.dcim.interfaces.get(mac_address=swdata.hostname)
+        
+        assert nb_interface is not None
+        
+        nb_device = nb_interface.device
+        swdata.hostname = nb_device.name
+    except AssertionError:
+        nb_device = nb.dcim.devices.get(name=swdata.hostname)
+        
+    return nb_device
+
 
 def create_devices_and_interfaces(fabric, nb_access_role, nb_site):
     # Create devices and interfaces
@@ -50,7 +69,7 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_site):
 
     for swname, swdata in fabric.switches.items():
         if isinstance(swdata, netwalk.Switch):
-            logger.info("Switch %s", swname)
+            logger.info("Switch %s", swdata.hostname)
             nb_device_type = nb.dcim.device_types.get(model=swdata.facts['model'])
 
             if nb_device_type is None:
@@ -82,23 +101,13 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_site):
                                       'serial': swdata.facts['serial_number']})
 
         else:
-            # Check if device already exists as mac address
-            # Meraki access points advertise their mac address vis cdp instead of the hostname
-            logger.info("Device %s", swname)
-            try:
-                nb_interface = nb.dcim.interfaces.get(mac_address=swdata.hostname)
-            except RequestError:
-                nb_interface = None
-            
-            if nb_interface is not None:
-                nb_device = nb_interface.device
-            else:
-                nb_device = nb.dcim.devices.get(name=swname)
-                
+            logger.info("Device %s", swdata.hostname)
+            nb_device = get_device_by_hostname_or_mac(swdata)
+                            
             nb_device_type = nb.dcim.device_types.get(model="Unknown")
 
             if nb_device is None:
-                nb_device = nb.dcim.devices.create(name=swname,
+                nb_device = nb.dcim.devices.create(name=swdata.hostname,
                                                 device_role=nb_access_role.id,
                                                 device_type=nb_device_type.id,
                                                 site=nb_site.id)
@@ -111,7 +120,7 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_site):
         for intname, intdata in swdata.interfaces.items():
             intproperties = {}
             if intname not in nb_all_interfaces:
-                logger.info("Interface %s on switch %s", intname, swname)
+                logger.info("Interface %s on switch %s", intname, swdata.hostname)
                 if isinstance(swdata, netwalk.Switch):
                     if "Fast" in intname:
                         int_type = "100base-tx"
@@ -220,20 +229,20 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_site):
 
                 if len(intproperties) > 0:
                     logger.info("Updating interface %s on %s",
-                                intname, swname)
+                                intname, swdata.hostname)
                     nb_interface.update(intproperties)
 
         # Delete interfaces that no longer exist
         for k, v in nb_all_interfaces.items():
             if k not in swdata.interfaces:
-                logger.info("Deleting interface %s from %s", k, swname)
+                logger.info("Deleting interface %s from %s", k, swdata.hostname)
                 v.delete()
 
 
 def add_ip_addresses(fabric, nb_site):
     for swname, swdata in fabric.switches.items():
         if isinstance(swdata, netwalk.Switch):
-            nb_device = nb.dcim.devices.get(name=swdata.hostname)
+            nb_device = get_device_by_hostname_or_mac(swdata)
 
             nb_device_addresses = {ipaddress.ip_interface(
                 x): x for x in nb.ipam.ip_addresses.filter(device_id=nb_device.id)}
@@ -336,7 +345,7 @@ def add_ip_addresses(fabric, nb_site):
 
             for k, v in nb_device_addresses.items():
                 if k not in all_device_addresses:
-                    logger.warning("Deleting old address %s from %s", k, swname)
+                    logger.warning("Deleting old address %s from %s", k, swdata.hostname)
                     ip_to_remove = nb.ipam.ip_addresses.get(
                         q=str(k), device_id=nb_device.id)
                     ip_to_remove.delete()
@@ -346,7 +355,7 @@ def add_ip_addresses(fabric, nb_site):
                             if ipaddress.ip_interface(v).ip == swdata.mgmt_address:
                                 if v.role is None:
                                     logger.info(
-                                        "Assign %s as primary ip for %s", v, swname)
+                                        "Assign %s as primary ip for %s", v, swdata.hostname)
                                     nb_device.update({'primary_ip4': v.id})
 
 
@@ -354,7 +363,9 @@ def add_neighbor_ip_addresses(fabric):
     for swname, swdata in fabric.switches.items():
         if type(swdata) == netwalk.switch.Device:
             logger.info("Checking Device %s", swdata.hostname)
-            nb_neigh_device = nb.dcim.devices.get(name=swdata.hostname)
+            
+            nb_neigh_device = get_device_by_hostname_or_mac(swdata)
+
             for intname, intdata in swdata.interfaces.items():
                 nb_neigh_interface = nb.dcim.interfaces.get(name=intdata.name,
                                                             device_id=nb_neigh_device.id)
@@ -437,7 +448,7 @@ def add_cables(fabric, nb_site):
         swdata.nb_device = all_nb_devices[swdata.hostname]
 
     for swname, swdata in fabric.switches.items():
-        logger.info("Checking cables for device %s", swname)
+        logger.info("Checking cables for device %s", swdata.hostname)
         for intname, intdata in swdata.interfaces.items():
             try:
                 if isinstance(intdata.neighbors[0], netwalk.Interface):
