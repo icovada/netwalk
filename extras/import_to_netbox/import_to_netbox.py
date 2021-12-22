@@ -38,8 +38,8 @@ ch.setLevel(logging.DEBUG)
 logger.addHandler(ch)
 
 nb = pynetbox.api(
-    'http://localhost',
-    token="95db86f3b2fe48482bdeee0686051e4451f36665"
+    'http://10.165.251.32',
+    token="a0b79da67cfee80845a314702b3985ad35b04c17"
 )
 
 def get_device_by_hostname_or_mac(swdata):
@@ -583,12 +583,12 @@ def main(fabric, nb_access_role, nb_site):
 
 
 if __name__ == '__main__':
-    for f in glob.glob("bindata/*.bin"):
-        sitename = f.replace("bindata/", "").replace(".bin", "")
-        logger.info("Opening %s", f)
-        with open(f, "rb") as bindata:
-            fabric = pickle.load(bindata)
+    f = "fabric_data.bin"
+    sitename = "0301-express-milano-sanmarco"
+    logger.info("Opening %s", f)
+    with open(f, "rb") as bindata:
+        fabric = pickle.load(bindata)
 
-        nb_access_role = nb.dcim.device_roles.get(name="Access Switch")
-        nb_site = nb.dcim.sites.get(slug=sitename)
-        main(fabric, nb_access_role, nb_site)
+    nb_access_role = nb.dcim.device_roles.get(name="Access Switch")
+    nb_site = nb.dcim.sites.get(slug=sitename)
+    main(fabric, nb_access_role, nb_site)

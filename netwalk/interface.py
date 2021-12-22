@@ -284,6 +284,9 @@ class Interface():
                 else:
                     self.mode = "trunk"
                     self.allowed_vlan = set([int(match.groups()[0])])
+                self.unparsed_lines.remove(line)
+                continue
+
 
             # Portfast
             match = re.search(
