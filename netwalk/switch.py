@@ -492,6 +492,10 @@ class Switch(Device):
                 # VMware does not advertise system name or other info
                 continue
 
+            if nei['local_port'] == '':
+                # Bug on switch?
+                continue
+
             self.create_neighbor_device(hostname=nei['neighbor'],
                                         mgmt_address=nei['mgmt_ip'],
                                         local_interface=self.interfaces[interface_name_expander(nei['local_port'])],
