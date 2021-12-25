@@ -17,8 +17,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import unittest
+import ipaddress
 from netwalk import Switch
 from netwalk import Interface
+
 
 class TestSwitchBasic(unittest.TestCase):
     def test_base_switch(self):
@@ -28,9 +30,9 @@ class TestSwitchBasic(unittest.TestCase):
                   "interface GigabitEthernet0/2\n"
                   " switchport mode access\n"
                   "!\n")
-        sw = Switch("testsw", config = config)
+        sw = Switch("192.168.1.1", config=config)
 
-        assert sw.hostname == "testsw"
+        assert sw.mgmt_address == ipaddress.ip_address("192.168.1.1")
         assert len(sw.interfaces) == 2
         assert "GigabitEthernet0/1" in sw.interfaces
         assert "GigabitEthernet0/2" in sw.interfaces
@@ -40,16 +42,17 @@ class TestSwitchBasic(unittest.TestCase):
         gi00 = Interface(name="GigabitEthernet0/0",
                          mode="trunk",
                          native_vlan=999,
-                         allowed_vlan=set([2,3,4,5]))
+                         allowed_vlan=set([2, 3, 4, 5]))
         gi01 = Interface(name="GigabitEthernet0/1",
                          mode="access",
                          native_vlan=111)
-        sw = Switch("sw1")
+        sw = Switch("1.1.1.1")
         sw.interfaces = {gi00.name: gi00,
                          gi01.name: gi01}
 
         vlans = sw.get_active_vlans()
-        assert vlans == {1,2,3,4,5,999,111}
+        assert vlans == {1, 2, 3, 4, 5, 999, 111}
+
 
 if __name__ == '__main__':
     unittest.main()

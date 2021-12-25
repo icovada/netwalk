@@ -132,7 +132,7 @@ class Interface():
         self.channel_group: Optional[int] = kwargs.get('channel_group', None)
         self.channel_protocol: Optional[str] = kwargs.get('channel_protocol', None)
         self.child_interfaces: List[Interface] = kwargs.get('child_interfaces', [])
-        self.config: List[str] = kwargs.get('config', None)
+        self.config: List[str] = kwargs.get('config', [])
         self.counters: Optional[dict] = kwargs.get('counters', None)
         self.crc: Optional[str] = kwargs.get('crc', None)
         self.delay: Optional[str] = kwargs.get('delay', None)
@@ -177,12 +177,14 @@ class Interface():
             self._calculate_sort_order()
             
 
-    def parse_config(self):
+    def parse_config(self, second_pass=False):
         "Parse configuration from show run"
         if isinstance(self.config, str):
             self.config = self.config.split("\n")
-        
-        self.unparsed_lines = self.config
+
+        if not second_pass:
+            # Pass values to unparsed_lines as value not reference
+            self.unparsed_lines = self.config[:]
 
         # Parse port mode first. Some switches have it first, some last, so check it first thing
         for line in self.unparsed_lines:
@@ -201,7 +203,7 @@ class Interface():
             
             # L2 data
             # Find interface name
-            match = re.search(r"^interface ([A-Za-z\-]*(\/*\d*)+)", cleanline)
+            match = re.search(r"^interface ([A-Za-z\-]*(\/*\d*)+\.?\d*)", cleanline)
             if match is not None:
                 self.name = match.groups()[0]
                 if "vlan" in self.name.lower():
@@ -269,6 +271,15 @@ class Interface():
             if match is not None:
                 new_vlans = self._allowed_vlan_to_list(match.groups()[0])
                 self.allowed_vlan.update(list(new_vlans))
+                self.unparsed_lines.remove(line)
+                continue
+
+            # Tagged routed interface
+            match = re.search(
+                r"encapsulation dot1q?Q? (\d*)( native)?$", cleanline)
+            if match is not None:
+                self.mode = "access"
+                self.native_vlan = int(match.groups()[0])
                 self.unparsed_lines.remove(line)
                 continue
 
@@ -379,6 +390,12 @@ class Interface():
         self.child_interfaces.append(child_interface)
         child_interface.parent_interface = self
 
+    def add_neighbor(self, neigh_int: Interface) -> None:
+        "Method to add bidirectional neighborship to an interface"
+        # Add bidirectional link
+        self.neighbors.append(neigh_int) if neigh_int not in self.neighbors else None
+        neigh_int.neighbors.append(self) if self not in neigh_int.neighbors else None
+
     def _calculate_sort_order(self) -> None:
         """Generate unique sorting number from port id to sort interfaces meaningfully"""
         if 'Port-channel' in self.name:
@@ -393,8 +410,17 @@ class Interface():
                 
             sortid = ""
             port_number = portid.split('/')
-            for i in port_number:
-                sortid = sortid + str(i).zfill(3)
+
+            if "." in port_number[-1]:
+                last_port, subint = port_number[-1].split(".")
+            else:
+                last_port = port_number[-1]
+                subint = 0
+            for i in port_number[0:-1]:
+                sortid += str(i).zfill(3)
+
+            sortid += str(last_port).zfill(3)
+            sortid += str(subint).zfill(4)
 
             self.sort_order = int(sortid)
 

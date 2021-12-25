@@ -26,14 +26,62 @@ import logging
 import os
 from io import StringIO
 import datetime as dt
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Union
 from netaddr import EUI
 import napalm
 import ciscoconfparse
 import textfsm
+import datetime
+from netwalk.interface import Interface
+from netwalk.libs import interface_name_expander
+class Device():
+    hostname: str
+    #: Dict of {name: Interface}
+    interfaces: Dict[str, 'Interface']
+    discovery_status: Optional[Union[str, datetime.datetime]]
+    fabric: 'Fabric'
+    mgmt_address: Union[ipaddress.ip_address, str]
+    facts: dict
 
-from netwalk.objects import Device
-from netwalk.objects import Interface
+    def __init__(self, mgmt_address, **kwargs) -> None:
+        if isinstance(mgmt_address, str):
+            self.mgmt_address = ipaddress.ip_address(mgmt_address)
+        else:
+            self.mgmt_address = mgmt_address
+
+        self.hostname: str = kwargs.get('hostname', None)
+        self.interfaces: Dict[str, 'Interface'] = kwargs.get('interfaces', {})
+        self.discovery_status = kwargs.get('discovery_status', None)
+        self.fabric: 'Fabric' = kwargs.get('fabric', None)
+        self.facts: dict = kwargs.get('facts', None)
+        if self.hostname is None:
+            self.logger = logging.getLogger(__name__ + str(self.mgmt_address))
+        else:
+            self.logger = logging.getLogger(__name__ + self.hostname)
+
+    def add_interface(self, intobject: Interface):
+        """Add interface to device
+
+        :param intobject: Interface to add
+        :type intobject: netwalk.Interface
+        """
+        intobject.switch = self
+        self.interfaces[intobject.name] = intobject
+
+        if type(self) == Switch:
+            for k, v in self.interfaces.items():
+                v.parse_config(second_pass=True)
+
+    def promote_to_switch(self):
+        self.__class__ = Switch
+        self.__init__(mgmt_address = self.mgmt_address,
+                      hostname = self.hostname,
+                      interfaces = self.interfaces,
+                      discovery_status = self.discovery_status,
+                      fabric = self.fabric,
+                      facts = self.facts)
+
+
 class Switch(Device):
     """
     Switch object to hold data
@@ -51,34 +99,25 @@ class Switch(Device):
     interfaces: Dict[str, Interface]
     #: Pass at init time to parse config automatically
     config: Optional[str]
-    #: Connection timeout
-    timeout: int
     napalm_optional_args: dict
     #: Time of object initialization. All timers will be calculated from it
-    init_time: dt.datetime
-    inventory: List[Dict[str,Dict[str,str]]]
-    mac_table: Dict[EUI, dict]
+    inventory: List[Dict[str, Dict[str, str]]]
     vtp: Optional[str]
     arp_table: Dict[ipaddress.IPv4Interface, dict]
     interfaces_ip: dict
     vlans: Optional[Dict[int, dict]]
     vlans_set: set
     local_admins: Optional[Dict[str, dict]]
-    facts: dict
-
-    
+    timeout: int
+    mac_table: dict
 
     def __init__(self,
-                hostname,
+                 mgmt_address,
                  **kwargs):
 
-        super().__init__(hostname, **kwargs)
-        self.logger = logging.getLogger(__name__ + hostname)
+        super().__init__(mgmt_address, **kwargs)
         self.config: Optional[str] = kwargs.get('config', None)
-        self.timeout = 30
         self.napalm_optional_args = kwargs.get('napalm_optional_args', None)
-        self.init_time = dt.datetime.now()
-        self.mac_table: Dict[EUI, dict] = {}
         self.vtp: Optional[str] = None
         self.arp_table: Dict[ipaddress.IPv4Interface, dict] = {}
         self.interfaces_ip = {}
@@ -86,7 +125,8 @@ class Switch(Device):
         # VLANs configured on the switch
         self.vlans_set = {x for x in range(1, 4095)}
         self.local_admins: Optional[Dict[str, dict]] = None
-        self.facts: dict = kwargs.get('facts', None)
+        self.timeout = 30
+        self.mac_table = {}
 
         if self.config is not None:
             self._parse_config()
@@ -112,9 +152,14 @@ class Switch(Device):
         self.napalm_optional_args = napalm_optional_args
 
         self.connect(username, password, napalm_optional_args)
+        try:
+            self._get_switch_data(**scan_options)
+        except Exception as e:
+            self.session.close()
+            raise e
 
-        self._get_switch_data(**scan_options)
-        self.session.close()
+        else:
+            self.session.close()
 
     def connect(self, username: str, password: str, napalm_optional_args: dict = None) -> None:
         """Connect to device
@@ -131,13 +176,13 @@ class Switch(Device):
         if napalm_optional_args is not None:
             self.napalm_optional_args = napalm_optional_args
 
-        self.session = driver(self.hostname,
+        self.session = driver(str(self.mgmt_address),
                               username=username,
                               password=password,
                               timeout=self.timeout,
                               optional_args=self.napalm_optional_args)
 
-        self.logger.info("Connecting to %s", self.hostname)
+        self.logger.info("Connecting to %s", self.mgmt_address)
         self.session.open()
 
     def get_active_vlans(self):
@@ -187,18 +232,6 @@ class Switch(Device):
         vlans.intersection_update(self.vlans_set)
         return vlans
 
-    def add_interface(self, intobject: Interface):
-        """Add interface to switch
-
-        :param intobject: Interface to add
-        :type intobject: netwalk.Interface
-        """
-        intobject.switch = self
-        self.interfaces[intobject.name] = intobject
-
-        for k, v in self.interfaces.items():
-            v.parse_config()
-
     def _parse_config(self):
         """Parse show run
         """
@@ -216,7 +249,14 @@ class Switch(Device):
 
             for intf in interface_config_list:
                 thisint = Interface(config=intf.ioscfg)
-                self.add_interface(thisint)
+                localint = self.interfaces.get(thisint.name, None)
+                if localint is not None:
+                    localint.config = intf.ioscfg
+                    localint.parse_config()
+                else:
+                    thisint.parse_config()
+                    self.add_interface(thisint)
+
         else:
             TypeError("No interface loaded, cannot parse")
 
@@ -239,6 +279,7 @@ class Switch(Device):
         - 'mac_address'
         - 'interface_status'
         - 'cdp_neighbors'
+        - 'lldp_neighbors'
         - 'vtp'
         - 'vlans'
         - 'l3_int'
@@ -249,25 +290,30 @@ class Switch(Device):
         """
 
         allscans = ['mac_address', 'interface_status',
-                    'cdp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins', 'inventory']
+                    'cdp_neighbors', 'lldp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins', 'inventory']
         scan_to_perform = []
 
         if whitelist is not None:
             for i in whitelist:
-                assert i in allscans, "Parameter not recognised in scan list. has to be any of ['mac_address', 'interface_status', 'cdp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins', 'inventory']"
+                assert i in allscans, "Parameter not recognised in scan list. has to be any of ['mac_address', 'interface_status', 'cdp_neighbors', 'lldp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins', 'inventory']"
 
             scan_to_perform = whitelist
 
         elif blacklist is not None:
             scan_to_perform = allscans
             for i in blacklist:
-                assert i in allscans, "Parameter not recognised in scan list. has to be any of ['mac_address', 'interface_status', 'cdp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins', 'inventory']"
+                assert i in allscans, "Parameter not recognised in scan list. has to be any of ['mac_address', 'interface_status', 'cdp_neighbors', 'lldp_neighbors', 'vtp', 'vlans', 'l3_int', 'local_admins', 'inventory']"
                 scan_to_perform.remove(i)
 
         else:
             scan_to_perform = allscans
 
         self.facts = self.session.get_facts()
+
+        try:
+            self.hostname = self.facts['fqdn'] if self.facts['fqdn'] != 'Unknown' else self.facts['hostname']
+        except KeyError:
+            pass
 
         self.init_time = dt.datetime.now()
 
@@ -291,8 +337,7 @@ class Switch(Device):
                 if v['interface'] == '':
                     continue
 
-                v['interface'] = v['interface'].replace(
-                    "Fa", "FastEthernet").replace("Gi", "GigabitEthernet").replace("Po", "Port-channel").replace("Twe", "TwentyFiveGigE")
+                v['interface'] = interface_name_expander(v['interface'])
 
                 v.pop('mac')
                 v.pop('static')
@@ -321,6 +366,9 @@ class Switch(Device):
         if 'cdp_neighbors' in scan_to_perform:
             self._parse_cdp_neighbors()
 
+        if 'lldp_neighbors' in scan_to_perform:
+            self._parse_lldp_neighbors()
+
         if 'vtp' in scan_to_perform:
             # Get VTP status
             command = "show vtp status"
@@ -346,7 +394,6 @@ class Switch(Device):
             # Get inventory
             self.inventory = self._parse_inventory()
 
-
     def _parse_inventory(self):
         command = "show inventory"
         showinventory = self.session.cli([command])[command]
@@ -363,10 +410,9 @@ class Switch(Device):
                                  'pid': i['pid'],
                                  'vid': i['vid'],
                                  'sn': i['sn'],
-            }
+                                 }
 
         return result
-
 
     def _parse_show_interface(self):
         """Parse output of show inteface with greater data collection than napalm"""
@@ -410,23 +456,94 @@ class Switch(Device):
             __file__)) + "/textfsm_templates/show_cdp_neigh_detail.textfsm"
         with open(fsmpath, 'r') as fsmfile:
             re_table = textfsm.TextFSM(fsmfile)
-            fsm_results = re_table.ParseText(neighdetail)
+            fsm_results = re_table.ParseTextToDicts(neighdetail)
 
         for result in fsm_results:
             self.logger.debug("Found CDP neighbor %s IP %s local int %s, remote int %s",
-                              result[1], result[2], result[5], result[4])
-
-        for intname, intdata in self.interfaces.items():
-            intdata.neighbors = []  # Clear before adding new data
+                              result['dest_host'], result['mgmt_ip'], result['local_port'], result['remote_port'])
 
         for nei in fsm_results:
-            neigh_data = {'hostname': nei[1],
-                          'ip': nei[2],
-                          'platform': nei[3],
-                          'remote_int': nei[4]
-                          }
+            self.create_neighbor_device(hostname=nei['dest_host'],
+                                        mgmt_address=nei['mgmt_ip'],
+                                        local_interface=self.interfaces[nei['local_port']],
+                                        remote_interface=nei['remote_port'],
+                                        software_version=nei['version'],
+                                        platform=nei['platform'])
 
-            self.interfaces[nei[5]].neighbors.append(neigh_data)
+    def _parse_lldp_neighbors(self):
+        """Ask for and parse LLDP neighbors"""
+        self.session.device.write_channel("show lldp neigh detail")
+        self.session.device.write_channel("\n")
+        self.session.device.timeout = 30  # Could take ages...
+        neighdetail = self.session.device.read_until_prompt(max_loops=3000)
+
+        fsmpath = os.path.dirname(os.path.realpath(
+            __file__)) + "/textfsm_templates/show_lldp_neigh_detail.textfsm"
+        with open(fsmpath, 'r') as fsmfile:
+            re_table = textfsm.TextFSM(fsmfile)
+            fsm_results = re_table.ParseTextToDicts(neighdetail)
+
+        for result in fsm_results:
+            self.logger.debug("Found LLDP neighbor %s IP %s local int %s, remote int %s",
+                              result['neighbor'], result['mgmt_ip'], result['local_port'], result['remote_port'])
+
+        for nei in fsm_results:
+            if nei['neighbor'] == '':
+                # VMware does not advertise system name or other info
+                continue
+
+            if nei['local_port'] == '':
+                # Bug on switch?
+                continue
+
+            self.create_neighbor_device(hostname=nei['neighbor'],
+                                        mgmt_address=nei['mgmt_ip'],
+                                        local_interface=self.interfaces[interface_name_expander(nei['local_port'])],
+                                        remote_interface=interface_name_expander(nei['remote_port_id']),
+                                        software_version=nei['system_description'])
+            
+    def create_neighbor_device(self,
+                               hostname: str,
+                               mgmt_address: ipaddress.ip_address,
+                               local_interface: Interface, 
+                               remote_interface: str, 
+                               software_version: str,
+                               **kwargs) -> None:
+
+        platform = kwargs.get('platform', None)
+            
+        if isinstance(mgmt_address, str):
+            mgmt_address = ipaddress.ip_address(mgmt_address)
+
+        if self.fabric is None:
+            neigh_device = Device(mgmt_address=mgmt_address,
+                                    hostname=hostname,
+                                    facts={'platform': platform,
+                                            'os_version': software_version})
+            neigh_int = Interface(name=remote_interface)
+            neigh_device.add_interface(neigh_int)
+
+        else:
+            # CDP is limited to 40 characters so lookup a cut name
+            neigh_device = self.fabric.switches.get(hostname[:40], None)
+    
+            if neigh_device is None:
+                neigh_device = Device(mgmt_address=mgmt_address,
+                                        hostname=hostname,
+                                        facts={'platform': platform,
+                                                'os_version': software_version},
+                                        fabric=self.fabric)
+                self.fabric.switches[hostname] = neigh_device
+
+            if neigh_device.mgmt_address is None:
+                neigh_device.mgmt_address = mgmt_address
+
+            neigh_int = neigh_device.interfaces.get(remote_interface, None)
+            if neigh_int is None:
+                neigh_int = Interface(name=remote_interface)
+                neigh_device.add_interface(neigh_int)
+
+        local_interface.add_neighbor(neigh_int)
 
     def _cisco_time_to_dt(self, time: str) -> dt.datetime:
         """Converts time from now to absolute, starting when Switch object was initialised
@@ -443,7 +560,7 @@ class Switch(Device):
         minutes = 0
         seconds = 0
 
-        if time == 'never':
+        if time == 'never' or time == '':
             # TODO: return uptime
             return dt.datetime(1970, 1, 1, 0, 0, 0)
 

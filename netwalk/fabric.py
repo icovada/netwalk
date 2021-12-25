@@ -18,12 +18,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from typing import Any, Dict
 from datetime import datetime as dt
 import logging
+from socket import timeout as socket_timeout
 import concurrent.futures
 from netaddr import EUI
 from netmiko.ssh_exception import NetMikoAuthenticationException
 from napalm.base.exceptions import ConnectionException
-from .interface import Interface
-from .switch import Switch
+from netwalk.switch import Device, Switch
+from netwalk.interface import Interface
 
 
 class Fabric():
@@ -55,7 +56,8 @@ class Fabric():
     def add_switch(self,
                    host,
                    credentials,
-                   napalm_optional_args=[None]):
+                   napalm_optional_args=[None],
+                   **kwargs):
         """
         Try to connect to, and if successful add to fabric, a new switch
 
@@ -67,8 +69,15 @@ class Fabric():
         :type napalm_optional_args: list(dict)
         """
 
-        self.logger.info("Creating switch %s", host)
-        thisswitch = Switch(host)
+        if type(host) == str:
+            thisswitch = Switch(host,
+                                fabric=self,
+                                discovery_status=kwargs.get('discovery_status', None))
+        elif type(host) == Device:
+            host.promote_to_switch()
+            thisswitch = host
+
+        self.logger.info("Creating switch %s", thisswitch.mgmt_address)
         connected = False
         for optional_arg in napalm_optional_args:
             if connected:
@@ -80,9 +89,9 @@ class Fabric():
                                              napalm_optional_args=optional_arg)
                     connected = True
                     self.logger.info(
-                        "Connection to switch %s successful", host)
+                        "Connection to switch %s successful", thisswitch.mgmt_address)
                     break
-                except (ConnectionException, NetMikoAuthenticationException, ConnectionRefusedError):
+                except (ConnectionException, NetMikoAuthenticationException, ConnectionRefusedError, socket_timeout):
                     self.logger.warning(
                         "Login failed, trying next method if available")
                     continue
@@ -93,12 +102,14 @@ class Fabric():
             raise ConnectionError(
                 "Could not log in with any of the specified methods")
 
-        clean_fqdn = thisswitch.facts['fqdn'].replace(".not set", "")
-        if clean_fqdn == "Unknown":
-            clean_fqdn = thisswitch.facts['hostname']
-        self.logger.info("Finished discovery of switch %s", clean_fqdn)
-        self.switches[clean_fqdn] = thisswitch
+        self.logger.info("Finished discovery of switch %s", thisswitch.hostname)
 
+        # Check if Switch is already in fabric.
+        # Hostname is not enough because CDP stops at 40 characters and it might have been added
+        # with a cut-off hostname
+        if thisswitch.hostname[:40] not in self.switches:
+            self.switches[thisswitch.hostname[:40]] = thisswitch
+        
         return thisswitch
 
     def init_from_seed_device(self,
@@ -120,15 +131,13 @@ class Fabric():
         # We can use a with statement to ensure threads are cleaned up promptly
         with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_threads) as executor:
             # Start the load operations and mark each future with its URL
-            for x in seed_hosts:
-                self.discovery_status[x] = "Queued"
-
             self.logger.debug("Adding seed hosts to loop")
             future_switch_data = {executor.submit(
                 self.add_switch,
                 x,
                 credentials,
-                napalm_optional_args): x for x in seed_hosts}
+                napalm_optional_args,
+                discovery_status = "Queued"): x for x in seed_hosts}
 
             while future_switch_data:
                 self.logger.info(
@@ -145,42 +154,41 @@ class Fabric():
                         self.logger.error('%r generated an exception: %s' %
                                           (hostname, exc))
                         self.discovery_status[hostname] = "Failed"
+                        #raise exc
+                        
+                        # We do not have the switch because fut.result returned an error
+                        # Find it looping the fabric
+
+                        for swname, swdata in self.switches.items():
+                            if swdata.hostname == hostname:
+                                swobject = swdata
+                                break
+
+                        self.logger.info("Demote %s back to Device from Switch", swobject.hostname)
+                        swobject.__class__ = Device
+                        swobject.discovery_status = dt.now()
                     else:
-                        fqdn = swobject.facts['fqdn'].replace(".not set", "")
-                        self.discovery_status[hostname] = dt.now()
+                        swobject.discovery_status = dt.now()
                         self.logger.info(
                             "Completed discovery of %s %s", swobject.facts['fqdn'], swobject.hostname)
                         # Check if it has cdp neighbors
 
                         for _, intdata in swobject.interfaces.items():
-                            if hasattr(intdata, "neighbors"):
-                                for nei in intdata.neighbors:
-                                    if not isinstance(nei, Interface):
-                                        self.logger.debug(
-                                            "Evaluating neighbour %s", nei['hostname'])
-                                        if nei['hostname'] not in self.switches and nei['ip'] not in self.discovery_status:
-                                            try:
-                                                assert "AIR" not in nei['platform']
-                                                assert "CAP" not in nei['platform']
-                                                assert "N77" not in nei['platform']
-                                                assert "axis" not in nei['hostname']
-                                            except AssertionError:
-                                                self.logger.debug(
-                                                    "Skipping %s, %s", nei['hostname'], nei['platform'])
-                                                continue
+                            for nei in intdata.neighbors:
+                                self.logger.debug(
+                                    "Evaluating neighbour %s", nei.switch.hostname)
+                                if type(nei.switch) == Device and nei.switch.discovery_status is None:
+                                    self.logger.info(
+                                        "Queueing discover for %s", nei.switch.hostname)
+                                    nei.switch.discovery_status = "Queued"
 
-                                            self.logger.info(
-                                                "Queueing discover for %s", nei['hostname'])
-                                            self.discovery_status[nei['ip']
-                                                                  ] = "Queued"
-
-                                            future_switch_data[executor.submit(self.add_switch,
-                                                                               nei['ip'],
-                                                                               credentials,
-                                                                               napalm_optional_args)] = nei['ip']
-                                        else:
-                                            self.logger.debug(
-                                                "Skipping %s, already discovered", nei['hostname'])
+                                    future_switch_data[executor.submit(self.add_switch,
+                                                                       nei.switch,
+                                                                       credentials,
+                                                                       napalm_optional_args)] = nei.switch.hostname
+                                else:
+                                    self.logger.debug(
+                                        "Skipping %s, already discovered", nei.switch.hostname)
 
         self.logger.info("Discovery complete, crunching data")
         self.refresh_global_information()
@@ -192,55 +200,6 @@ class Fabric():
         """
         self.logger.debug("Refreshing information")
         self._recalculate_macs()
-        self._find_links()
-
-    def _find_links(self):
-        """
-        Join switches by CDP neighborship
-        """
-        short_fabric = {k[:40]: v for k, v in self.switches.items()}
-        hostname_only_fabric = {
-            v.facts['hostname']: v for k, v in self.switches.items()}
-
-        for sw, swdata in self.switches.items():
-            for intf, intfdata in swdata.interfaces.items():
-                if hasattr(intfdata, "neighbors"):
-                    for i in range(0, len(intfdata.neighbors)):
-                        if isinstance(intfdata.neighbors[i], Interface):
-                            continue
-
-                        switch = intfdata.neighbors[i]['hostname']
-                        port = intfdata.neighbors[i]['remote_int']
-
-                        try:
-                            peer_device = self.switches[switch].interfaces[port]
-                            intfdata.neighbors[i] = peer_device
-                            if len(peer_device.neighbors) == 0:
-                                peer_device.neighbors.append(intfdata)
-                            else:
-                                peer_device.neighbors[0] = intfdata
-                            self.logger.debug("Found link between %s %s and %s %s", intfdata.name,
-                                              intfdata.switch.facts['fqdn'], peer_device.name, peer_device.switch.facts['fqdn'])
-                        except KeyError:
-                            # Hostname over 40 char
-                            try:
-                                peer_device = short_fabric[switch[:40]
-                                                           ].interfaces[port]
-                                self.logger.debug("Found link between %s %s and %s %s", intfdata.name,
-                                                  intfdata.switch.facts['fqdn'], peer_device.name, peer_device.switch.facts['fqdn'])
-                                intfdata.neighbors[i] = peer_device
-                                peer_device.neighbors[0] = intfdata
-                            except KeyError:
-                                try:
-                                    peer_device = hostname_only_fabric[switch].interfaces[port]
-                                    self.logger.debug("Found link between %s %s and %s %s", intfdata.name,
-                                                      intfdata.switch.facts['fqdn'], peer_device.name, peer_device.switch.facts['fqdn'])
-                                    intfdata.neighbors[i] = peer_device
-                                    peer_device.neighbors[0] = intfdata
-                                except KeyError:
-                                    self.logger.debug("Could not find link between %s %s and %s %s",
-                                                      intfdata.name, intfdata.switch.facts['fqdn'], port, switch)
-                                    pass
 
     def _recalculate_macs(self):
         """
@@ -248,24 +207,26 @@ class Fabric():
         Tries to guess where mac addresses are by assigning them to the interface with the lowest total mac count
         """
         for swname, swdata in self.switches.items():
-            for intname, intdata in swdata.interfaces.items():
-                intdata.mac_count = 0
+            if isinstance(swdata, Switch):
+                for intname, intdata in swdata.interfaces.items():
+                    intdata.mac_count = 0
 
-            for _, data in swdata.mac_table.items():
-                try:
-                    data['interface'].mac_count += 1
-                except KeyError:
-                    pass
+                for _, data in swdata.mac_table.items():
+                    try:
+                        data['interface'].mac_count += 1
+                    except KeyError:
+                        pass
 
         for swname, swdata in self.switches.items():
-            for mac, macdata in swdata.mac_table.items():
-                try:
-                    if self.mac_table[mac]['interface'].mac_count > macdata['interface'].mac_count:
-                        self.logger.debug("Found better interface %s %s for %s",
-                                          macdata['interface'], macdata['interface'].switch.facts['fqdn'], str(mac))
+            if isinstance(swdata, Switch):
+                for mac, macdata in swdata.mac_table.items():
+                    try:
+                        if self.mac_table[mac]['interface'].mac_count > macdata['interface'].mac_count:
+                            self.logger.debug("Found better interface %s %s for %s",
+                                            macdata['interface'].name, macdata['interface'].switch.hostname, str(mac))
+                            self.mac_table[mac] = macdata
+                    except KeyError:
                         self.mac_table[mac] = macdata
-                except KeyError:
-                    self.mac_table[mac] = macdata
 
     def find_paths(self, start_sw, end_sw):
         """

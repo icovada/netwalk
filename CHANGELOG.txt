@@ -1,3 +1,17 @@
+v1.4
+Juicy stuff:
+- Switch is now a subclass of Device, a generic object for unmanaged devices
+- Neighbors are now always defined as Interface objects when creating a device inside of a Fabric
+- LLDP neighbor parsing
+- Calculate an integer to sort interfaces sensibly
+- Support for routed tagged interfaces ("encapsulation dot1q")
+- New Extra: import stuff from Meraki dashboard to Netbox
+- New Extra: run netwalk across a network importing data from Netbox
+
+Minor stuff:
+- Sessions to devices are now correctly closed
+- Add attribute mgmt_address, do not connect to devices via hostname alone
+
 v1.3.1 (bufgix)
 - Do not delete line from unparsed_lines if no PO interface is found
 

@@ -22,7 +22,7 @@ copyright = '2021, icovada'
 author = 'icovada'
 
 # The full version, including alpha/beta/rc tags
-release = '1.3.1'
+release = '1.4'
 
 
 # -- General configuration ---------------------------------------------------
