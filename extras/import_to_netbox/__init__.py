@@ -51,10 +51,14 @@ def get_device_by_hostname_or_mac(nb, swdata):
 
         nb_device = nb_interface.device
         swdata.hostname = nb_device.name
-    except AssertionError:
-        nb_device = nb.dcim.devices.get(name=swdata.hostname)
-
-    return nb_device
+        return nb_device
+    
+    except (AssertionError, RequestError):
+        try:
+            nb_device = list(nb.dcim.devices.filter(name__isw=swdata.hostname))[0]
+            return nb_device
+        except (KeyError, IndexError):
+            return None
 
 
 def create_devices_and_interfaces(nb, fabric, nb_access_role, nb_site):
