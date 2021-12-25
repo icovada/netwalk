@@ -466,8 +466,14 @@ def add_cables(nb, fabric, nb_site):
                     try:
                         assert hasattr(intdata.neighbors[0], 'nb_interface')
                     except AssertionError:
-                        intdata.neighbors[0].nb_interface = nb.dcim.interfaces.get(
-                            device_id=intdata.neighbors[0].switch.nb_device.id, name=intdata.neighbors[0].name)
+                        try:
+                            intdata.neighbors[0].nb_interface = nb.dcim.interfaces.get(
+                                device_id=intdata.neighbors[0].switch.nb_device.id, name=intdata.neighbors[0].name)
+                        except AttributeError:
+                            neighbor_nb_device = nb.dcim.devices.get(name=get_device_by_hostname_or_mac(nb, intdata.neighbors[0].switch))
+                            intdata.neighbors[0].nb_interface = nb.dcim.interfaces.get(
+                                device_id=neighbor_nb_device.id, name=intdata.neighbors[0].name)
+
 
                     nb_term_a = intdata.nb_interface
                     nb_term_b = intdata.neighbors[0].nb_interface
