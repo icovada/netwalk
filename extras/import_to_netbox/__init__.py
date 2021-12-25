@@ -22,6 +22,7 @@ import pickle
 import logging
 import ipaddress
 import pynetbox
+from pynetbox.core.query import RequestError
 from slugify import slugify
 import netwalk
 
@@ -306,7 +307,23 @@ def add_ip_addresses(nb, fabric, nb_site):
 
                         if len(newdata) > 0:
                             logger.info("Updating address %s", address)
-                            nb_address.update(newdata)
+                            try:
+                                nb_address.update(newdata)
+                            except RequestError:
+                                #The request failed with code 400 Bad Request: {'interface': ['IP address is primary for device SWBB-2-SI-24 but not assigned to it!']}
+                                nb_address.delete()
+                                logger.warning("IP %s deleted because is primary for device %s but not assigned to it, recreating it", nb_address, nb_device.name)
+                                nb_address = nb.ipam.ip_addresses.create(address=str(address),
+                                                                         site=nb_site.id)
+                                nb_device_addresses[address] = nb_address
+                                if nb_address.assigned_object_type != 'dcim.interface':
+                                    newdata['assigned_object_type'] = 'dcim.interface'
+                                if nb_address.assigned_object_id != nb_interface.id:
+                                    newdata['assigned_object_id'] = nb_interface.id
+                                role = None if addressdata['type'] == 'primary' else addressdata['type']
+                                
+                                nb_address.update(newdata)
+
 
                 if 'hsrp' in intdata.address and 'groups' in intdata.address['hsrp']:
                     for hsrpgrp, hsrpdata in intdata.address['hsrp']['groups'].items():
