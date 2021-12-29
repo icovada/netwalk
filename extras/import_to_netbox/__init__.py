@@ -158,6 +158,9 @@ def create_devices_and_interfaces(nb, fabric, nb_access_role, nb_site):
                     else:
                         intproperties['untagged_vlan'] = vlans_dict[intdata.native_vlan].id
                     intproperties['enabled'] = intdata.is_enabled
+                    intproperties['custom_fields'] = {}
+                    intproperties['custom_fields']['bpduguard'] = intdata.bpduguard
+                    intproperties['custom_fields']['type_edge'] = intdata.type_edge
                 except:
                     pass
 
@@ -217,6 +220,12 @@ def create_devices_and_interfaces(nb, fabric, nb_access_role, nb_site):
 
                 if intdata.is_enabled != nb_interface.enabled:
                     intproperties['enabled'] = intdata.is_enabled
+                    
+                if nb_interface.custom_fields['bpduguard'] != intdata.bpduguard or \
+                    nb_interface.custom_fields['type_edge'] != intdata.type_edge:
+                        intproperties['custom_fields'] = {'bpduguard': intdata.bpduguard,
+                                                          'type_edge': intdata.type_edge}
+                    
 
                 if "Port-channel" in intname:
                     for childint in intdata.child_interfaces:
