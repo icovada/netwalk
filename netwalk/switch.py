@@ -402,8 +402,12 @@ class Switch(Device):
         fsmpath = os.path.dirname(os.path.realpath(
             __file__)) + "/textfsm_templates/show_inventory.textfsm"
         with open(fsmpath, 'r') as fsmfile:
-            re_table = textfsm.TextFSM(fsmfile)
-            fsm_results = re_table.ParseTextToDicts(showinventory)
+            try:
+                re_table = textfsm.TextFSM(fsmfile)
+                fsm_results = re_table.ParseTextToDicts(showinventory)
+            except Exception as e:
+                self.logger.error("Textfsm parsing error %s", e)
+                return {}
 
         result = {}
         for i in fsm_results:
@@ -424,8 +428,13 @@ class Switch(Device):
         fsmpath = os.path.dirname(os.path.realpath(
             __file__)) + "/textfsm_templates/show_interface.textfsm"
         with open(fsmpath, 'r') as fsmfile:
-            re_table = textfsm.TextFSM(fsmfile)
-            fsm_results = re_table.ParseTextToDicts(showint)
+            try:
+                re_table = textfsm.TextFSM(fsmfile)
+                fsm_results = re_table.ParseTextToDicts(showint)
+            except Exception as e:
+                self.logger.error("Show interface parsing failed %s", e)
+                return None
+
 
         for intf in fsm_results:
             if intf['name'] in self.interfaces:
@@ -456,8 +465,12 @@ class Switch(Device):
         fsmpath = os.path.dirname(os.path.realpath(
             __file__)) + "/textfsm_templates/show_cdp_neigh_detail.textfsm"
         with open(fsmpath, 'r') as fsmfile:
-            re_table = textfsm.TextFSM(fsmfile)
-            fsm_results = re_table.ParseTextToDicts(neighdetail)
+            try:
+                re_table = textfsm.TextFSM(fsmfile)
+                fsm_results = re_table.ParseTextToDicts(neighdetail)
+            except Exception as e:
+                self.loogger.error("Show cdp neighbor parsing failed %s", e)
+                return None
 
         for result in fsm_results:
             self.logger.debug("Found CDP neighbor %s IP %s local int %s, remote int %s",
@@ -481,8 +494,12 @@ class Switch(Device):
         fsmpath = os.path.dirname(os.path.realpath(
             __file__)) + "/textfsm_templates/show_lldp_neigh_detail.textfsm"
         with open(fsmpath, 'r') as fsmfile:
-            re_table = textfsm.TextFSM(fsmfile)
-            fsm_results = re_table.ParseTextToDicts(neighdetail)
+            try:
+                re_table = textfsm.TextFSM(fsmfile)
+                fsm_results = re_table.ParseTextToDicts(neighdetail)
+            except Exception as e:
+                self.logger.error("Show lldp neighbor parsing failed %s", e)
+                return None
 
         for result in fsm_results:
             self.logger.debug("Found LLDP neighbor %s IP %s local int %s, remote int %s",
