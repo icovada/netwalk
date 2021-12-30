@@ -312,7 +312,7 @@ class Switch(Device):
         self.facts = self.session.get_facts()
 
         try:
-            self.hostname = self.facts['fqdn'] if self.facts['fqdn'] != 'Unknown' else self.facts['hostname']
+            self.hostname = self.facts['fqdn'].replace(".not set","") if self.facts['fqdn'] != 'Unknown' else self.facts['hostname']
         except KeyError:
             pass
 
