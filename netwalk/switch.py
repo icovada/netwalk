@@ -34,6 +34,7 @@ import textfsm
 import datetime
 from netwalk.interface import Interface
 from netwalk.libs import interface_name_expander
+
 class Device():
     hostname: str
     #: Dict of {name: Interface}
@@ -49,7 +50,7 @@ class Device():
         else:
             self.mgmt_address = mgmt_address
 
-        self.hostname: str = kwargs.get('hostname', None)
+        self.hostname: str = kwargs.get('hostname', mgmt_address)
         self.interfaces: Dict[str, 'Interface'] = kwargs.get('interfaces', {})
         self.discovery_status = kwargs.get('discovery_status', None)
         self.fabric: 'Fabric' = kwargs.get('fabric', None)
