@@ -98,6 +98,12 @@ class Fabric():
                         "Login failed, trying next method if available")
                     continue
 
+        # Check if Switch is already in fabric.
+        # Hostname is not enough because CDP stops at 40 characters and it might have been added
+        # with a cut-off hostname
+        if thisswitch.hostname[:40] not in self.switches:
+            self.switches[thisswitch.hostname[:40]] = thisswitch
+
         if not connected:
             self.logger.error(
                 "Could not login with any of the specified methods")
@@ -106,12 +112,6 @@ class Fabric():
 
         self.logger.info("Finished discovery of switch %s",
                          thisswitch.hostname)
-
-        # Check if Switch is already in fabric.
-        # Hostname is not enough because CDP stops at 40 characters and it might have been added
-        # with a cut-off hostname
-        if thisswitch.hostname[:40] not in self.switches:
-            self.switches[thisswitch.hostname[:40]] = thisswitch
 
         return thisswitch
 
