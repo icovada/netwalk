@@ -1,3 +1,7 @@
+v1.5
+- Better device lookup, should no longer have duplicate Device objects
+- Introduced callback function in Fabric.init_from_seed_device to allow external control whether to scan a discovered device or not (helps speeding up discovery by discarding those devices that are known to be inaccessible)
+
 v1.4
 Juicy stuff:
 - Switch is now a subclass of Device, a generic object for unmanaged devices

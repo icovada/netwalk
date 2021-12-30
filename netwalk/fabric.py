@@ -120,7 +120,8 @@ class Fabric():
                               seed_hosts: str,
                               credentials: list,
                               napalm_optional_args=[None],
-                              parallel_threads=10):
+                              parallel_threads=10,
+                              neigh_validator_callback=None):
         """
         Initialise entire fabric from a seed device.
 
@@ -130,6 +131,8 @@ class Fabric():
         :type credentials: list
         :param napalm_optional_args: Optional_args to pass to NAPALM for telnet
         :type napalm_optional_args: list(dict(str, str)), optional
+        :param neigh_validator_callback: Function accepting a Device object. Return True if device should be actively discovered
+        :type neigh_validator_callback: function
         """
 
         # We can use a with statement to ensure threads are cleaned up promptly
@@ -192,14 +195,24 @@ class Fabric():
                                 self.logger.debug(
                                     "Evaluating neighbour %s", nei.switch.hostname)
                                 if type(nei.switch) == Device and nei.switch.discovery_status is None:
-                                    self.logger.info(
-                                        "Queueing discover for %s", nei.switch.hostname)
-                                    nei.switch.discovery_status = "Queued"
+                                    scan = True
+                                    if neigh_validator_callback is not None:
+                                        self.logger.debug("Passing %s to callback function to check whther to scan", nei.switch.hostname)
+                                        scan = neigh_validator_callback(nei.switch)
+                                        self.logger.debug("Callback function returned %s", scan)
+                                    
+                                    if scan:
+                                        self.logger.info(
+                                            "Queueing discover for %s", nei.switch.hostname)
+                                        nei.switch.discovery_status = "Queued"
 
-                                    future_switch_data[executor.submit(self.add_switch,
-                                                                       nei.switch,
-                                                                       credentials,
-                                                                       napalm_optional_args)] = nei.switch.hostname
+                                        future_switch_data[executor.submit(self.add_switch,
+                                                                        nei.switch,
+                                                                        credentials,
+                                                                        napalm_optional_args)] = nei.switch.hostname
+                                    else:
+                                        nei.switch.discovery_status = "Skipped"
+                                        self.logger.info("Skipping %s, callback returned False", nei.switch.hostname)
                                 else:
                                     self.logger.debug(
                                         "Skipping %s, already discovered", nei.switch.hostname)
