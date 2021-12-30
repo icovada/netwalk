@@ -546,6 +546,10 @@ class Switch(Device):
             neigh_device = self.fabric.switches.get(hostname[:40], None)
     
             if neigh_device is None:
+                # Neighbor might already exist and not be initialised, lookup by IP
+                neigh_device = self.fabric.switches.get(mgmt_address, None)
+    
+            if neigh_device is None:
                 neigh_device = Device(mgmt_address=mgmt_address,
                                         hostname=hostname,
                                         facts={'platform': platform,
