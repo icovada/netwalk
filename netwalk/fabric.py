@@ -15,6 +15,8 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
+
+import ipaddress
 from typing import Any, Dict
 from datetime import datetime as dt
 import logging
@@ -102,14 +104,15 @@ class Fabric():
             raise ConnectionError(
                 "Could not log in with any of the specified methods")
 
-        self.logger.info("Finished discovery of switch %s", thisswitch.hostname)
+        self.logger.info("Finished discovery of switch %s",
+                         thisswitch.hostname)
 
         # Check if Switch is already in fabric.
         # Hostname is not enough because CDP stops at 40 characters and it might have been added
         # with a cut-off hostname
         if thisswitch.hostname[:40] not in self.switches:
             self.switches[thisswitch.hostname[:40]] = thisswitch
-        
+
         return thisswitch
 
     def init_from_seed_device(self,
@@ -137,7 +140,7 @@ class Fabric():
                 x,
                 credentials,
                 napalm_optional_args,
-                discovery_status = "Queued"): x for x in seed_hosts}
+                discovery_status="Queued"): x for x in seed_hosts}
 
             while future_switch_data:
                 self.logger.info(
@@ -155,16 +158,26 @@ class Fabric():
                                           (hostname, exc))
                         self.discovery_status[hostname] = "Failed"
                         #raise exc
-                        
+
                         # We do not have the switch because fut.result returned an error
                         # Find it looping the fabric
-
+                        swobject = None
+                        
                         for swname, swdata in self.switches.items():
+                            try:
+                                if ipaddress.ip_interface(hostname) == swdata.mgmt_address:
+                                    swobject = swdata
+                                    break
+                            except ValueError:
+                                # In case hostname is not an IP
+                                pass
+
                             if swdata.hostname == hostname:
                                 swobject = swdata
                                 break
 
-                        self.logger.info("Demote %s back to Device from Switch", swobject.hostname)
+                        self.logger.info(
+                            "Demote %s back to Device from Switch", swobject.hostname)
                         swobject.__class__ = Device
                         swobject.discovery_status = dt.now()
                     else:
@@ -223,7 +236,7 @@ class Fabric():
                     try:
                         if self.mac_table[mac]['interface'].mac_count > macdata['interface'].mac_count:
                             self.logger.debug("Found better interface %s %s for %s",
-                                            macdata['interface'].name, macdata['interface'].switch.hostname, str(mac))
+                                              macdata['interface'].name, macdata['interface'].switch.hostname, str(mac))
                             self.mac_table[mac] = macdata
                     except KeyError:
                         self.mac_table[mac] = macdata
