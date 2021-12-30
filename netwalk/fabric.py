@@ -73,6 +73,7 @@ class Fabric():
 
         if type(host) == str:
             thisswitch = Switch(host,
+                                hostname=host,
                                 fabric=self,
                                 discovery_status=kwargs.get('discovery_status', None))
         elif type(host) == Device:
