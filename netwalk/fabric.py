@@ -169,7 +169,7 @@ class Fabric():
                         
                         for swname, swdata in self.switches.items():
                             try:
-                                if ipaddress.ip_interface(hostname) == swdata.mgmt_address:
+                                if ipaddress.ip_address(hostname) == swdata.mgmt_address:
                                     swobject = swdata
                                     break
                             except ValueError:
