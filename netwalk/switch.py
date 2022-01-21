@@ -483,12 +483,13 @@ class Switch(Device):
                               result['dest_host'], result['mgmt_ip'], result['local_port'], result['remote_port'])
 
         for nei in fsm_results:
-            self.create_neighbor_device(hostname=nei['dest_host'],
-                                        mgmt_address=nei['mgmt_ip'],
-                                        local_interface=self.interfaces[nei['local_port']],
-                                        remote_interface=nei['remote_port'],
-                                        software_version=nei['version'],
-                                        platform=nei['platform'])
+            neigh_data = {'hostname': nei[1],
+                          'ip': nei[2],
+                          'platform': nei[3],
+                          'remote_int': nei[4]
+                          }
+
+            self.interfaces[nei[5]].neighbors.append(neigh_data)
 
     def _parse_lldp_neighbors(self):
         """Ask for and parse LLDP neighbors"""
@@ -512,66 +513,13 @@ class Switch(Device):
                               result['neighbor'], result['mgmt_ip'], result['local_port'], result['remote_port'])
 
         for nei in fsm_results:
-            if nei['neighbor'] == '':
-                # VMware does not advertise system name or other info
-                continue
+            neigh_data = {'hostname': nei[5],
+                          'ip': nei[8],
+                          'platform': nei[6],
+                          'remote_int': nei[4]
+                          }
 
-            if nei['local_port'] == '':
-                # Bug on switch?
-                continue
-
-            self.create_neighbor_device(hostname=nei['neighbor'],
-                                        mgmt_address=nei['mgmt_ip'],
-                                        local_interface=self.interfaces[interface_name_expander(nei['local_port'])],
-                                        remote_interface=interface_name_expander(nei['remote_port_id']),
-                                        software_version=nei['system_description'])
-            
-    def create_neighbor_device(self,
-                               hostname: str,
-                               mgmt_address: ipaddress.ip_address,
-                               local_interface: Interface, 
-                               remote_interface: str, 
-                               software_version: str,
-                               **kwargs) -> None:
-
-        platform = kwargs.get('platform', None)
-            
-        if isinstance(mgmt_address, str):
-            mgmt_address = ipaddress.ip_address(mgmt_address)
-
-        if self.fabric is None:
-            neigh_device = Device(mgmt_address=mgmt_address,
-                                    hostname=hostname,
-                                    facts={'platform': platform,
-                                            'os_version': software_version})
-            neigh_int = Interface(name=remote_interface)
-            neigh_device.add_interface(neigh_int)
-
-        else:
-            # CDP is limited to 40 characters so lookup a cut name
-            neigh_device = self.fabric.switches.get(hostname[:40], None)
-    
-            if neigh_device is None:
-                # Neighbor might already exist and not be initialised, lookup by IP
-                neigh_device = self.fabric.switches.get(mgmt_address, None)
-    
-            if neigh_device is None:
-                neigh_device = Device(mgmt_address=mgmt_address,
-                                        hostname=hostname,
-                                        facts={'platform': platform,
-                                                'os_version': software_version},
-                                        fabric=self.fabric)
-                self.fabric.switches[hostname[:40]] = neigh_device
-
-            if neigh_device.mgmt_address is None:
-                neigh_device.mgmt_address = mgmt_address
-
-            neigh_int = neigh_device.interfaces.get(remote_interface, None)
-            if neigh_int is None:
-                neigh_int = Interface(name=remote_interface)
-                neigh_device.add_interface(neigh_int)
-
-        local_interface.add_neighbor(neigh_int)
+            self.interfaces[nei[8]].neighbors.append(neigh_data)
 
     def _cisco_time_to_dt(self, time: str) -> dt.datetime:
         """Converts time from now to absolute, starting when Switch object was initialised
