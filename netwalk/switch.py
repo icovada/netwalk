@@ -60,6 +60,12 @@ class Device():
         else:
             self.logger = logging.getLogger(__name__ + self.hostname)
 
+        if self.fabric is not None:
+            if self.hostname is None:
+                self.fabric.switches[str(self.mgmt_address)] = self
+            else:
+                self.fabric.switches[self.hostname] = self
+
     def add_interface(self, intobject: Interface):
         """Add interface to device
 
