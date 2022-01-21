@@ -561,7 +561,7 @@ class Switch(Device):
                                         facts={'platform': platform,
                                                 'os_version': software_version},
                                         fabric=self.fabric)
-                self.fabric.switches[hostname] = neigh_device
+                self.fabric.switches[hostname[:40]] = neigh_device
 
             if neigh_device.mgmt_address is None:
                 neigh_device.mgmt_address = mgmt_address
