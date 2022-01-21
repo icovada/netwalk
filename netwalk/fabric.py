@@ -71,11 +71,13 @@ class Fabric():
         :type napalm_optional_args: list(dict)
         """
 
+        self.discovery_status[host] = "Queued"
         if type(host) == str:
-            thisswitch = Switch(host,
+            thisswitch = Switch(kwargs.get('mgmt_address', host),
                                 hostname=host,
                                 fabric=self,
                                 discovery_status=kwargs.get('discovery_status', None))
+
         elif type(host) == Device:
             host.promote_to_switch()
             thisswitch = host
@@ -120,7 +122,7 @@ class Fabric():
                               seed_hosts: str,
                               credentials: list,
                               napalm_optional_args=[None],
-                              parallel_threads=10,
+                              parallel_threads=1,
                               neigh_validator_callback=None):
         """
         Initialise entire fabric from a seed device.
@@ -139,6 +141,9 @@ class Fabric():
         with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_threads) as executor:
             # Start the load operations and mark each future with its URL
             self.logger.debug("Adding seed hosts to loop")
+            for x in seed_hosts:
+                self.discovery_status[x] = "Queued"
+                
             future_switch_data = {executor.submit(
                 self.add_switch,
                 x,
@@ -158,10 +163,11 @@ class Fabric():
                     try:
                         swobject = fut.result()
                     except Exception as exc:
-                        self.logger.error('%r generated an exception: %s' %
-                                          (hostname, exc))
-                        self.discovery_status[hostname] = "Failed"
                         #raise exc
+                        
+                        self.logger.error('%r generated an exception: %s' %
+                              (hostname, exc))
+                        self.discovery_status[hostname] = "Failed"
 
                         # We do not have the switch because fut.result returned an error
                         # Find it looping the fabric
@@ -193,29 +199,31 @@ class Fabric():
                         for _, intdata in swobject.interfaces.items():
                             for nei in intdata.neighbors:
                                 self.logger.debug(
-                                    "Evaluating neighbour %s", nei.switch.hostname)
-                                if type(nei.switch) == Device and nei.switch.discovery_status is None:
+                                    "Evaluating neighbour %s", nei['hostname'])
+                                if nei['hostname'] not in self.switches and nei['ip'] not in self.discovery_status:
+
                                     scan = True
                                     if neigh_validator_callback is not None:
                                         self.logger.debug("Passing %s to callback function to check whther to scan", nei.switch.hostname)
-                                        scan = neigh_validator_callback(nei.switch)
+                                        scan = neigh_validator_callback(self.switches[nei['hostname']])
                                         self.logger.debug("Callback function returned %s", scan)
                                     
                                     if scan:
                                         self.logger.info(
-                                            "Queueing discover for %s", nei.switch.hostname)
-                                        nei.switch.discovery_status = "Queued"
+                                            "Queueing discover for %s", nei['hostname'])
+                                        self.discovery_status[nei['ip']] = "Queued"
 
                                         future_switch_data[executor.submit(self.add_switch,
-                                                                        nei.switch,
-                                                                        credentials,
-                                                                        napalm_optional_args)] = nei.switch.hostname
+                                                                           nei['hostname'],
+                                                                           credentials,
+                                                                           napalm_optional_args,
+                                                                           mgmt_address=nei['ip'])] = nei['ip']
                                     else:
-                                        nei.switch.discovery_status = "Skipped"
-                                        self.logger.info("Skipping %s, callback returned False", nei.switch.hostname)
+                                        self.discovery_status[nei['ip']] = "Skipped"
+                                        self.logger.info("Skipping %s, callback returned False", nei['hostname'])
                                 else:
                                     self.logger.debug(
-                                        "Skipping %s, already discovered", nei.switch.hostname)
+                                        "Skipping %s, already discovered", nei['hostname'])
 
         self.logger.info("Discovery complete, crunching data")
         self.refresh_global_information()
@@ -245,42 +253,39 @@ class Fabric():
         for sw, swdata in self.switches.items():
             for intf, intfdata in swdata.interfaces.items():
                 if hasattr(intfdata, "neighbors"):
-                    for i in range(0, len(intfdata.neighbors)):
-                        if isinstance(intfdata.neighbors[i], Interface):
+                    for i in intfdata.neighbors:
+                        if isinstance(i, Interface):
                             continue
 
-                        switch = intfdata.neighbors[i]['hostname']
-                        port = intfdata.neighbors[i]['remote_int']
+                        switch = i['hostname']
+                        port = i['remote_int']
 
                         try:
-                            peer_device = self.switches[switch].interfaces[port]
-                            intfdata.neighbors[i] = peer_device
-                            if len(peer_device.neighbors) == 0:
-                                peer_device.neighbors.append(intfdata)
-                            else:
-                                peer_device.neighbors[0] = intfdata
-                            self.logger.debug("Found link between %s %s and %s %s", intfdata.name,
-                                              intfdata.switch.facts['fqdn'], peer_device.name, peer_device.switch.facts['fqdn'])
+                            peer_device = self.switches[switch]
                         except KeyError:
-                            # Hostname over 40 char
                             try:
-                                peer_device = short_fabric[switch[:40]
-                                                           ].interfaces[port]
-                                self.logger.debug("Found link between %s %s and %s %s", intfdata.name,
-                                                  intfdata.switch.facts['fqdn'], peer_device.name, peer_device.switch.facts['fqdn'])
-                                intfdata.neighbors[i] = peer_device
-                                peer_device.neighbors[0] = intfdata
+                                peer_device = short_fabric[switch[:40]]
                             except KeyError:
                                 try:
-                                    peer_device = hostname_only_fabric[switch].interfaces[port]
-                                    self.logger.debug("Found link between %s %s and %s %s", intfdata.name,
-                                                      intfdata.switch.facts['fqdn'], peer_device.name, peer_device.switch.facts['fqdn'])
-                                    intfdata.neighbors[i] = peer_device
-                                    peer_device.neighbors[0] = intfdata
+                                    peer_device = hostname_only_fabric[switch]
                                 except KeyError:
                                     self.logger.debug("Could not find link between %s %s and %s %s",
                                                       intfdata.name, intfdata.switch.facts['fqdn'], port, switch)
-                                    pass
+                                    continue
+                                
+                        try:
+                            neigh_int = peer_device.interfaces[port]
+                        except KeyError:
+                            # missing interface, add it
+                            neigh_int = Interface(name=port, switch=peer_device)
+                            peer_device.add_interface(neigh_int)
+
+                        intfdata.neighbors.remove(i)
+
+                        intfdata.add_neighbor(neigh_int)
+
+                        self.logger.debug("Found link between %s %s and %s %s", intfdata.name,
+                                            intfdata.switch.hostname, neigh_int.name, neigh_int.switch.hostname)
 
     def _recalculate_macs(self):
         """

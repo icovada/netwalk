@@ -475,7 +475,7 @@ class Switch(Device):
                 re_table = textfsm.TextFSM(fsmfile)
                 fsm_results = re_table.ParseTextToDicts(neighdetail)
             except Exception as e:
-                self.loogger.error("Show cdp neighbor parsing failed %s", e)
+                self.logger.error("Show cdp neighbor parsing failed %s", e)
                 return None
 
         for result in fsm_results:
@@ -483,13 +483,13 @@ class Switch(Device):
                               result['dest_host'], result['mgmt_ip'], result['local_port'], result['remote_port'])
 
         for nei in fsm_results:
-            neigh_data = {'hostname': nei[1],
-                          'ip': nei[2],
-                          'platform': nei[3],
-                          'remote_int': nei[4]
+            neigh_data = {'hostname': nei['dest_host'],
+                          'ip': nei['mgmt_ip'],
+                          'platform': nei['platform'],
+                          'remote_int': nei['remote_port']
                           }
 
-            self.interfaces[nei[5]].neighbors.append(neigh_data)
+            self.interfaces[nei['local_port']].neighbors.append(neigh_data)
 
     def _parse_lldp_neighbors(self):
         """Ask for and parse LLDP neighbors"""
@@ -513,13 +513,13 @@ class Switch(Device):
                               result['neighbor'], result['mgmt_ip'], result['local_port'], result['remote_port'])
 
         for nei in fsm_results:
-            neigh_data = {'hostname': nei[5],
-                          'ip': nei[8],
-                          'platform': nei[6],
-                          'remote_int': nei[4]
+            neigh_data = {'hostname': nei['neighbor'],
+                          'ip': nei['mgmt_ip'],
+                          'platform': nei['system_description'],
+                          'remote_int': nei['remote_port']
                           }
 
-            self.interfaces[nei[8]].neighbors.append(neigh_data)
+            self.interfaces[nei['local_port']].neighbors.append(neigh_data)
 
     def _cisco_time_to_dt(self, time: str) -> dt.datetime:
         """Converts time from now to absolute, starting when Switch object was initialised
