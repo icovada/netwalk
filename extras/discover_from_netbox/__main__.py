@@ -25,13 +25,6 @@ discovered_tag = nb.extras.tags.get(name="Discovered")
 sites = [x for x in nb.dcim.sites.all()]
 
 for site in sites:
-    if site.slug != "deposito-rivalta":
-        continue
-    
-    if discovered_tag in site.tags:
-        logger.info("Skip site %s because already discovered", site.name)
-        continue
-
     sitename = site.slug
     logger.info("Connecting to %s", sitename)
     fabric = netwalk.Fabric()
@@ -40,18 +33,17 @@ for site in sites:
     for device in devices:
         if 'switch' in device.device_role.slug:
             if device.primary_ip is not None:
-                
+
                 deviceipcidr = device.primary_ip.display
                 deviceip = deviceipcidr[:deviceipcidr.index("/")]
                 primaryip.append(deviceip)
-                
-        
+
     fabric.init_from_seed_device(primaryip, [(secrets.USERNAME, secrets.PASSWORD), (secrets.TELECOMUSER, secrets.TELECOMPASS)], [{}, {"transport": "telnet"}], parallel_threads=10)
 
     with open("bindata/"+site.slug+".bin", "wb") as outfile:
         pickle.dump(fabric, outfile)
 
     nbimp.load_fabric_object(nb, fabric, "Access Switch", sitename)
-    
+
     site.tags.append(discovered_tag)
     site.save()

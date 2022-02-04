@@ -83,7 +83,8 @@ def create_devices_and_interfaces(nb, fabric, nb_access_role, nb_site):
                                                              manufacturer=nb_manufacturer.id,
                                                              slug=slugify(swdata.facts['model']))
 
-            nb_device = nb.dcim.devices.get(name=swdata.hostname)
+            nb_device = nb.dcim.devices.get(name=swdata.hostname,
+                                            site_id=nb_site.id)
             if nb_device is None:
                 nb_device = nb.dcim.devices.create(name=swdata.hostname,
                                                    device_role=nb_access_role.id,
@@ -567,6 +568,9 @@ def add_software_versions(nb, fabric):
         logger.debug("Looking up %s", swdata.hostname)
         thisdev = nb.dcim.devices.get(name=swdata.hostname)
         assert thisdev is not None
+        if swdata.facts is None:
+            continue
+        
         if thisdev['custom_fields']['software_version'] != swdata.facts['os_version']:
             logger.info("Updating %s with version %s",
                         swdata.hostname, swdata.facts['os_version'])
