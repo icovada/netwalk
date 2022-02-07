@@ -18,9 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Define Switch object"""
 
-
-
-
 import ipaddress
 import logging
 import os
@@ -29,7 +26,7 @@ import datetime as dt
 from typing import Dict, Optional, List, Union
 from netaddr import EUI
 import napalm
-import ciscoconfparse
+from ciscoconfparse import CiscoConfParse
 import textfsm
 import datetime
 from netwalk.interface import Interface
@@ -250,8 +247,8 @@ class Switch(Device):
             running.seek(0)
 
             # Get show run and interface access/trunk status
-            self.parsed_conf = ciscoconfparse.CiscoConfParse(running)
-            interface_config_list: list = self.parsed_conf.find_objects(
+            parsed_conf = CiscoConfParse(running)
+            interface_config_list: list = parsed_conf.find_objects(
                 self.INTERFACE_FILTER)
 
             for intf in interface_config_list:
