@@ -121,7 +121,7 @@ def get_device_by_hostname_or_mac(nb, swdata, site=None):
 
 
 def create_devices_and_interfaces(nb, fabric, nb_access_role, nb_site, delete):
-    # Create devices and interfaces
+    "Create devices and interfaces"
     site_vlans = nb.ipam.vlans.filter(site_id=nb_site.id)
     vlans_dict = {x.vid: x for x in site_vlans}
 
@@ -182,6 +182,7 @@ def create_devices_and_interfaces(nb, fabric, nb_access_role, nb_site, delete):
         for intname, intdata in swdata.interfaces.items():
             intproperties = {}
             if intname not in nb_all_interfaces:
+                intproperties['mac_address'] = intdata.mac_address
                 logger.info("Interface %s on switch %s",
                             intname, swdata.hostname)
                 if isinstance(swdata, netwalk.Switch):
@@ -235,9 +236,9 @@ def create_devices_and_interfaces(nb, fabric, nb_access_role, nb_site, delete):
 
                 # If this is a port channel, tag child interfaces, if they exist
                 if "Port-channel" in intname:
-                    for intdata in intdata.child_interfaces:
+                    for childintdata in intdata.child_interfaces:
                         child = nb.dcim.interfaces.get(
-                            device_id=nb_device.id, name=intdata.name)
+                            device_id=nb_device.id, name=childintdata.name)
                         if child is not None and child.lag is not None:
                             if child.lag.id != nb_interface.id:
                                 logger.info("Adding %s under %s",
@@ -254,6 +255,11 @@ def create_devices_and_interfaces(nb, fabric, nb_access_role, nb_site, delete):
                             nb_interface.cable.delete()
 
                 if isinstance(intdata.switch, netwalk.Switch):
+                    if nb_interface.mac_address is None:
+                        intproperties['mac_address'] = intdata.mac_address
+                    elif EUI(intdata.mac_address) != EUI(nb_interface.mac_address):
+                        intproperties['mac_address'] = intdata.mac_address
+
                     if intdata.description != nb_interface.description:
                         intproperties['description'] = intdata.description if intdata.description is not None else ""
 
@@ -322,6 +328,7 @@ def create_devices_and_interfaces(nb, fabric, nb_access_role, nb_site, delete):
 
 
 def add_ip_addresses(nb, fabric, nb_site, delete):
+    "Add IP address"
     for swname, swdata in fabric.switches.items():
         if isinstance(swdata, netwalk.Switch):
             nb_device = get_device_by_hostname_or_mac(nb, swdata, site=nb_site)
@@ -538,6 +545,7 @@ def add_neighbor_ip_addresses(nb, fabric, nb_site, delete):
 
 
 def add_l2_vlans(nb, fabric, nb_site, delete):
+    "Add L2 VLANs"
     nb_all_vlans = [x for x in nb.ipam.vlans.filter(site_id=nb_site.id)]
     vlan_dict = {x.vid: x for x in nb_all_vlans}
     for swname, swdata in fabric.switches.items():
@@ -766,3 +774,4 @@ if __name__ == '__main__':
     args_namespace = parser.parse_args()
     args = vars(args_namespace)
     shell_run_setup(args)
+
