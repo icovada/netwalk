@@ -23,12 +23,13 @@ import logging
 import ipaddress
 from netaddr import EUI
 from netaddr.core import AddrFormatError
+from netwalk import Device
 import pynetbox
 from pynetbox.core.query import RequestError
 from slugify import slugify
 import netwalk
 
-from netwalk.interface import Switch
+from netwalk.interface import Interface, Switch
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.DEBUG)
@@ -121,9 +122,10 @@ def get_device_by_hostname_or_mac(nb, swdata, site=None):
 
 
 def create_devices_and_interfaces(nb, fabric, nb_access_role, nb_site, delete):
-    # Create devices and interfaces
+    "Create devices and interfaces"
     site_vlans = nb.ipam.vlans.filter(site_id=nb_site.id)
     vlans_dict = {x.vid: x for x in site_vlans}
+    nb_online_tag = nb.extras.tags.get(name="Online 2022")
 
     for swname, swdata in fabric.switches.items():
         if isinstance(swdata, netwalk.Switch):
@@ -159,7 +161,11 @@ def create_devices_and_interfaces(nb, fabric, nb_access_role, nb_site, delete):
                                    swdata.hostname, nb_device.device_type.display, swdata.facts['model'])
                     nb_device.update({'device_type': nb_device_type.id,
                                       'serial': swdata.facts['serial_number'][:50]})
-                    
+                
+            if nb_online_tag not in nb_device.tags:
+                nb_device.tags.append(nb_online_tag)
+                nb_device.save()
+                
             if nb_device.name != swdata.hostname:
                 nb_device.update({'name': swdata.hostname})
 
@@ -182,6 +188,8 @@ def create_devices_and_interfaces(nb, fabric, nb_access_role, nb_site, delete):
         for intname, intdata in swdata.interfaces.items():
             intproperties = {}
             if intname not in nb_all_interfaces:
+                if intdata.mac_address != '':
+                    intproperties['mac_address'] = intdata.mac_address
                 logger.info("Interface %s on switch %s",
                             intname, swdata.hostname)
                 if isinstance(swdata, netwalk.Switch):
@@ -235,9 +243,9 @@ def create_devices_and_interfaces(nb, fabric, nb_access_role, nb_site, delete):
 
                 # If this is a port channel, tag child interfaces, if they exist
                 if "Port-channel" in intname:
-                    for intdata in intdata.child_interfaces:
+                    for childintdata in intdata.child_interfaces:
                         child = nb.dcim.interfaces.get(
-                            device_id=nb_device.id, name=intdata.name)
+                            device_id=nb_device.id, name=childintdata.name)
                         if child is not None and child.lag is not None:
                             if child.lag.id != nb_interface.id:
                                 logger.info("Adding %s under %s",
@@ -254,6 +262,12 @@ def create_devices_and_interfaces(nb, fabric, nb_access_role, nb_site, delete):
                             nb_interface.cable.delete()
 
                 if isinstance(intdata.switch, netwalk.Switch):
+                    if intdata.mac_address != '':
+                        if nb_interface.mac_address is None:
+                            intproperties['mac_address'] = intdata.mac_address
+                        elif EUI(intdata.mac_address) != EUI(nb_interface.mac_address):
+                            intproperties['mac_address'] = intdata.mac_address
+
                     if intdata.description != nb_interface.description:
                         intproperties['description'] = intdata.description if intdata.description is not None else ""
 
@@ -322,6 +336,7 @@ def create_devices_and_interfaces(nb, fabric, nb_access_role, nb_site, delete):
 
 
 def add_ip_addresses(nb, fabric, nb_site, delete):
+    "Add IP address"
     for swname, swdata in fabric.switches.items():
         if isinstance(swdata, netwalk.Switch):
             nb_device = get_device_by_hostname_or_mac(nb, swdata, site=nb_site)
@@ -538,6 +553,7 @@ def add_neighbor_ip_addresses(nb, fabric, nb_site, delete):
 
 
 def add_l2_vlans(nb, fabric, nb_site, delete):
+    "Add L2 VLANs"
     nb_all_vlans = [x for x in nb.ipam.vlans.filter(site_id=nb_site.id)]
     vlan_dict = {x.vid: x for x in nb_all_vlans}
     for swname, swdata in fabric.switches.items():
@@ -607,7 +623,7 @@ def add_cables(nb, fabric, nb_site):
                     try:
                         assert intdata.neighbors[0]['nb_device'] is not None
                     except AssertionError:
-                        intdata.neighbors[0]['nb_interface'] = nb.dcim.interfaces.get(mac_address=intdata.neighbors[0]['hostname'])
+                        intdata.neighbors[0]['nb_interface'] = nb.dcim.interfaces.get(mac_address=intdata.neighbors[0]['name'])
                         assert intdata.neighbors[0]['nb_interface'] is not None
                         intdata.neighbors[0]['nb_device'] = nb.dcim.devices.get(id=intdata.neighbors[0]['nb_interface'].device.id)
 
@@ -725,10 +741,26 @@ def add_inventory_items(nb, fabric, nb_site, delete):
                         nb_inv.delete()
 
 
-def load_fabric_object(nb, fabric, access_role, site_slug, delete=False):
+def load_fabric_object(nb, fabric: netwalk.Fabric, access_role, site_slug, delete=False):
     nb_access_role = nb.dcim.device_roles.get(name=access_role)
     nb_site = nb.dcim.sites.get(slug=site_slug)
-    add_l2_vlans(nb, fabric, nb_site, delete)
+    # add_l2_vlans(nb, fabric, nb_site, delete)
+    newneighs = []
+    for swname, swdata in fabric.switches.items():
+        for intname, intdata in swdata.interfaces.items():
+            for neigh in intdata.neighbors:
+                if isinstance(neigh, dict):
+                    if neigh['hostname'] not in fabric.switches:
+                        neighobj = Device(neigh['ip'], hostname=neigh['hostname'])
+                        neighint = Interface(name=neigh['remote_int'])
+                        neighobj.add_interface(neighint)
+                        newneighs.append(neighobj)
+
+
+    for neigh in newneighs:
+        fabric.switches[neigh.hostname] = neigh
+        logger.info("Add %s to fabric", neigh.hostname)
+
     create_devices_and_interfaces(
         nb, fabric, nb_access_role, nb_site, delete)
     add_ip_addresses(nb, fabric, nb_site, delete)
