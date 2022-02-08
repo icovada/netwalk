@@ -33,6 +33,7 @@ from netwalk.interface import Interface
 from netwalk.libs import interface_name_expander
 
 class Device():
+    "Device type"
     hostname: str
     #: Dict of {name: Interface}
     interfaces: Dict[str, 'Interface']
@@ -131,6 +132,7 @@ class Switch(Device):
         self.local_admins: Optional[Dict[str, dict]] = None
         self.timeout = 30
         self.mac_table = {}
+        self.platform = kwargs.get('platfomr', 'ios')
 
         if self.config is not None:
             self._parse_config()
@@ -175,7 +177,7 @@ class Switch(Device):
         :param napalm_optional_args: Check Napalm's documentation about optional-args, defaults to None
         :type napalm_optional_args: dict, optional
         """
-        driver = napalm.get_network_driver('ios')
+        driver = napalm.get_network_driver(self.platform)
 
         if napalm_optional_args is not None:
             self.napalm_optional_args = napalm_optional_args
