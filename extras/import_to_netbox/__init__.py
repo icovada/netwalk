@@ -127,7 +127,13 @@ def create_devices_and_interfaces(nb, fabric, nb_access_role, nb_site, delete):
     vlans_dict = {x.vid: x for x in site_vlans}
     nb_online_tag = nb.extras.tags.get(name="Online 2022")
 
+    done = []
+
     for swname, swdata in fabric.switches.items():
+        if swdata in done:
+            continue
+
+        done.append(swdata)
         if isinstance(swdata, netwalk.Switch):
             logger.info("Switch %s", swdata.hostname)
             nb_device_type = nb.dcim.device_types.get(
@@ -337,7 +343,13 @@ def create_devices_and_interfaces(nb, fabric, nb_access_role, nb_site, delete):
 
 def add_ip_addresses(nb, fabric, nb_site, delete):
     "Add IP address"
+    done = []
+
     for swname, swdata in fabric.switches.items():
+        if swdata in done:
+            continue
+        
+        done.append(swdata)
         if isinstance(swdata, netwalk.Switch):
             nb_device = get_device_by_hostname_or_mac(nb, swdata, site=nb_site)
 
@@ -483,7 +495,13 @@ def add_ip_addresses(nb, fabric, nb_site, delete):
 
 def add_neighbor_ip_addresses(nb, fabric, nb_site, delete):
     """Add neighbor IP address"""
+    done = []
     for swname, swdata in fabric.switches.items():
+        if swdata in done:
+            continue
+        
+        done.append(swdata)
+
         if type(swdata) == netwalk.switch.Device:
             logger.info("Checking Device %s", swdata.hostname)
 
@@ -576,10 +594,21 @@ def add_cables(nb, fabric, nb_site):
     all_nb_devices = {
         x.name: x for x in nb.dcim.devices.filter(site_id=nb_site.id)}
     
+    done = []
     for swname, swdata in fabric.switches.items():
+        if swdata in done:
+            continue
+        
+        done.append(swdata)
         swdata.nb_device = get_device_by_hostname_or_mac(nb, swdata.hostname, site=nb_site)
 
+
+    done = []
     for swname, swdata in fabric.switches.items():
+        if swdata in done:
+            continue
+
+        done.append(swdata)
         logger.info("Checking cables for device %s", swdata.hostname)
         for intname, intdata in swdata.interfaces.items():
             try:
@@ -685,7 +714,12 @@ def add_cables(nb, fabric, nb_site):
 
 def add_software_versions(nb, fabric, nb_site, delete):
     """Add software version"""
+    done = []
     for swname, swdata in fabric.switches.items():
+        if swdata in done:
+            continue
+
+        done.append(swdata)
         logger.debug("Looking up %s", swdata.hostname)
         thisdev = get_device_by_hostname_or_mac(nb, swdata.hostname, nb_site)
         assert thisdev is not None
@@ -704,7 +738,12 @@ def add_software_versions(nb, fabric, nb_site, delete):
 
 def add_inventory_items(nb, fabric, nb_site, delete):
     """Add inventory items"""
+    done = []
     for swname, swdata in fabric.switches.items():
+        if swdata in done:
+            continue
+
+        done.append(swdata)
         if isinstance(swdata, netwalk.Switch):
             logger.debug("Looking up %s", swdata.hostname)
             thisdev = get_device_by_hostname_or_mac(nb, swdata, nb_site)
@@ -780,7 +819,7 @@ def shell_run_setup(args):
         token=args['netbox-api-key']
     )
 
-    load_fabric_object(nb, fabric, "Access Switch", args['site-slug'])
+    load_fabric_object(nb, fabric, "Access Switch", args['site-slug'], False)
 
 
 if __name__ == '__main__':
