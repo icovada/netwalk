@@ -785,7 +785,12 @@ def load_fabric_object(nb, fabric: netwalk.Fabric, access_role, site_slug, delet
     nb_site = nb.dcim.sites.get(slug=site_slug)
     # add_l2_vlans(nb, fabric, nb_site, delete)
     newneighs = []
+    done = []
     for swname, swdata in fabric.switches.items():
+        if swdata in done:
+            continue
+
+        done.append(swdata)
         for intname, intdata in swdata.interfaces.items():
             for neigh in intdata.neighbors:
                 if isinstance(neigh, dict):
@@ -819,7 +824,7 @@ def shell_run_setup(args):
         token=args['netbox-api-key']
     )
 
-    load_fabric_object(nb, fabric, "Access Switch", args['site-slug'], False)
+    load_fabric_object(nb, fabric, "Access Switch", args['site-slug'], True)
 
 
 if __name__ == '__main__':
