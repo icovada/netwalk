@@ -518,7 +518,7 @@ class Switch(Device):
                           'remote_int': nei['remote_port']
                           }
 
-            self.interfaces[nei['local_port']].neighbors.append(neigh_data)
+            self.interfaces[interface_name_expander(nei['local_port'])].neighbors.append(neigh_data)
 
     def _cisco_time_to_dt(self, time: str) -> dt.datetime:
         """Converts time from now to absolute, starting when Switch object was initialised
