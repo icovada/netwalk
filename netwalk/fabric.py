@@ -158,6 +158,8 @@ class Fabric():
                                                   return_when=concurrent.futures.FIRST_COMPLETED)
 
                 for fut in done:
+                    swobject = None
+                    swdata = None
                     hostname = future_switch_data.pop(fut)
                     self.logger.debug("Got data for %s", hostname)
                     try:
@@ -174,21 +176,21 @@ class Fabric():
                         swobject = None
                         
                         for swname, swdata in self.switches.items():
-                            try:
-                                if ipaddress.ip_address(hostname) == swdata.mgmt_address:
-                                    swobject = swdata
-                                    break
-                            except ValueError:
-                                # In case hostname is not an IP
-                                pass
+                            if isinstance(hostname, Device):
+                                swobject = hostname
+                            else:
+                                try:
+                                    if ipaddress.ip_address(hostname) == swdata.mgmt_address:
+                                        swobject = swdata
+                                        break
+                                except ValueError:
+                                    # In case hostname is not an IP
+                                    pass
 
                             if swdata.hostname == hostname:
                                 swobject = swdata
                                 break
 
-                        if swobject is None:
-                            continue
-                        
                         self.logger.info(
                             "Demote %s back to Device from Switch", swobject.hostname)
                         swobject.__class__ = Device
