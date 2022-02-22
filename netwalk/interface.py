@@ -422,7 +422,7 @@ class Interface():
             sortid += str(last_port).zfill(3)
             sortid += str(subint).zfill(4)
 
-            self.sort_order = int(sortid)
+            self.sort_order = int(sortid.replace(" ",""))
 
     def _allowed_vlan_to_list(self, vlanlist: str) -> set:
         """
