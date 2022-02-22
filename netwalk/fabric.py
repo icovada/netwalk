@@ -174,6 +174,10 @@ class Fabric():
                         # We do not have the switch because fut.result returned an error
                         # Find it looping the fabric
                         swobject = None
+
+                        if hostname == "":
+                            # all hope is lost
+                            continue
                         
                         for swname, swdata in self.switches.items():
                             if isinstance(hostname, Device):
