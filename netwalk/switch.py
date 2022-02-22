@@ -586,7 +586,7 @@ class Switch(Device):
         showrun = f"! {self.hostname}"
 
         try:
-            showrun = showrun + f" {self.facts['hostname']}\n"
+            showrun = showrun + f" {self.hostname}\n"
         except (AttributeError, KeyError):
             showrun = showrun + "\n"
 
