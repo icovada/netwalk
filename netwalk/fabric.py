@@ -186,6 +186,9 @@ class Fabric():
                                 swobject = swdata
                                 break
 
+                        if swobject is None:
+                            continue
+                        
                         self.logger.info(
                             "Demote %s back to Device from Switch", swobject.hostname)
                         swobject.__class__ = Device
