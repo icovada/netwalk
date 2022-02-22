@@ -44,7 +44,10 @@ class Device():
 
     def __init__(self, mgmt_address, **kwargs) -> None:
         if isinstance(mgmt_address, str):
-            self.mgmt_address = ipaddress.ip_address(mgmt_address)
+            try:
+                self.mgmt_address = ipaddress.ip_address(mgmt_address)
+            except ValueError:
+                self.mgmt_address = None
         else:
             self.mgmt_address = mgmt_address
 
