@@ -50,6 +50,11 @@ def get_device_by_hostname_or_mac(nb, swdata, site=None):
     Meraki APs advertise their mac as CDP hostname
     """
     
+    try:
+        return swdata.nb_device
+    except AttributeError:
+        pass
+
     if isinstance(swdata, netwalk.Device):
         if swdata.hostname == "":
             raise ValueError("Device has no hostname")
@@ -204,6 +209,8 @@ def create_devices_and_interfaces(nb, fabric, nb_access_role, nb_site, delete):
                                                    device_role=nb_access_role.id,
                                                    device_type=nb_device_type.id,
                                                    site=nb_site.id)
+
+        fabric.switches[swname].nb_device = nb_device
 
         nb_all_interfaces = {
             x.name: x for x in nb.dcim.interfaces.filter(device_id=nb_device.id)}
@@ -644,7 +651,7 @@ def add_cables(nb, fabric, nb_site):
         
         done.append(swdata)
         try:
-            swdata.nb_device = get_device_by_hostname_or_mac(nb, swdata.hostname, site=nb_site)
+            swdata.nb_device = get_device_by_hostname_or_mac(nb, swdata, site=nb_site)
         except ValueError:
             continue
 
@@ -780,9 +787,8 @@ def add_software_versions(nb, fabric, nb_site, delete):
             continue
 
         done.append(swdata)
-        logger.debug("Looking up %s", swdata.hostname)
         try:
-            thisdev = get_device_by_hostname_or_mac(nb, swdata.hostname, nb_site)
+            thisdev = get_device_by_hostname_or_mac(nb, swdata, nb_site)
         except ValueError:
             continue
 
