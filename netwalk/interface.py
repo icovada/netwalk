@@ -446,70 +446,89 @@ class Interface():
 
         return out
 
-    def __str__(self) -> str:
+    def generate_config(self, full=False) -> str:
         """Generate show run from self data"""
+        
         if self.name is None:
             raise KeyError("Must define at least a name")
-
+        
         fullconfig = f"interface {self.name}\n"
 
         if self.description != "":
-            fullconfig = fullconfig + f" description {self.description}\n"
+            fullconfig += f" description {self.description}\n"
+        elif full:
+            fullconfig += " no description\n"
         
         if isinstance(self.parent_interface, Interface):
             if "Port-channel" in self.parent_interface.name:
                 fullconfig += f" channel-group {self.channel_group} mode {self.channel_protocol}\n"
 
         if not self.routed_port:
-            fullconfig = fullconfig + f" switchport mode {self.mode}\n"
+            fullconfig += f" switchport mode {self.mode}\n"
 
             if self.mode == "access":
-                fullconfig = fullconfig + f" switchport access vlan {self.native_vlan}\n"
+                if full:
+                    fullconfig += " no switchport trunk native vlan\n no switchport trunk allowed vlan\n"
+
+                fullconfig += f" switchport access vlan {self.native_vlan}\n"
 
             elif self.mode== "trunk":
-                fullconfig = fullconfig + f" switchport trunk native vlan {self.native_vlan}\n"
+                if full:
+                    fullconfig += " no switchport access vlan\n"
+
+                fullconfig += f" switchport trunk native vlan {self.native_vlan}\n"
                 if self.allowed_vlan is None:
                     fullconfig = fullconfig + " switchport trunk allowed vlan all\n"
                 elif len(self.allowed_vlan) != 4094:
                     sorted_allowed_vlan = list(self.allowed_vlan)
                     sorted_allowed_vlan.sort()
                     vlan_str = ",".join(map(str, sorted_allowed_vlan))
-                    fullconfig = fullconfig + f" switchport trunk allowed vlan {vlan_str}\n"
+                    fullconfig += f" switchport trunk allowed vlan {vlan_str}\n"
                 else:
-                    fullconfig = fullconfig + " switchport trunk allowed vlan all\n"
+                    fullconfig += " switchport trunk allowed vlan all\n"
             else:
                 self.logger.warning("Port %s mode %s", self.name, self.mode)
 
 
             if self.mode == "access" and self.voice_vlan is not None:
-                fullconfig = fullconfig + f" switchport voice vlan {self.voice_vlan}\n"
+                fullconfig += f" switchport voice vlan {self.voice_vlan}\n"
+            elif full:
+                fullconfig += " no switchport voice vlan\n"
 
             if self.type_edge:
-                fullconfig = fullconfig + " spanning-tree portfast"
+                fullconfig += " spanning-tree portfast"
 
                 if self.mode == "trunk":
-                    fullconfig = fullconfig + " trunk\n"
+                    fullconfig += " trunk\n"
                 else:
-                    fullconfig = fullconfig + "\n"
+                    fullconfig += "\n"
+            elif full:
+                fullconfig += " no spanning-tree portfast\n"
 
             if self.bpduguard:
                 fullconfig = fullconfig + " spanning-tree bpduguard enable\n"
+            elif full:
+                fullconfig += " no spanning-tree bpduguard\n"
 
         else:
             if self.vrf != 'default':
-                fullconfig = fullconfig + " vrf forwarding " + self.vrf + "\n"
+                fullconfig +=" vrf forwarding " + self.vrf + "\n"
+            elif full:
+                fullconfig += " no vrf forwarding\n"
 
             if 'ipv4' in self.address:
                 for k, v in self.address['ipv4'].items():
-                    fullconfig = fullconfig + f" ip address {k.ip} {k.netmask}"
+                    fullconfig += f" ip address {k.ip} {k.netmask}"
                     if v['type'] == 'secondary':
-                        fullconfig = fullconfig + " secondary\n"
+                        fullconfig += " secondary\n"
                     elif v['type'] == 'primary':
-                        fullconfig = fullconfig + "\n"
+                        fullconfig += "\n"
+            elif full:
+                fullconfig += " no ip address\n"
 
             if 'hsrp' in self.address:
                 if self.address['hsrp']['version'] != 1:
-                    fullconfig = fullconfig + " standby version " + str(self.address['hsrp']['version']) + "\n"
+                    fullconfig += " standby version " + str(self.address['hsrp']['version']) + "\n"
                 for k, v in self.address['hsrp']['groups'].items():
                     line_begin = f" standby {k} " if k != 0 else " standby "
                     fullconfig = fullconfig + line_begin + "ip " + str(v['address']) + "\n"
@@ -530,3 +549,6 @@ class Interface():
 
         fullconfig = fullconfig + "!\n"
         return fullconfig
+
+    def __str__(self) -> str:
+        return self.generate_config()

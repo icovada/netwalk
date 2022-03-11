@@ -201,7 +201,25 @@ class TestInterfaceOutString(unittest.TestCase):
                      ' no shutdown\n'
                      '!\n')
 
-        assert str(interface) == outconfig
+        assert interface.generate_config(False) == outconfig
+
+    def test_base_full(self):
+        intdata = {'name': 'E0'}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' no description\n'
+                     ' switchport mode access\n'
+                     ' no switchport trunk native vlan\n'
+                     ' no switchport trunk allowed vlan\n'
+                     ' switchport access vlan 1\n'
+                     ' no switchport voice vlan\n'
+                     ' no spanning-tree portfast\n'
+                     ' no spanning-tree bpduguard\n'
+                     ' no shutdown\n'
+                     '!\n')
+
+        assert interface.generate_config(True) == outconfig
 
     def test_mode_access(self):
         intdata = {'name': 'E0',
@@ -214,7 +232,26 @@ class TestInterfaceOutString(unittest.TestCase):
                      ' no shutdown\n'
                      '!\n')
 
-        assert str(interface) == outconfig
+        assert interface.generate_config(False) == outconfig
+
+    def test_mode_access_full(self):
+        intdata = {'name': 'E0',
+                   'mode': 'access'}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' no description\n'
+                     ' switchport mode access\n'
+                     ' no switchport trunk native vlan\n'
+                     ' no switchport trunk allowed vlan\n'
+                     ' switchport access vlan 1\n'
+                     ' no switchport voice vlan\n'
+                     ' no spanning-tree portfast\n'
+                     ' no spanning-tree bpduguard\n'
+                     ' no shutdown\n'
+                     '!\n')
+
+        assert interface.generate_config(True) == outconfig
 
     def test_mode_access_native_vlan(self):
         intdata = {'name': 'E0',
@@ -228,7 +265,27 @@ class TestInterfaceOutString(unittest.TestCase):
                      ' no shutdown\n'
                      '!\n')
 
-        assert str(interface) == outconfig
+        assert interface.generate_config(False) == outconfig
+
+    def test_mode_access_native_vlan_full(self):
+        intdata = {'name': 'E0',
+                   'mode': 'access',
+                   'native_vlan': 3}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' no description\n'
+                     ' switchport mode access\n'
+                     ' no switchport trunk native vlan\n'
+                     ' no switchport trunk allowed vlan\n'
+                     ' switchport access vlan 3\n'
+                     ' no switchport voice vlan\n'
+                     ' no spanning-tree portfast\n'
+                     ' no spanning-tree bpduguard\n'
+                     ' no shutdown\n'
+                     '!\n')
+
+        assert interface.generate_config(True) == outconfig
 
     def test_mode_access_voice_vlan(self):
         intdata = {'name': 'E0',
@@ -243,7 +300,27 @@ class TestInterfaceOutString(unittest.TestCase):
                      ' no shutdown\n'
                      '!\n')
 
-        assert str(interface) == outconfig
+        assert interface.generate_config(False) == outconfig
+
+    def test_mode_access_voice_vlan_full(self):
+        intdata = {'name': 'E0',
+                   'mode': 'access',
+                   'voice_vlan': 150}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' no description\n'
+                     ' switchport mode access\n'
+                     ' no switchport trunk native vlan\n'
+                     ' no switchport trunk allowed vlan\n'
+                     ' switchport access vlan 1\n'
+                     ' switchport voice vlan 150\n'
+                     ' no spanning-tree portfast\n'
+                     ' no spanning-tree bpduguard\n'
+                     ' no shutdown\n'
+                     '!\n')
+
+        assert interface.generate_config(True) == outconfig
 
     def test_mode_trunk_voice_vlan(self):
         intdata = {'name': 'E0',
@@ -258,7 +335,27 @@ class TestInterfaceOutString(unittest.TestCase):
                      ' no shutdown\n'
                      '!\n')
 
-        assert str(interface) == outconfig
+        assert interface.generate_config(False) == outconfig
+
+    def test_mode_trunk_voice_vlan_full(self):
+        intdata = {'name': 'E0',
+                   'mode': 'trunk',
+                   'voice_vlan': 150}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' no description\n'
+                     ' switchport mode trunk\n'
+                     ' no switchport access vlan\n'
+                     ' switchport trunk native vlan 1\n'
+                     ' switchport trunk allowed vlan all\n'
+                     ' no switchport voice vlan\n'
+                     ' no spanning-tree portfast\n'
+                     ' no spanning-tree bpduguard\n'
+                     ' no shutdown\n'
+                     '!\n')
+
+        assert interface.generate_config(True) == outconfig
 
     def test_trunk(self):
         intdata = {'name': 'E0',
@@ -272,7 +369,26 @@ class TestInterfaceOutString(unittest.TestCase):
                      ' no shutdown\n'
                      '!\n')
 
-        assert str(interface) == outconfig
+        assert interface.generate_config(False) == outconfig
+
+    def test_trunk_full(self):
+        intdata = {'name': 'E0',
+                   'mode': 'trunk'}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' no description\n'
+                     ' switchport mode trunk\n'
+                     ' no switchport access vlan\n'
+                     ' switchport trunk native vlan 1\n'
+                     ' switchport trunk allowed vlan all\n'
+                     ' no switchport voice vlan\n'
+                     ' no spanning-tree portfast\n'
+                     ' no spanning-tree bpduguard\n'
+                     ' no shutdown\n'
+                     '!\n')
+
+        assert interface.generate_config(True) == outconfig
 
     def test_trunk_native(self):
         intdata = {'name': 'E0',
@@ -287,7 +403,27 @@ class TestInterfaceOutString(unittest.TestCase):
                      ' no shutdown\n'
                      '!\n')
 
-        assert str(interface) == outconfig
+        assert interface.generate_config(False) == outconfig
+
+    def test_trunk_native_full(self):
+        intdata = {'name': 'E0',
+                   'mode': 'trunk',
+                   'native_vlan': 3}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' no description\n'
+                     ' switchport mode trunk\n'
+                     ' no switchport access vlan\n'
+                     ' switchport trunk native vlan 3\n'
+                     ' switchport trunk allowed vlan all\n'
+                     ' no switchport voice vlan\n'
+                     ' no spanning-tree portfast\n'
+                     ' no spanning-tree bpduguard\n'
+                     ' no shutdown\n'
+                     '!\n')
+
+        assert interface.generate_config(True) == outconfig
 
     def test_trunk_allowed_vlan(self):
         intdata = {'name': 'E0',
@@ -302,7 +438,27 @@ class TestInterfaceOutString(unittest.TestCase):
                      ' no shutdown\n'
                      '!\n')
 
-        assert str(interface) == outconfig
+        assert interface.generate_config(False) == outconfig
+
+    def test_trunk_allowed_vlan_full(self):
+        intdata = {'name': 'E0',
+                   'mode': 'trunk',
+                   'allowed_vlan': set([1, 2, 3])}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' no description\n'
+                     ' switchport mode trunk\n'
+                     ' no switchport access vlan\n'
+                     ' switchport trunk native vlan 1\n'
+                     ' switchport trunk allowed vlan 1,2,3\n'
+                     ' no switchport voice vlan\n'
+                     ' no spanning-tree portfast\n'
+                     ' no spanning-tree bpduguard\n'
+                     ' no shutdown\n'
+                     '!\n')
+
+        assert interface.generate_config(True) == outconfig
 
     def test_bpduguard(self):
         intdata = {'name': 'E0',
@@ -316,7 +472,26 @@ class TestInterfaceOutString(unittest.TestCase):
                      ' no shutdown\n'
                      '!\n')
 
-        assert str(interface) == outconfig
+        assert interface.generate_config(False) == outconfig
+
+    def test_bpduguard_full(self):
+        intdata = {'name': 'E0',
+                   'bpduguard': True}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' no description\n'
+                     ' switchport mode access\n'
+                     ' no switchport trunk native vlan\n'
+                     ' no switchport trunk allowed vlan\n'
+                     ' switchport access vlan 1\n'
+                     ' no switchport voice vlan\n'
+                     ' no spanning-tree portfast\n'
+                     ' spanning-tree bpduguard enable\n'
+                     ' no shutdown\n'
+                     '!\n')
+
+        assert interface.generate_config(True) == outconfig
 
     def test_type_edge_access(self):
         intdata = {'name': 'E0',
@@ -330,7 +505,26 @@ class TestInterfaceOutString(unittest.TestCase):
                      ' no shutdown\n'
                      '!\n')
 
-        assert str(interface) == outconfig
+        assert interface.generate_config(False) == outconfig
+
+    def test_type_edge_access_full(self):
+        intdata = {'name': 'E0',
+                   'type_edge': True}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' no description\n'
+                     ' switchport mode access\n'
+                     ' no switchport trunk native vlan\n'
+                     ' no switchport trunk allowed vlan\n'
+                     ' switchport access vlan 1\n'
+                     ' no switchport voice vlan\n'
+                     ' spanning-tree portfast\n'
+                     ' no spanning-tree bpduguard\n'
+                     ' no shutdown\n'
+                     '!\n')
+
+        assert interface.generate_config(True) == outconfig
 
     def test_type_edge_trunk(self):
         intdata = {'name': 'E0',
@@ -346,7 +540,27 @@ class TestInterfaceOutString(unittest.TestCase):
                      ' no shutdown\n'
                      '!\n')
 
-        assert str(interface) == outconfig
+        assert interface.generate_config(False) == outconfig
+        
+    def test_type_edge_trunk_full(self):
+        intdata = {'name': 'E0',
+                   'mode': 'trunk',
+                   'type_edge': True}
+        interface = netwalk.Interface(**intdata)
+
+        outconfig = ('interface E0\n'
+                     ' no description\n'
+                     ' switchport mode trunk\n'
+                     ' no switchport access vlan\n'
+                     ' switchport trunk native vlan 1\n'
+                     ' switchport trunk allowed vlan all\n'
+                     ' no switchport voice vlan\n'
+                     ' spanning-tree portfast trunk\n'
+                     ' no spanning-tree bpduguard\n'
+                     ' no shutdown\n'
+                     '!\n')
+
+        assert interface.generate_config(True) == outconfig
 
 
 class TestL3Interface(unittest.TestCase):
@@ -365,7 +579,7 @@ class TestL3Interface(unittest.TestCase):
         assert interface.address['ipv4'][addrobject]['type'] == 'primary'
         assert interface.vrf == "default"
 
-        assert str(interface) == config
+        assert interface.generate_config(False) == config
 
     def test_l3_int_w_secondary(self):
         config = ("interface Ethernet0\n"
@@ -389,7 +603,7 @@ class TestL3Interface(unittest.TestCase):
         assert interface.address['ipv4'][secaddrobject_1]['type'] == 'secondary'
         assert interface.address['ipv4'][secaddrobject_2]['type'] == 'secondary'
 
-        assert str(interface) == config
+        assert interface.generate_config(False) == config
 
     def test_l3_int_w_hsrp(self):
         config = ("interface Ethernet0\n"
@@ -411,7 +625,7 @@ class TestL3Interface(unittest.TestCase):
         assert interface.address['hsrp']['groups'][1]['priority'] == 100
         assert interface.address['hsrp']['groups'][1]['preempt'] is False
 
-        assert str(interface) == config
+        assert interface.generate_config(False) == config
 
     def test_l3_int_w_hsrp_secondary(self):
         config = ("interface Ethernet0\n"
@@ -436,7 +650,7 @@ class TestL3Interface(unittest.TestCase):
         assert interface.address['hsrp']['groups'][1]['priority'] == 100
         assert interface.address['hsrp']['groups'][1]['preempt'] is False
 
-        assert str(interface) == config
+        assert interface.generate_config(False) == config
 
     def test_l3_int_w_hsrp_grp_0(self):
         config = ("interface Ethernet0\n"
@@ -458,7 +672,7 @@ class TestL3Interface(unittest.TestCase):
         assert interface.address['hsrp']['groups'][0]['preempt'] is False
         assert interface.address['hsrp']['version'] == 1
 
-        assert str(interface) == config
+        assert interface.generate_config(False) == config
 
     def test_l3_int_w_hsrp_w_extra_conf(self):
         config = ("interface Ethernet0\n"
@@ -483,7 +697,7 @@ class TestL3Interface(unittest.TestCase):
         assert interface.address['hsrp']['groups'][1]['priority'] == 120
         assert interface.address['hsrp']['version'] == 2
 
-        assert str(interface) == config
+        assert interface.generate_config(False) == config
 
     def test_l3_int_vrf(self):
         config = ("interface Ethernet0\n"
@@ -499,7 +713,7 @@ class TestL3Interface(unittest.TestCase):
         assert primaddrobject in interface.address['ipv4']
         assert interface.vrf == "antani"
 
-        assert str(interface) == config
+        assert interface.generate_config(False) == config
 
 
 class TestPortChannel(unittest.TestCase):
