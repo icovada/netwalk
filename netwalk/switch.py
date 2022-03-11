@@ -518,7 +518,7 @@ class Switch(Device):
             neigh_data = {'hostname': nei['neighbor'],
                           'ip': nei['mgmt_ip'],
                           'platform': nei['system_description'],
-                          'remote_int': nei['remote_port']
+                          'remote_int': nei['remote_port_id']
                           }
 
             self.interfaces[interface_name_expander(nei['local_port'])].neighbors.append(neigh_data)
