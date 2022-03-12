@@ -132,7 +132,7 @@ class Interface():
         self.channel_group: Optional[int] = kwargs.get('channel_group')
         self.channel_protocol: Optional[str] = kwargs.get('channel_protocol')
         self.child_interfaces: List[Interface] = kwargs.get('child_interfaces', [])
-        self.config: List[str] = kwargs.get('config', [])
+        self.config: List[str] = kwargs.get('config')
         self.counters: Optional[dict] = kwargs.get('counters')
         self.crc: Optional[str] = kwargs.get('crc')
         self.delay: Optional[str] = kwargs.get('delay')
@@ -172,6 +172,8 @@ class Interface():
 
         if self.config is not None:
             self.parse_config()
+        else:
+            self.config = []
 
         if self.name is not None:
             self._calculate_sort_order()
