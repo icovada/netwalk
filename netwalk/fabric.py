@@ -58,7 +58,7 @@ class Fabric():
     def add_switch(self,
                    host,
                    credentials,
-                   napalm_optional_args=[None],
+                   napalm_optional_args=None,
                    **kwargs):
         """
         Try to connect to, and if successful add to fabric, a new switch
@@ -70,6 +70,9 @@ class Fabric():
         :param napalm_optional_args: Optional_args to pass to NAPALM, as many as you want
         :type napalm_optional_args: list(dict)
         """
+
+        if napalm_optional_args is None:
+            napalm_optional_args = [None]
 
         self.discovery_status[host] = "Queued"
         if type(host) == str:
@@ -121,7 +124,7 @@ class Fabric():
     def init_from_seed_device(self,
                               seed_hosts: str,
                               credentials: list,
-                              napalm_optional_args=[None],
+                              napalm_optional_args=None,
                               parallel_threads=1,
                               neigh_validator_callback=None):
         """
@@ -136,6 +139,9 @@ class Fabric():
         :param neigh_validator_callback: Function accepting a Device object. Return True if device should be actively discovered
         :type neigh_validator_callback: function
         """
+
+        if napalm_optional_args is None:
+            napalm_optional_args = [None]
 
         # We can use a with statement to ensure threads are cleaned up promptly
         with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_threads) as executor:
@@ -332,7 +338,10 @@ class Fabric():
         :param end_sw: List of target switch or switches
         :type end_sw: netwalk.Switch
         """
-        def _inside_recursive(start_int, end_sw, path=[]):
+        def _inside_recursive(start_int, end_sw, path=None):
+            if path is None:
+                path = []
+
             switch = start_int.neighbors[0].switch
             path = path + [start_int.neighbors[0]]
             if switch in end_sw:
