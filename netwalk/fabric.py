@@ -239,7 +239,16 @@ class Fabric():
                                                                            napalm_optional_args,
                                                                            mgmt_address=nei['ip'])] = nei['ip']
                                     else:
+                                        # Add device to fabric without scanning it
                                         self.discovery_status[nei['ip']] = "Skipped"
+
+                                        if nei['hostname'] not in self.switches:
+                                            nei_dev = Device(nei['ip'], hostname=nei['hostname'])
+                                            self.switches[nei['hostname']] = nei_dev
+
+                                        remote_int = Interface(name=nei['remote_int'])
+                                        nei_dev.add_interface(remote_int)
+
                                         self.logger.info("Skipping %s, callback returned False", nei['hostname'])
                                 else:
                                     self.logger.debug(
