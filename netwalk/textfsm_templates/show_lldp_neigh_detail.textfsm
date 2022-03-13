@@ -48,7 +48,7 @@ Start
   ^\s*-+\s*$$ -> Record
   ^MED -> Med
   ^\s*\^\s*
-  ^\s*Total\s+entries\s+displayed -> Record
+  ^\s*Total\s+entries\s+displayed -> Record End
   ^\s*$$
   # Capture time-stamp if vty line has command time-stamping turned on
   ^Load\s+for\s+
@@ -67,7 +67,7 @@ Med
   ^\s+Serial\s+number:\s+${serial}
   ^\s+\S+
   ^\s*$$
-  ^\s*Total\s+entries\s+displayed -> Record
+  ^\s*Total\s+entries\s+displayed -> Record End
   ^\s*-+\s*$$ -> Continue.Record
   ^\s*-+\s*$$ -> Start
   ^.* -> Error
