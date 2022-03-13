@@ -355,7 +355,8 @@ class Switch(Device):
                 v.pop('active')
 
                 try:
-                    v['interface'] = self.interfaces[v['interface']]
+                    # some interfaces have diFFeRenT capitalization across outputs
+                    v['interface'] = {k.lower(): v for k, v in self.interfaces.items()}[v['interface'].lower()]
                     self.mac_table[k] = v
                 except KeyError:
                     #print("Interface {} not found".format(v['interface']))
