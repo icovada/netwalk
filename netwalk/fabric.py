@@ -81,7 +81,7 @@ class Fabric():
                                 fabric=self,
                                 discovery_status=kwargs.get('discovery_status', None))
 
-        elif type(host) == Device:
+        elif isinstance(host, Device):
             host.promote_to_switch()
             thisswitch = host
 
