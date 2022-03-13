@@ -486,8 +486,13 @@ class Switch(Device):
                               result['dest_host'], result['mgmt_ip'], result['local_port'], result['remote_port'])
 
         for nei in fsm_results:
+            try:
+                address = ipaddress.ip_address(nei['mgmt_ip'])
+            except ValueError:
+                address = None
+            
             neigh_data = {'hostname': nei['dest_host'],
-                          'ip': nei['mgmt_ip'],
+                          'ip': address,
                           'platform': nei['platform'],
                           'remote_int': nei['remote_port']
                           }
@@ -516,8 +521,13 @@ class Switch(Device):
                               result['neighbor'], result['mgmt_ip'], result['local_port'], result['remote_port'])
 
         for nei in fsm_results:
+            try:
+                address = ipaddress.ip_address(nei['mgmt_ip'])
+            except ValueError:
+                address = None
+
             neigh_data = {'hostname': nei['neighbor'],
-                          'ip': nei['mgmt_ip'],
+                          'ip': address,
                           'platform': nei['system_description'],
                           'remote_int': nei['remote_port_id']
                           }
@@ -525,7 +535,7 @@ class Switch(Device):
             if nei['local_port'] == '':
                 continue
             
-            if neigh_data['hostname'] == '' and neigh_data['ip'] == '':
+            if neigh_data['hostname'] == '' and neigh_data['ip'] is None:
                 continue
 
             self.interfaces[interface_name_expander(nei['local_port'])].neighbors.append(neigh_data)
