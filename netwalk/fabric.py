@@ -139,19 +139,34 @@ class Fabric():
         if napalm_optional_args is None:
             napalm_optional_args = [None]
 
+        for x in seed_hosts:
+            if isinstance(x, Device):
+                self.discovery_status[x.mgmt_address] = "Queued"
+            else:
+                self.discovery_status[ipaddress.ip_address(x)] = "Queued"
+
         # We can use a with statement to ensure threads are cleaned up promptly
         with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_threads) as executor:
             # Start the load operations and mark each future with its URL
             self.logger.debug("Adding seed hosts to loop")
+
+            future_switch_data = {}
             for x in seed_hosts:
-                self.discovery_status[x] = "Queued"
-                
-            future_switch_data = {executor.submit(
-                self.add_switch,
-                x,
-                credentials,
-                napalm_optional_args,
-                discovery_status="Queued"): x for x in seed_hosts}
+                if isinstance(x, Device):
+                    switch = x
+                else:
+                    switch = Device(x)
+
+                key = executor.submit(
+                    self.add_switch,
+                    switch,
+                    credentials,
+                    napalm_optional_args,
+                    discovery_status="Queued")
+
+                value = x
+
+                future_switch_data[key] = value
 
             while future_switch_data:
                 self.logger.info(
@@ -160,27 +175,23 @@ class Fabric():
                                                   return_when=concurrent.futures.FIRST_COMPLETED)
 
                 for fut in done:
-                    swobject = None
-                    swdata = None
                     hostname = future_switch_data.pop(fut)
                     self.logger.debug("Got data for %s", hostname)
                     try:
+                        swobject = None
+                        swdata = None
                         swobject = fut.result()
                     except Exception as exc:
                         #raise exc
-                        
-                        self.logger.error('%r generated an exception: %s' %
-                              (hostname, exc))
-                        self.discovery_status[hostname] = "Failed"
 
-                        # We do not have the switch because fut.result returned an error
-                        # Find it looping the fabric
-                        swobject = None
+                        self.logger.error('%r generated an exception: %s' %
+                                          (hostname, exc))
+                        self.discovery_status[hostname] = "Failed"
 
                         if hostname == "":
                             # all hope is lost
                             continue
-                        
+
                         for swname, swdata in self.switches.items():
                             if isinstance(hostname, Device):
                                 swobject = hostname
@@ -216,24 +227,25 @@ class Fabric():
                                     scan = True
                                     if neigh_validator_callback is not None:
                                         if isinstance(nei, Device):
-                                            self.logger.debug("Passing %s to callback function to check whther to scan", nei.switch.hostname)
+                                            self.logger.debug("Passing %s to callback function to check whether to scan", nei.switch.hostname)
                                             scan = neigh_validator_callback(nei.switch.hostname)
                                         else:
-                                            self.logger.debug("Passing %s to callback function to check whther to scan", nei['hostname'])
+                                            self.logger.debug("Passing %s to callback function to check whether to scan", nei['hostname'])
                                             scan = neigh_validator_callback(nei['hostname'])
-                                        
+
                                         self.logger.debug("Callback function returned %s", scan)
-                                       
+
                                     if scan:
                                         self.logger.info(
                                             "Queueing discover for %s", nei['hostname'])
                                         self.discovery_status[nei['ip']] = "Queued"
 
+                                        switch = Device(nei['ip'], hostname=nei['hostname'])
+
                                         future_switch_data[executor.submit(self.add_switch,
-                                                                           nei['hostname'],
+                                                                           switch,
                                                                            credentials,
-                                                                           napalm_optional_args,
-                                                                           mgmt_address=nei['ip'])] = nei['ip']
+                                                                           napalm_optional_args)] = switch
                                     else:
                                         # Add device to fabric without scanning it
                                         self.discovery_status[nei['ip']] = "Skipped"
