@@ -219,10 +219,15 @@ class Fabric():
 
                                     scan = True
                                     if neigh_validator_callback is not None:
-                                        self.logger.debug("Passing %s to callback function to check whther to scan", nei.switch.hostname)
-                                        scan = neigh_validator_callback(self.switches[nei['hostname']])
+                                        if isinstance(nei, Device):
+                                            self.logger.debug("Passing %s to callback function to check whther to scan", nei.switch.hostname)
+                                            scan = neigh_validator_callback(nei.switch.hostname)
+                                        else:
+                                            self.logger.debug("Passing %s to callback function to check whther to scan", nei['hostname'])
+                                            scan = neigh_validator_callback(nei['hostname'])
+                                        
                                         self.logger.debug("Callback function returned %s", scan)
-                                    
+                                       
                                     if scan:
                                         self.logger.info(
                                             "Queueing discover for %s", nei['hostname'])
