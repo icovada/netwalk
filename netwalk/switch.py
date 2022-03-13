@@ -522,7 +522,7 @@ class Switch(Device):
                           'remote_int': nei['remote_port_id']
                           }
             
-            if nei['hostname'] == '' and nei['ip'] == '':
+            if neigh_data['hostname'] == '' and neigh_data['ip'] == '':
                 continue
 
             self.interfaces[interface_name_expander(nei['local_port'])].neighbors.append(neigh_data)
