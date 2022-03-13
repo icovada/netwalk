@@ -56,7 +56,7 @@ class Fabric():
         self.mac_table = {}
 
     def add_switch(self,
-                   host,
+                   switch: Switch,
                    credentials,
                    napalm_optional_args=None,
                    **kwargs):
@@ -74,18 +74,20 @@ class Fabric():
         if napalm_optional_args is None:
             napalm_optional_args = [None]
 
-        self.discovery_status[host] = "Queued"
-        if type(host) == str:
-            thisswitch = Switch(kwargs.get('mgmt_address', host),
-                                hostname=host,
-                                fabric=self,
-                                discovery_status=kwargs.get('discovery_status', None))
+        assert isinstance(switch, Device)
 
-        elif isinstance(host, Device):
-            host.promote_to_switch()
-            thisswitch = host
+        self.discovery_status[switch.mgmt_address] = "Queued"
+        switch.promote_to_switch()
 
-        self.logger.info("Creating switch %s", thisswitch.mgmt_address)
+        # Check if Switch is already in fabric.
+        # Hostname is not enough because CDP stops at 40 characters and it might have been added
+        # with a cut-off hostname
+        if switch.hostname[:40] in self.switches:
+            return switch
+        else:
+            self.switches[switch.hostname[:40]] = switch
+
+        self.logger.info("Creating switch %s", switch.mgmt_address)
         connected = False
         for optional_arg in napalm_optional_args:
             if connected:
@@ -93,22 +95,16 @@ class Fabric():
 
             for cred in credentials:
                 try:
-                    thisswitch.retrieve_data(cred[0], cred[1],
-                                             napalm_optional_args=optional_arg)
+                    switch.retrieve_data(cred[0], cred[1],
+                                         napalm_optional_args=optional_arg)
                     connected = True
                     self.logger.info(
-                        "Connection to switch %s successful", thisswitch.mgmt_address)
+                        "Connection to switch %s successful", switch.mgmt_address)
                     break
                 except (ConnectionException, NetMikoAuthenticationException, ConnectionRefusedError, socket_timeout):
                     self.logger.warning(
                         "Login failed, trying next method if available")
                     continue
-
-        # Check if Switch is already in fabric.
-        # Hostname is not enough because CDP stops at 40 characters and it might have been added
-        # with a cut-off hostname
-        if thisswitch.hostname[:40] not in self.switches:
-            self.switches[thisswitch.hostname[:40]] = thisswitch
 
         if not connected:
             self.logger.error(
@@ -117,9 +113,9 @@ class Fabric():
                 "Could not log in with any of the specified methods")
 
         self.logger.info("Finished discovery of switch %s",
-                         thisswitch.hostname)
+                         switch.hostname)
 
-        return thisswitch
+        return switch
 
     def init_from_seed_device(self,
                               seed_hosts: str,
