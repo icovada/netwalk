@@ -521,6 +521,9 @@ class Switch(Device):
                           'platform': nei['system_description'],
                           'remote_int': nei['remote_port_id']
                           }
+
+            if nei['local_port'] == '':
+                continue
             
             if neigh_data['hostname'] == '' and neigh_data['ip'] == '':
                 continue
