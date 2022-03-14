@@ -215,7 +215,7 @@ class Fabric():
                     else:
                         swobject.discovery_status = dt.now()
                         self.logger.info(
-                            "Completed discovery of %s %s", swobject.facts['fqdn'], swobject.hostname)
+                            "Completed discovery of %s", swobject.hostname)
                         # Check if it has cdp neighbors
 
                         for _, intdata in swobject.interfaces.items():
