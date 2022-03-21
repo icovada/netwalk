@@ -453,7 +453,7 @@ class Switch(Device):
                         setattr(self.interfaces[intf['name']], k, val)
                         self.logger.debug("Set attribute %s to %s for %s", k, val, intf['name'])
                     elif k == 'is_enabled':
-                        val = True if 'up' in v else False
+                        val = False if 'administratively' in v else True
                         setattr(self.interfaces[intf['name']], k, val)
                         self.logger.debug("Set attribute %s to %s, parsed value: %s for %s", k, val, v, intf['name'])
                     elif k == 'is_up':
