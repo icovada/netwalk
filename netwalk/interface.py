@@ -305,10 +305,12 @@ class Interface():
                 continue
 
             if "no shutdown" in line:
+                self.logger.debug("Set shutdown = False")
                 self.is_enabled = True
                 self.unparsed_lines.remove(line)
                 continue
             elif "shutdown" in line:
+                self.logger.debug("Set shutdown = True")
                 self.is_enabled = False
                 self.unparsed_lines.remove(line)
                 continue
