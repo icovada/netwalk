@@ -464,7 +464,7 @@ class Switch(Device):
                         self.logger.debug("Set attribute %s to %s, parsed value: %s", k, val, v)
                     else:
                         setattr(self.interfaces[intf['name']], k, v)
-                        self.logger.debug("Set attribute %s to %s", k, val)
+                        self.logger.debug("Set attribute %s to %s", k, v)
             else:
                 # Sometimes multi-type interfaces appear in one command and not in another
                 self.interfaces[intf['name']] = Interface(name=intf['name'])
