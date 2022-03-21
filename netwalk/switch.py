@@ -449,21 +449,26 @@ class Switch(Device):
             if intf['name'] in self.interfaces:
                 for k, v in intf.items():
                     if k in ('last_in', 'last_out', 'last_out_hang', 'last_clearing'):
-                        setattr(self.interfaces[intf['name']],
-                                k, self._cisco_time_to_dt(v))
+                        val= self._cisco_time_to_dt(v)
+                        setattr(self.interfaces[intf['name']], k, val)
+                        self.logger.debug("Set attribute %s to %s", k, val)
                     elif k == 'is_enabled':
                         val = True if 'up' in v else False
                         setattr(self.interfaces[intf['name']], k, val)
+                        self.logger.debug("Set attribute %s to %s, parsed value: %s", k, val, v)
                     elif k == 'is_up':
                         val = True if 'up' in v else False
                         setattr(self.interfaces[intf['name']], k, val)
                         setattr(
                             self.interfaces[intf['name']], 'protocol_status', v)
+                        self.logger.debug("Set attribute %s to %s, parsed value: %s", k, val, v)
                     else:
                         setattr(self.interfaces[intf['name']], k, v)
+                        self.logger.debug("Set attribute %s to %s", k, val)
             else:
                 # Sometimes multi-type interfaces appear in one command and not in another
                 self.interfaces[intf['name']] = Interface(name=intf['name'])
+                self.info("Creating new interface %s not found previously", intf['name'])
 
     def _parse_cdp_neighbors(self):
         """Ask for and parse CDP neighbors"""
