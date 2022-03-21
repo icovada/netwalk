@@ -451,20 +451,20 @@ class Switch(Device):
                     if k in ('last_in', 'last_out', 'last_out_hang', 'last_clearing'):
                         val= self._cisco_time_to_dt(v)
                         setattr(self.interfaces[intf['name']], k, val)
-                        self.logger.debug("Set attribute %s to %s", k, val)
+                        self.logger.debug("Set attribute %s to %s for %s", k, val, intf['name'])
                     elif k == 'is_enabled':
                         val = True if 'up' in v else False
                         setattr(self.interfaces[intf['name']], k, val)
-                        self.logger.debug("Set attribute %s to %s, parsed value: %s", k, val, v)
+                        self.logger.debug("Set attribute %s to %s for %s, parsed value: %s", k, val, v, intf['name'])
                     elif k == 'is_up':
                         val = True if 'up' in v else False
                         setattr(self.interfaces[intf['name']], k, val)
                         setattr(
                             self.interfaces[intf['name']], 'protocol_status', v)
-                        self.logger.debug("Set attribute %s to %s, parsed value: %s", k, val, v)
+                        self.logger.debug("Set attribute %s to %s for %s, parsed value: %s", k, val, v, intf['name'])
                     else:
                         setattr(self.interfaces[intf['name']], k, v)
-                        self.logger.debug("Set attribute %s to %s", k, v)
+                        self.logger.debug("Set attribute %s to %s for %s", k, v, intf['name'])
             else:
                 # Sometimes multi-type interfaces appear in one command and not in another
                 self.interfaces[intf['name']] = Interface(name=intf['name'])
