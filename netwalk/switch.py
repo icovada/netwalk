@@ -455,13 +455,13 @@ class Switch(Device):
                     elif k == 'is_enabled':
                         val = True if 'up' in v else False
                         setattr(self.interfaces[intf['name']], k, val)
-                        self.logger.debug("Set attribute %s to %s for %s, parsed value: %s", k, val, v, intf['name'])
+                        self.logger.debug("Set attribute %s to %s, parsed value: %s for %s", k, val, v, intf['name'])
                     elif k == 'is_up':
                         val = True if 'up' in v else False
                         setattr(self.interfaces[intf['name']], k, val)
                         setattr(
                             self.interfaces[intf['name']], 'protocol_status', v)
-                        self.logger.debug("Set attribute %s to %s for %s, parsed value: %s", k, val, v, intf['name'])
+                        self.logger.debug("Set attribute %s to %s, parsed value: %s for %s", k, val, v, intf['name'])
                     else:
                         setattr(self.interfaces[intf['name']], k, v)
                         self.logger.debug("Set attribute %s to %s for %s", k, v, intf['name'])
