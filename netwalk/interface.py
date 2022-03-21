@@ -119,7 +119,6 @@ class Interface():
 
     def __init__(self, **kwargs):
         from netwalk.switch import Switch
-        self.logger = logging.getLogger(__name__)
         self.name: str = kwargs.get('name')
         self.description: Optional[str] = kwargs.get('description', "")
 
@@ -170,6 +169,11 @@ class Interface():
         self.voice_vlan: Optional[int] = kwargs.get('voice_vlan')
         self.vrf: str = kwargs.get('vrf', "default")
 
+        if self.name is None:
+            self.logger = logging.getLogger(__name__)
+        else:
+            self.logger = logging.getLogger(__name__ + self.name)
+
         if self.config is not None:
             self.parse_config()
         else:
@@ -207,6 +211,9 @@ class Interface():
             # Find interface name
             match = re.search(r"^interface ([A-Za-z\-]*(\/*\d*)+\.?\d*)", cleanline)
             if match is not None:
+                if self.name is None:
+                    self.logger = logging.getLogger(__name__ + match.groups()[0])
+
                 self.name = match.groups()[0]
                 if "vlan" in self.name.lower():
                     self.routed_port = True
