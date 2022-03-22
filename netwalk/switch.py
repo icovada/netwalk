@@ -468,7 +468,7 @@ class Switch(Device):
             else:
                 # Sometimes multi-type interfaces appear in one command and not in another
                 self.interfaces[intf['name']] = Interface(name=intf['name'])
-                self.info("Creating new interface %s not found previously", intf['name'])
+                self.logger.info("Creating new interface %s not found previously", intf['name'])
 
     def _parse_cdp_neighbors(self):
         """Ask for and parse CDP neighbors"""
