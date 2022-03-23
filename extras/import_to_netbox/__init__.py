@@ -67,18 +67,16 @@ def get_device_by_hostname_or_mac(swdata, site=None):
             raise ValueError("Device has no hostname")
         hostname = swdata
 
-    try:
-        ipaddress.ip_address(hostname)
-    except ValueError:
-        pass
+    # Get device by name
+    if site is None:
+        nb_device = NB.dcim.devices.get(name=hostname)
     else:
-        if site is None:
-            nb_device = NB.dcim.devices.get(name=hostname)
-        else:
-            nb_device = NB.dcim.devices.get(name=hostname, site_id=site.id)
+        nb_device = NB.dcim.devices.get(name=hostname, site_id=site.id)
+    if nb_device is not None:
         return nb_device
 
     try:
+        # Get device by looking up its mac across interfaces
         mac_address = EUI(hostname)
         nb_interface = NB.dcim.interfaces.get(mac_address=mac_address)
 
@@ -89,29 +87,30 @@ def get_device_by_hostname_or_mac(swdata, site=None):
         return nb_device
 
     except (AssertionError, RequestError, AddrFormatError):
+        # Hostname is not a mac, lookup in other ways
         try:
+            # Lookup by hostname starts with
             if site is None:
-                nb_device = NB.dcim.devices.get(name=hostname)
+                nb_device = NB.dcim.devices.filter(name__isw=hostname)
             else:
-                nb_device = NB.dcim.devices.get(name=hostname, site_id=site.id)
+                nb_device = NB.dcim.devices.filter(name__isw=hostname, site_id=site.id)
+
+            if nb_device is not None:
+                alldevs = list(nb_device)
+                if len(alldevs) > 1:
+                    # If there is more than one device and the hostname is exactly 40 chars
+                    # it's probably a duplicate we got from CDP, remove it
+                    for dev in alldevs:
+                        if len(dev.name) == 40:
+                            dev.delete()
+                elif len(alldevs) == 0:
+                    return alldevs[0]
+
+                nb_device = None
 
             if nb_device is None:
-                if site is None:
-                    nb_device = NB.dcim.devices.filter(name__isw=hostname)
-                else:
-                    nb_device = NB.dcim.devices.filter(
-                        name__isw=hostname, site_id=site.id)
-
-                if nb_device is not None:
-                    alldevs = list(nb_device)
-                    if len(alldevs) > 1:
-                        for dev in alldevs:
-                            if len(dev.name) == 40:
-                                dev.delete()
-
-                    nb_device = None
-
-                if nb_device is None:
+                # Lookup by cutting up the hostname to 40 chars
+                if len(hostname) > 40:
                     if site is None:
                         nb_device = NB.dcim.devices.get(
                             name__isw=hostname[:40])
@@ -119,19 +118,20 @@ def get_device_by_hostname_or_mac(swdata, site=None):
                         nb_device = NB.dcim.devices.get(
                             name__isw=hostname[:40], site_id=site.id)
 
-                    if nb_device is None:
-                        domain_hierarchy = hostname.split(".")
-                        subdomains = len(domain_hierarchy)-1
-                        while nb_device is None and subdomains != 0:
-                            smaller_name = ".".join(
-                                domain_hierarchy[:subdomains])
-                            if site is None:
-                                nb_device = NB.dcim.devices.get(
-                                    name__isw=smaller_name)
-                            else:
-                                nb_device = NB.dcim.devices.get(
-                                    name__isw=smaller_name, site_id=site.id)
-                            subdomains -= 1
+                if nb_device is None:
+                    # Last resort, cut hostname by subdomains
+                    domain_hierarchy = hostname.split(".")
+                    subdomains = len(domain_hierarchy)-1
+                    while nb_device is None and subdomains != 0:
+                        smaller_name = ".".join(
+                            domain_hierarchy[:subdomains])
+                        if site is None:
+                            nb_device = NB.dcim.devices.get(
+                                name__isw=smaller_name)
+                        else:
+                            nb_device = NB.dcim.devices.get(
+                                name__isw=smaller_name, site_id=site.id)
+                        subdomains -= 1
 
             return nb_device
         except (KeyError, IndexError):
