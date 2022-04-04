@@ -98,7 +98,7 @@ class Switch(Device):
     pass config as string to parse locally
     """
 
-    INTERFACE_TYPES = r"([Pp]ort-channel|\w*Ethernet|Vlan|Loopback)."
+    INTERFACE_TYPES = r"([Pp]ort-channel|\w*Ethernet|\w*GigE|Vlan|Loopback)."
     INTERFACE_FILTER = r"^interface " + INTERFACE_TYPES
 
     logger: logging.Logger
