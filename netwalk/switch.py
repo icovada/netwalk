@@ -467,7 +467,8 @@ class Switch(Device):
                         self.logger.debug("Set attribute %s to %s for %s", k, v, intf['name'])
             else:
                 # Sometimes multi-type interfaces appear in one command and not in another
-                self.interfaces[intf['name']] = Interface(name=intf['name'])
+                newint = Interface(name=intf['name'])
+                self.add_interface(newint)
                 self.logger.info("Creating new interface %s not found previously", intf['name'])
 
     def _parse_cdp_neighbors(self):
