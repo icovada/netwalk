@@ -5,7 +5,7 @@ def interface_name_expander(name):
                'Gi': 'GigabitEthernet',
                'Te': 'TenGigabitEthernet',
                'Po': 'Port-Channel',
-               'Twe': 'TwentyFiveGigabitEthernet'}
+               'Twe': 'TwentyFiveGigE'}
     
     for k, v in mapping.items():
         if name.startswith(k):
