@@ -55,13 +55,13 @@ class Fabric():
         self.discovery_status = {}
         self.mac_table = {}
 
-    def add_switch(self,
+    def add_device(self,
                    switch: Switch,
                    credentials,
                    napalm_optional_args=None,
                    **kwargs):
         """
-        Try to connect to, and if successful add to fabric, a new switch
+        Try to connect to, and if successful add to fabric, a new Device object
 
         :param host: IP or hostname of device to connect to
         :type host: str
@@ -158,7 +158,7 @@ class Fabric():
                     switch = Device(x)
 
                 key = executor.submit(
-                    self.add_switch,
+                    self.add_device,
                     switch,
                     credentials,
                     napalm_optional_args,
@@ -242,7 +242,7 @@ class Fabric():
 
                                         switch = Device(nei['ip'], hostname=nei['hostname'])
 
-                                        future_switch_data[executor.submit(self.add_switch,
+                                        future_switch_data[executor.submit(self.add_device,
                                                                            switch,
                                                                            credentials,
                                                                            napalm_optional_args)] = switch
