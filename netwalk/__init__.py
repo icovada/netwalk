@@ -1,7 +1,7 @@
 "Main file for library"
 
 from .interface import Interface
-from .switch import Device, Switch
+from .device import Device, Switch
 from .fabric import Fabric
 
 __all__ = ["Interface", "Switch", "Fabric", "Device"]
