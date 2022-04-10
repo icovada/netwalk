@@ -30,7 +30,7 @@ Once connected to the switch it will pull and parse the running config, the mac 
 Note: you may also pass a list of `napalm_optional_args`, check the [NAPALM optional args guide](https://napalm.readthedocs.io/en/latest/support/#optional-arguments) for explanation and examples
 
 ### Manual addition of switches
-You can tell Fabric to discover another switch on its own or you can add a `Switch` object to `.switches`. WHichever way, do not forget to call `refresh_global_information` to recalculate neighborships and global mac address table
+You can tell Fabric to discover another switch on its own or you can add a `Switch` object to `.devices`. WHichever way, do not forget to call `refresh_global_information` to recalculate neighborships and global mac address table
 
 #### Example
 

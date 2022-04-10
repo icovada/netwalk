@@ -118,7 +118,7 @@ class Interface():
     vrf: str
 
     def __init__(self, **kwargs):
-        from netwalk.switch import Switch
+        from netwalk.device import Switch
         self.name: str = kwargs.get('name')
         self.description: Optional[str] = kwargs.get('description', "")
 
@@ -133,6 +133,7 @@ class Interface():
         self.child_interfaces: List[Interface] = kwargs.get('child_interfaces', [])
         self.config: List[str] = kwargs.get('config')
         self.counters: Optional[dict] = kwargs.get('counters')
+        self.device: Optional[Switch] = kwargs.get('device')
         self.crc: Optional[str] = kwargs.get('crc')
         self.delay: Optional[str] = kwargs.get('delay')
         self.duplex: Optional[str] = kwargs.get('duplex')
@@ -163,7 +164,6 @@ class Interface():
         self.routed_port: bool = kwargs.get('routed_port', False)
         self.sort_order: Optional[int] = kwargs.get('sort_order')
         self.speed: Optional[str] = kwargs.get('speed')
-        self.switch: Optional[Switch] = kwargs.get('switch')
         self.type_edge: bool = kwargs.get('type_edge', False)
         self.unparsed_lines: List[str] = kwargs.get('unparsed_lines', [])
         self.voice_vlan: Optional[int] = kwargs.get('voice_vlan')
@@ -234,8 +234,8 @@ class Interface():
             match = re.search(r"channel\-group (\d+) mode (\w+)", cleanline)
             if match is not None:
                 po_id, mode = match.groups()
-                if self.switch is not None:
-                    parent_po = self.switch.interfaces.get(f'Port-channel{str(po_id)}', None)
+                if self.device is not None:
+                    parent_po = self.device.interfaces.get(f'Port-channel{str(po_id)}', None)
                     if parent_po is not None:
                         parent_po.add_child_interface(self)
                         self.unparsed_lines.remove(line)

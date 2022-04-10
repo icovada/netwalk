@@ -192,7 +192,7 @@ def create_cdp_nei(access_point, nb_site):
         name=neigh['deviceId'])
     if neigh_port is None:
         if neigh_sw is None:
-            print("Creating switch "+neigh['deviceId'])
+            print("Creating device "+neigh['deviceId'])
             neigh_sw = nb.dcim.devices.create(name=neigh['deviceId'],
                                               device_type=1,
                                               site=nb_site.id,
@@ -209,7 +209,7 @@ def create_cdp_nei(access_point, nb_site):
 
         porttype = "100base-tx" if "Fast" in neigh['portId'] else "1000base-t"
 
-        print("Creating port "+neigh['portId']+" on switch "+neigh_sw.name)
+        print("Creating port "+neigh['portId']+" on device "+neigh_sw.name)
         neigh_port = nb.dcim.interfaces.create(device=neigh_sw.id,
                                                name=neigh['portId'],
                                                type=porttype,
@@ -280,7 +280,7 @@ def create_devices():
         except KeyError:
             continue
 
-        logger.info("Connecting AP %s to switch %s on %s",
+        logger.info("Connecting AP %s to device %s on %s",
                     nb_interface.device.name, neigh_port.device.name, neigh_port.name)
         try:
             cable = nb.dcim.cables.create(termination_a_type="dcim.interface",
