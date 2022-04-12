@@ -16,6 +16,7 @@ Start
 
 ParseIP
   ^.*IP address: ${mgmt_ip} -> Start
+  ^Platform: -> Start
 
 GetVersion
   ^${version} -> Record Start
