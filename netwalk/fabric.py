@@ -25,7 +25,7 @@ import concurrent.futures
 from netaddr import EUI
 from netmiko.ssh_exception import NetMikoAuthenticationException
 from napalm.base.exceptions import ConnectionException
-from netwalk.switch import Device, Switch
+from netwalk.device import Device, Switch
 from netwalk.interface import Interface
 
 
@@ -51,17 +51,17 @@ class Fabric():
     def __init__(self):
         """Init module"""
         self.logger = logging.getLogger(__name__)
-        self.switches = {}
+        self.devices = {}
         self.discovery_status = {}
         self.mac_table = {}
 
-    def add_switch(self,
+    def add_device(self,
                    switch: Switch,
                    credentials,
                    napalm_optional_args=None,
                    **kwargs):
         """
-        Try to connect to, and if successful add to fabric, a new switch
+        Try to connect to, and if successful add to fabric, a new Device object
 
         :param host: IP or hostname of device to connect to
         :type host: str
@@ -82,10 +82,10 @@ class Fabric():
         # Check if Switch is already in fabric.
         # Hostname is not enough because CDP stops at 40 characters and it might have been added
         # with a cut-off hostname
-        if switch.hostname[:40] in self.switches:
+        if switch.hostname[:40] in self.devices:
             return switch
         else:
-            self.switches[switch.hostname[:40]] = switch
+            self.devices[switch.hostname[:40]] = switch
 
         self.logger.info("Creating switch %s", switch.mgmt_address)
         connected = False
@@ -158,7 +158,7 @@ class Fabric():
                     switch = Device(x)
 
                 key = executor.submit(
-                    self.add_switch,
+                    self.add_device,
                     switch,
                     credentials,
                     napalm_optional_args,
@@ -192,7 +192,7 @@ class Fabric():
                             # all hope is lost
                             continue
 
-                        for swname, swdata in self.switches.items():
+                        for swname, swdata in self.devices.items():
                             if isinstance(hostname, Device):
                                 swobject = hostname
                             else:
@@ -222,13 +222,13 @@ class Fabric():
                             for nei in intdata.neighbors:
                                 self.logger.debug(
                                     "Evaluating neighbour %s", nei['hostname'])
-                                if nei['hostname'] not in self.switches and nei['ip'] not in self.discovery_status:
+                                if nei['hostname'] not in self.devices and nei['ip'] not in self.discovery_status:
 
                                     scan = True
                                     if neigh_validator_callback is not None:
                                         if isinstance(nei, Device):
-                                            self.logger.debug("Passing %s to callback function to check whether to scan", nei.switch.hostname)
-                                            scan = neigh_validator_callback(nei.switch.hostname)
+                                            self.logger.debug("Passing %s to callback function to check whether to scan", nei.device.hostname)
+                                            scan = neigh_validator_callback(nei.device.hostname)
                                         else:
                                             self.logger.debug("Passing %s to callback function to check whether to scan", nei['hostname'])
                                             scan = neigh_validator_callback(nei['hostname'])
@@ -242,7 +242,7 @@ class Fabric():
 
                                         switch = Device(nei['ip'], hostname=nei['hostname'])
 
-                                        future_switch_data[executor.submit(self.add_switch,
+                                        future_switch_data[executor.submit(self.add_device,
                                                                            switch,
                                                                            credentials,
                                                                            napalm_optional_args)] = switch
@@ -250,9 +250,9 @@ class Fabric():
                                         # Add device to fabric without scanning it
                                         self.discovery_status[nei['ip']] = "Skipped"
 
-                                        if nei['hostname'] not in self.switches:
+                                        if nei['hostname'] not in self.devices:
                                             nei_dev = Device(nei['ip'], hostname=nei['hostname'])
-                                            self.switches[nei['hostname']] = nei_dev
+                                            self.devices[nei['hostname']] = nei_dev
 
                                         remote_int = Interface(name=nei['remote_int'])
                                         nei_dev.add_interface(remote_int)
@@ -278,16 +278,16 @@ class Fabric():
         """
         Join switches by CDP neighborship
         """
-        short_fabric = {k[:40]: v for k, v in self.switches.items()}
+        short_fabric = {k[:40]: v for k, v in self.devices.items()}
         hostname_only_fabric = {}
         
-        for k, v in self.switches.items():
+        for k, v in self.devices.items():
             if v.facts is not None:
                 hostname_only_fabric[v.facts['hostname']] =  v
             else:
                 hostname_only_fabric[k] =  k
 
-        for sw, swdata in self.switches.items():
+        for sw, swdata in self.devices.items():
             for intf, intfdata in swdata.interfaces.items():
                 if hasattr(intfdata, "neighbors"):
                     for i in intfdata.neighbors:
@@ -298,7 +298,7 @@ class Fabric():
                         port = i['remote_int']
 
                         try:
-                            peer_device = self.switches[switch]
+                            peer_device = self.devices[switch]
                         except KeyError:
                             try:
                                 peer_device = short_fabric[switch[:40]]
@@ -307,7 +307,7 @@ class Fabric():
                                     peer_device = hostname_only_fabric[switch]
                                 except KeyError:
                                     self.logger.debug("Could not find link between %s %s and %s %s",
-                                                      intfdata.name, intfdata.switch.facts['fqdn'], port, switch)
+                                                      intfdata.name, intfdata.device.facts['fqdn'], port, switch)
                                     continue
                                 
                         try:
@@ -322,14 +322,14 @@ class Fabric():
                         intfdata.add_neighbor(neigh_int)
 
                         self.logger.debug("Found link between %s %s and %s %s", intfdata.name,
-                                            intfdata.switch.hostname, neigh_int.name, neigh_int.switch.hostname)
+                                            intfdata.device.hostname, neigh_int.name, neigh_int.device.hostname)
 
     def _recalculate_macs(self):
         """
         Refresh count macs per interface.
         Tries to guess where mac addresses are by assigning them to the interface with the lowest total mac count
         """
-        for swname, swdata in self.switches.items():
+        for swname, swdata in self.devices.items():
             if isinstance(swdata, Switch):
                 for intname, intdata in swdata.interfaces.items():
                     intdata.mac_count = 0
@@ -340,13 +340,13 @@ class Fabric():
                     except KeyError:
                         pass
 
-        for swname, swdata in self.switches.items():
+        for swname, swdata in self.devices.items():
             if isinstance(swdata, Switch):
                 for mac, macdata in swdata.mac_table.items():
                     try:
                         if self.mac_table[mac]['interface'].mac_count > macdata['interface'].mac_count:
                             self.logger.debug("Found better interface %s %s for %s",
-                                              macdata['interface'].name, macdata['interface'].switch.hostname, str(mac))
+                                              macdata['interface'].name, macdata['interface'].device.hostname, str(mac))
                             self.mac_table[mac] = macdata
                     except KeyError:
                         self.mac_table[mac] = macdata
@@ -364,7 +364,7 @@ class Fabric():
             if path is None:
                 path = []
 
-            switch = start_int.neighbors[0].switch
+            switch = start_int.neighbors[0].device
             path = path + [start_int.neighbors[0]]
             if switch in end_sw:
                 return [path]

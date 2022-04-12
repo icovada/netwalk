@@ -28,17 +28,17 @@ with open('fabric_data.bin', 'rb') as fabricfile:
 
 g = nx.Graph()
 
-g.add_nodes_from([swdata.facts['fqdn'] for swname, swdata in fabric.switches.items()])
+g.add_nodes_from([swdata.facts['fqdn'] for swname, swdata in fabric.devices.items()])
 
-labeldict = {y: x for x, y in fabric.switches.items()}
+labeldict = {y: x for x, y in fabric.devices.items()}
 
-for swname, swdata in fabric.switches.items():
+for swname, swdata in fabric.devices.items():
     for intname, intdata in swdata.interfaces.items():
         if hasattr(intdata, 'neighbors'):
             if len(intdata.neighbors) == 1:
                 if isinstance(intdata.neighbors[0], Interface):
-                    side_a = intdata.switch.facts['fqdn']
-                    side_b = intdata.neighbors[0].switch.facts['fqdn']
+                    side_a = intdata.device.facts['fqdn']
+                    side_b = intdata.neighbors[0].device.facts['fqdn']
 
                     #try:
                     #    assert side_a.name != "SMba32_CStellaICT"

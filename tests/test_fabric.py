@@ -35,7 +35,7 @@ class TestFabricBase(unittest.TestCase):
         c = Switch(mgmt_address='3.3.3.3', hostname='C', fabric=f)
         d = Switch(mgmt_address='4.4.4.4', hostname='D', fabric=f)
 
-        f.switches = {'A': a,
+        f.devices = {'A': a,
                       'B': b,
                       'C': c,
                       'D': d}
@@ -101,7 +101,7 @@ class TestFabricBase(unittest.TestCase):
         c = Switch(mgmt_address='3.3.3.3', hostname='C', fabric=f)
         d = Switch(mgmt_address='4.4.4.4', hostname='D', fabric=f)
 
-        f.switches = {'A': a,
+        f.devices = {'A': a,
                       'B': b,
                       'C': c,
                       'D': d}
@@ -170,7 +170,7 @@ class TestFabricBase(unittest.TestCase):
         d = Switch(mgmt_address='4.4.4.4', hostname='D', fabric=f)
         e = Switch(mgmt_address='5.5.5.5', hostname='E', fabric=f)
 
-        f.switches = {'A': a,
+        f.devices = {'A': a,
                       'B': b,
                       'C': c,
                       'D': d,
@@ -245,45 +245,45 @@ class TestFabricBase(unittest.TestCase):
         d = Switch(mgmt_address='4.4.4.4', facts={
                    'hostname': 'D', 'fqdn': 'D.not set'})
 
-        f.switches = {'A': a,
-                      'B': b,
-                      'C': c,
-                      'D': d}
+        f.devices = {'A': a,
+                     'B': b,
+                     'C': c,
+                     'D': d}
 
         a00 = Interface(name='GigabitEthernet0/0',
                         neighbors=[{'hostname': 'B',
                                    'remote_int': 'GigabitEthernet0/0'}],
-                        switch=a)
+                        device=a)
         a01 = Interface(name='GigabitEthernet0/1',
                         neighbors=[{'hostname': 'C',
                                     'remote_int': 'GigabitEthernet0/1'}],
-                        switch=a)
+                        device=a)
         b00 = Interface(name='GigabitEthernet0/0',
                         neighbors=[{'hostname': 'A',
                                     'remote_int': 'GigabitEthernet0/0'}],
-                        switch=b)
+                        device=b)
         b01 = Interface(name='GigabitEthernet0/1',
                         neighbors=[{'hostname': 'D',
                                     'remote_int': 'GigabitEthernet0/1'}],
-                        switch=b)
+                        device=b)
         c00 = Interface(name='GigabitEthernet0/0',
                         neighbors=[{'hostname': 'D',
                                     'remote_int': 'GigabitEthernet0/0'}],
-                        switch=c)
+                        device=c)
         c01 = Interface(name='GigabitEthernet0/1',
                         neighbors=[{'hostname': 'A',
                                     'remote_int': 'GigabitEthernet0/1'}],
-                        switch=c)
+                        device=c)
         c02 = Interface(name='GigabitEthernet0/2',
-                        switch=c)
+                        device=c)
         d00 = Interface(name='GigabitEthernet0/0',
                         neighbors=[{'hostname': 'C',
                                     'remote_int': 'GigabitEthernet0/0'}],
-                        switch=d)
+                        device=d)
         d01 = Interface(name='GigabitEthernet0/1',
                         neighbors=[{'hostname': 'B',
                                     'remote_int': 'GigabitEthernet0/1'}],
-                        switch=d)
+                        device=d)
 
         a.interfaces = {'GigabitEthernet0/0': a00,
                         'GigabitEthernet0/1': a01}

@@ -63,9 +63,9 @@ class Device():
 
         if self.fabric is not None:
             if self.hostname is None:
-                self.fabric.switches[str(self.mgmt_address)] = self
+                self.fabric.devices[str(self.mgmt_address)] = self
             else:
-                self.fabric.switches[self.hostname] = self
+                self.fabric.devices[self.hostname] = self
 
     def add_interface(self, intobject: Interface):
         """Add interface to device
@@ -73,7 +73,7 @@ class Device():
         :param intobject: Interface to add
         :type intobject: netwalk.Interface
         """
-        intobject.switch = self
+        intobject.device = self
         self.interfaces[intobject.name] = intobject
 
         if type(self) == Switch:

@@ -31,10 +31,10 @@ netwalk.interface module
    :show-inheritance:
    :private-members:
 
-netwalk.switch module
+netwalk.device module
 ---------------------
 
-.. autoclass:: netwalk.switch
+.. autoclass:: netwalk.device
    :members:
    :undoc-members:
    :show-inheritance:

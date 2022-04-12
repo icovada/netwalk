@@ -1,5 +1,6 @@
 v1.6
-- Lots of stuff. Like seriously, lost track of it
+- BREAKING CHANGE: .switch attribute renamed to .device
+- Lots of stuff. Like seriously, lost track of it. My fault.
 
 v1.5
 - Better device lookup, should no longer have duplicate Device objects
