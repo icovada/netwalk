@@ -532,17 +532,22 @@ class Switch(Device):
             except ValueError:
                 address = None
 
+            if nei['local_port'] == '':
+                continue
+            
+            if neigh_data['hostname'] == '' and neigh_data['ip'] is None:
+                continue
+
+            # No hostname
+            if nei['neighbor'] == '':
+                continue
+
             neigh_data = {'hostname': nei['neighbor'],
                           'ip': address,
                           'platform': nei['system_description'],
                           'remote_int': nei['remote_port_id']
                           }
 
-            if nei['local_port'] == '':
-                continue
-            
-            if neigh_data['hostname'] == '' and neigh_data['ip'] is None:
-                continue
 
             self.interfaces[interface_name_expander(nei['local_port'])].neighbors.append(neigh_data)
 
