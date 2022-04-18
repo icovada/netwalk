@@ -531,13 +531,11 @@ class Switch(Device):
                 address = ipaddress.ip_address(nei['mgmt_ip'])
             except ValueError:
                 address = None
+                continue
 
             if nei['local_port'] == '':
                 continue
             
-            if neigh_data['hostname'] == '' and neigh_data['ip'] is None:
-                continue
-
             # No hostname
             if nei['neighbor'] == '':
                 continue
