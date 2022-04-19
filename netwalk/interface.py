@@ -190,7 +190,7 @@ class Interface():
 
         if not second_pass:
             # Pass values to unparsed_lines as value not reference
-            self.unparsed_lines = self.config[:]
+            self.unparsed_lines = [x.rstrip() for x in self.config[:]]
 
         # Parse port mode first. Some switches have it first, some last, so check it first thing
         for line in self.unparsed_lines:
