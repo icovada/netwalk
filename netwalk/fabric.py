@@ -23,7 +23,6 @@ import logging
 from socket import timeout as socket_timeout
 import concurrent.futures
 from netaddr import EUI
-from netmiko.ssh_exception import NetMikoAuthenticationException
 from napalm.base.exceptions import ConnectionException
 from netwalk.device import Device, Switch
 from netwalk.interface import Interface
@@ -101,7 +100,7 @@ class Fabric():
                     self.logger.info(
                         "Connection to switch %s successful", switch.mgmt_address)
                     break
-                except (ConnectionException, NetMikoAuthenticationException, ConnectionRefusedError, socket_timeout):
+                except (ConnectionException, ConnectionRefusedError, socket_timeout):
                     self.logger.warning(
                         "Login failed, trying next method if available")
                     continue

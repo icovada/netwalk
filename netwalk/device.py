@@ -21,7 +21,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import ipaddress
 import logging
 import os
-from io import StringIO
 import datetime as dt
 from typing import Dict, Optional, List, Union
 from netaddr import EUI
@@ -245,14 +244,7 @@ class Switch(Device):
         """Parse show run
         """
         if isinstance(self.config, str):
-            running = StringIO()
-            running.write(self.config)
-
-            # Be kind rewind
-            running.seek(0)
-
-            # Get show run and interface access/trunk status
-            parsed_conf = CiscoConfParse(running)
+            parsed_conf = CiscoConfParse(self.config.split("\n"))
             interface_config_list: list = parsed_conf.find_objects(
                 self.INTERFACE_FILTER)
 
@@ -326,12 +318,7 @@ class Switch(Device):
 
         self.init_time = dt.datetime.now()
 
-        self.session.device.write_channel("show run")
-        self.session.device.write_channel("\n")
-        self.session.device.timeout = 30  # Could take ages...
-        self.config = self.session.device.read_until_pattern(
-            "end\r\n", max_loops=3000)
-        #print("Parsing config")
+        self.config = self.session.get_config(retrieve="running")['running']        
 
         self._parse_config()
 

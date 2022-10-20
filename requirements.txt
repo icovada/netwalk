@@ -1,2 +1,2 @@
-ciscoconfparse==1.5.30
-napalm==3.2.0
+ciscoconfparse==1.6.47
+napalm==4.0.0
