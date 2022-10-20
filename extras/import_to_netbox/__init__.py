@@ -27,7 +27,7 @@ import pynetbox
 from pynetbox.core.query import RequestError
 from slugify import slugify
 import netwalk
-from qlient import Client, HTTPBackend, Fields
+from qlient.http import HTTPClient, HTTPBackend, Fields
 import requests
 
 from netwalk.interface import Interface, Switch
@@ -236,6 +236,10 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_site, delete):
                         int_type = "100base-tx"
                     elif "Te" in intname:
                         int_type = "10gbase-x-sfpp"
+                    elif "TwentyF" in intname:
+                        int_type = "25gbase-x-sfp28"
+                    elif "HundredGi" in intname:
+                        int_type = "100gbase-x-qsfp28"
                     elif "Gigabit" in intname:
                         int_type = "1000base-t"
                     elif "Vlan" in intname:
@@ -257,16 +261,29 @@ def create_devices_and_interfaces(fabric, nb_access_role, nb_site, delete):
                             intproperties['mode'] = "tagged-all"
                         else:
                             intproperties['mode'] = "tagged"
-                            intproperties['tagged_vlans'] = [
-                                vlans_dict[x].id for x in intdata.allowed_vlan]
+                            intproperties['tagged_vlans'] = []
+                            for i in intdata.allowed_vlan:
+                                # Don't use comprehension so we can ignore extra vlans not in vlan table
+                                try:
+                                    intproperties['tagged_vlans'].append(vlans_dict[i].id)
+                                except KeyError:
+                                    continue
                     else:
                         intproperties['mode'] = "access"
 
                     if "vlan" in intname.lower():
                         vlanid = int(intname.lower().replace("vlan", ""))
-                        intproperties['untagged_vlan'] = vlans_dict[vlanid].id
+
+                        try:
+                            intproperties['untagged_vlan'] = vlans_dict[vlanid].id
+                        except KeyError:
+                            # VLAN does not exist at L2
+                            intproperties['untagged_vlan'] = vlans_dict[1].id
                     else:
-                        intproperties['untagged_vlan'] = vlans_dict[intdata.native_vlan].id
+                        try:
+                            intproperties['untagged_vlan'] = vlans_dict[intdata.native_vlan].id
+                        except KeyError:
+                            intproperties['untagged_vlan'] = vlans_dict[1].id
 
                     if hasattr(intproperties, 'unparsed_lines'):
                         if intproperties['unparsed_lines'] != intdata.unparsed_lines:
@@ -696,6 +713,9 @@ def add_cables(fabric, nb_site):
                             except ValueError:
                                 continue
 
+                            if neigh_obj is None:
+                                continue
+
                             neighbor_nb_device = NB.dcim.devices.get(
                                 name=neigh_obj.name)
                             intdata.neighbors[0].nb_interface = NB.dcim.interfaces.get(
@@ -771,12 +791,6 @@ def add_cables(fabric, nb_site):
                         assert nb_term_a != cable.termination_b
                         assert nb_term_b != cable.termination_a
                         assert nb_term_b != cable.termination_b
-                except AssertionError:
-                    continue
-
-                try:
-                    assert nb_term_a.name != "wlan-ap0"
-                    assert nb_term_b.name != "wlan-ap0"
                 except AssertionError:
                     continue
 
@@ -872,7 +886,7 @@ def add_inventory_items(fabric, nb_site, delete):
 def load_fabric_object(fabric: netwalk.Fabric, access_role, site_slug, delete=False):
     nb_access_role = NB.dcim.device_roles.get(name=access_role)
     nb_site = NB.dcim.sites.get(slug=site_slug)
-    # add_l2_vlans(NB, fabric, nb_site, delete)
+    add_l2_vlans(fabric, nb_site, delete)
     newneighs = []
     done = []
     for swname, swdata in fabric.devices.items():
@@ -918,7 +932,7 @@ def shell_run_setup(filename, site_slug, netbox_url, netbox_api_key):
     authenticated_backend = HTTPBackend(
         endpoint=netbox_url+"/graphql/", session=session)
 
-    QLIENT = Client(authenticated_backend)
+    QLIENT = HTTPClient(authenticated_backend)
 
     NB = pynetbox.api(
         netbox_url,
