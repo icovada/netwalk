@@ -250,7 +250,7 @@ class Fabric():
                                         self.discovery_status[nei['ip']] = "Skipped"
 
                                         if nei['hostname'] not in self.devices:
-                                            nei_dev = Device(nei['ip'], hostname=nei['hostname'])
+                                            nei_dev = Device(nei['ip'], hostname=nei['hostname'], facts={'platform': nei['platform'], 'hostname': nei['hostname']})
                                             self.devices[nei['hostname']] = nei_dev
 
                                         remote_int = Interface(name=nei['remote_int'])
