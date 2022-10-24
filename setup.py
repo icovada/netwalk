@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name = "netwalk",
-    version = "1.6",
+    version = "1.6.1",
     author = "Federico Tabbò (Europe)",
     author_email = "federico.tabbo@global.ntt",
     description = "Network discovery and analysis tool",
@@ -20,10 +20,10 @@ setuptools.setup(
         "Operating System :: OS Independent"
     ],
     packages = setuptools.find_packages(),
-    python_requires = ">=3.6",
+    python_requires = ">=3.10",
     install_requires=[
-        "ciscoconfparse>=1.5.30",
-        "napalm>=3.2.0"
+        "ciscoconfparse==1.6.50",
+        "napalm==4.0.0"
     ],
     include_package_data=True
 )

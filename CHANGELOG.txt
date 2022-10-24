@@ -1,3 +1,7 @@
+v1.6.1
+- Minor fixes
+- Dependency upgrades
+
 v1.6
 - BREAKING CHANGE: .switch attribute renamed to .device
 - Lots of stuff. Like seriously, lost track of it. My fault.
