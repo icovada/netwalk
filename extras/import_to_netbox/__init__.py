@@ -946,7 +946,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="Load pickled fabric objects generated from netwalk"
     )
-    parser.add_argument('file',
+    parser.add_argument('filename',
                         help="Pickled file name")
     parser.add_argument('site_slug',
                         help="Netbox site slug")
@@ -956,4 +956,4 @@ if __name__ == '__main__':
                         help="Netbox API key")
     args_namespace = parser.parse_args()
     args = vars(args_namespace)
-    shell_run_setup(args)
+    shell_run_setup(**args)
