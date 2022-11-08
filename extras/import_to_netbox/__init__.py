@@ -585,6 +585,9 @@ def add_neighbor_ip_addresses(fabric, nb_site, delete):
             for intname, intdata in swdata.interfaces.items():
                 nb_neigh_interface = NB.dcim.interfaces.get(name=intdata.name,
                                                             device_id=nb_neigh_device.id)
+                
+                if swdata.mgmt_address is None:
+                    continue
 
                 # Search IP
                 logger.debug("Searching IP %s for %s",
