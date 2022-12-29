@@ -1,13 +1,14 @@
 "Main file for library"
 
-from .interface import Interface
+#pylint: disable=wrong-import-order
 from .device import Device, Switch
 from .fabric import Fabric
+from .interface import Interface
 
 __all__ = ["Interface", "Switch", "Fabric", "Device"]
 
 
-#Taken from requests library, check their documentation
+# Taken from requests library, check their documentation
 import logging
 from logging import NullHandler
 
