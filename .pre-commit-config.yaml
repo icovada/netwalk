@@ -1,0 +1,51 @@
+repos:
+# Standard hooks
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v3.4.0
+  hooks:
+  - id: check-added-large-files
+  - id: check-case-conflict
+  - id: check-merge-conflict
+  - id: check-symlinks
+  - id: check-yaml
+  - id: debug-statements
+  - id: end-of-file-fixer
+  - id: mixed-line-ending
+  - id: requirements-txt-fixer
+  - id: trailing-whitespace
+  - id: fix-encoding-pragma
+
+- repo: https://github.com/pycqa/isort
+  rev: 5.10.1
+  hooks:
+    - id: isort
+      name: isort (python)
+
+# Changes tabs to spaces
+- repo: https://github.com/Lucas-C/pre-commit-hooks
+  rev: v1.1.9
+  hooks:
+  - id: remove-tabs
+
+- repo: local
+  hooks:
+    - id: pytest-check
+      name: pytest-check
+      entry: pytest
+      language: system
+      pass_filenames: false
+      always_run: true
+
+- repo: local
+  hooks:
+    - id: pylint
+      name: pylint
+      entry: pylint
+      language: system
+      types: [python]
+      exclude: ^migrations/
+      args:
+        [
+          "-rn", # Only display messages
+          "-sn", # Don't display the score
+        ]
