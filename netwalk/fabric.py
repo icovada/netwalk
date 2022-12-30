@@ -16,20 +16,22 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-import ipaddress
-from typing import Any, Dict
-from datetime import datetime as dt
-import logging
-from socket import timeout as socket_timeout
 import concurrent.futures
-from netaddr import EUI
+import ipaddress
+import logging
+from datetime import datetime as dt
+from socket import timeout as socket_timeout
+from typing import Any, Dict
+
 from napalm.base.exceptions import ConnectionException
+from netaddr import EUI
+
 from netwalk.device import Device, Switch
 from netwalk.interface import Interface
 
 
 class Fabric():
-    """Defines a fabric, i.e. a graph of connected Devices and their global 
+    """Defines a fabric, i.e. a graph of connected Devices and their global
     mac address table
 
     """
@@ -138,11 +140,11 @@ class Fabric():
         if napalm_optional_args is None:
             napalm_optional_args = [None]
 
-        for x in seed_hosts:
-            if isinstance(x, Device):
-                self.discovery_status[x.mgmt_address] = "Queued"
+        for i in seed_hosts:
+            if isinstance(i, Device):
+                self.discovery_status[i.mgmt_address] = "Queued"
             else:
-                self.discovery_status[ipaddress.ip_address(x)] = "Queued"
+                self.discovery_status[ipaddress.ip_address(i)] = "Queued"
 
         # We can use a with statement to ensure threads are cleaned up promptly
         with concurrent.futures.ThreadPoolExecutor(max_workers=parallel_threads) as executor:
@@ -150,11 +152,11 @@ class Fabric():
             self.logger.debug("Adding seed hosts to loop")
 
             future_switch_data = {}
-            for x in seed_hosts:
-                if isinstance(x, Device):
-                    switch = x
+            for i in seed_hosts:
+                if isinstance(i, Device):
+                    switch = i
                 else:
-                    switch = Device(x)
+                    switch = Device(i)
 
                 key = executor.submit(
                     self.add_device,
@@ -163,7 +165,7 @@ class Fabric():
                     napalm_optional_args,
                     discovery_status="Queued")
 
-                value = x
+                value = i
 
                 future_switch_data[key] = value
 
@@ -181,7 +183,7 @@ class Fabric():
                         swdata = None
                         swobject = fut.result()
                     except Exception as exc:
-                        #raise exc
+                        # raise exc
 
                         self.logger.error('%r generated an exception: %s' %
                                           (hostname, exc))
@@ -191,7 +193,7 @@ class Fabric():
                             # all hope is lost
                             continue
 
-                        for swname, swdata in self.devices.items():
+                        for swdata in self.devices.values():
                             if isinstance(hostname, Device):
                                 swobject = hostname
                             else:
@@ -226,20 +228,27 @@ class Fabric():
                                     scan = True
                                     if neigh_validator_callback is not None:
                                         if isinstance(nei, Device):
-                                            self.logger.debug("Passing %s to callback function to check whether to scan", nei.device.hostname)
-                                            scan = neigh_validator_callback(nei.device.hostname)
+                                            self.logger.debug(
+                                                "Passing %s to callback function to check whether to scan", nei.device.hostname)
+                                            scan = neigh_validator_callback(
+                                                nei.device.hostname)
                                         else:
-                                            self.logger.debug("Passing %s to callback function to check whether to scan", nei['hostname'])
-                                            scan = neigh_validator_callback(nei['hostname'])
+                                            self.logger.debug(
+                                                "Passing %s to callback function to check whether to scan", nei['hostname'])
+                                            scan = neigh_validator_callback(
+                                                nei['hostname'])
 
-                                        self.logger.debug("Callback function returned %s", scan)
+                                        self.logger.debug(
+                                            "Callback function returned %s", scan)
 
                                     if scan:
                                         self.logger.info(
                                             "Queueing discover for %s", nei['hostname'])
-                                        self.discovery_status[nei['ip']] = "Queued"
+                                        self.discovery_status[nei['ip']
+                                                              ] = "Queued"
 
-                                        switch = Device(nei['ip'], hostname=nei['hostname'])
+                                        switch = Device(
+                                            nei['ip'], hostname=nei['hostname'])
 
                                         future_switch_data[executor.submit(self.add_device,
                                                                            switch,
@@ -247,16 +256,21 @@ class Fabric():
                                                                            napalm_optional_args)] = switch
                                     else:
                                         # Add device to fabric without scanning it
-                                        self.discovery_status[nei['ip']] = "Skipped"
+                                        self.discovery_status[nei['ip']
+                                                              ] = "Skipped"
 
                                         if nei['hostname'] not in self.devices:
-                                            nei_dev = Device(nei['ip'], hostname=nei['hostname'], facts={'platform': nei['platform'], 'hostname': nei['hostname']})
-                                            self.devices[nei['hostname']] = nei_dev
+                                            nei_dev = Device(nei['ip'], hostname=nei['hostname'], facts={
+                                                             'platform': nei['platform'], 'hostname': nei['hostname']})
+                                            self.devices[nei['hostname']
+                                                         ] = nei_dev
 
-                                        remote_int = Interface(name=nei['remote_int'])
+                                        remote_int = Interface(
+                                            name=nei['remote_int'])
                                         nei_dev.add_interface(remote_int)
 
-                                        self.logger.info("Skipping %s, callback returned False", nei['hostname'])
+                                        self.logger.info(
+                                            "Skipping %s, callback returned False", nei['hostname'])
                                 else:
                                     self.logger.debug(
                                         "Skipping %s, already discovered", nei['hostname'])
@@ -279,15 +293,15 @@ class Fabric():
         """
         short_fabric = {k[:40]: v for k, v in self.devices.items()}
         hostname_only_fabric = {}
-        
+
         for k, v in self.devices.items():
             if v.facts is not None:
-                hostname_only_fabric[v.facts['hostname']] =  v
+                hostname_only_fabric[v.facts['hostname']] = v
             else:
-                hostname_only_fabric[k] =  k
+                hostname_only_fabric[k] = k
 
-        for sw, swdata in self.devices.items():
-            for intf, intfdata in swdata.interfaces.items():
+        for swdata in self.devices.values():
+            for intfdata in swdata.interfaces.values():
                 if hasattr(intfdata, "neighbors"):
                     for i in intfdata.neighbors:
                         if isinstance(i, Interface):
@@ -308,12 +322,13 @@ class Fabric():
                                     self.logger.debug("Could not find link between %s %s and %s %s",
                                                       intfdata.name, intfdata.device.facts['fqdn'], port, switch)
                                     continue
-                                
+
                         try:
                             neigh_int = peer_device.interfaces[port]
                         except KeyError:
                             # missing interface, add it
-                            neigh_int = Interface(name=port, switch=peer_device)
+                            neigh_int = Interface(
+                                name=port, switch=peer_device)
                             peer_device.add_interface(neigh_int)
 
                         intfdata.neighbors.remove(i)
@@ -321,25 +336,25 @@ class Fabric():
                         intfdata.add_neighbor(neigh_int)
 
                         self.logger.debug("Found link between %s %s and %s %s", intfdata.name,
-                                            intfdata.device.hostname, neigh_int.name, neigh_int.device.hostname)
+                                          intfdata.device.hostname, neigh_int.name, neigh_int.device.hostname)
 
     def _recalculate_macs(self):
         """
         Refresh count macs per interface.
         Tries to guess where mac addresses are by assigning them to the interface with the lowest total mac count
         """
-        for swname, swdata in self.devices.items():
+        for swdata in self.devices.values():
             if isinstance(swdata, Switch):
-                for intname, intdata in swdata.interfaces.items():
+                for intdata in swdata.interfaces.values():
                     intdata.mac_count = 0
 
-                for _, data in swdata.mac_table.items():
+                for data in swdata.mac_table.values():
                     try:
                         data['interface'].mac_count += 1
                     except KeyError:
                         pass
 
-        for swname, swdata in self.devices.items():
+        for swdata in self.devices.values():
             if isinstance(swdata, Switch):
                 for mac, macdata in swdata.mac_table.items():
                     try:
@@ -384,7 +399,7 @@ class Fabric():
             return paths
 
         all_possible_paths = []
-        for intname, intdata in start_sw.interfaces.items():
+        for intdata in start_sw.interfaces.values():
             if hasattr(intdata, 'neighbors'):
                 if len(intdata.neighbors) == 1:
                     if type(intdata.neighbors[0]) == Interface:

@@ -16,20 +16,20 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-"""Define Switch object"""
-
+import datetime
 import ipaddress
 import logging
 import os
-import datetime as dt
-from typing import Dict, Optional, List, Union
-from netaddr import EUI
+from typing import Dict, List, Optional, Union
+
 import napalm
-from ciscoconfparse import CiscoConfParse
 import textfsm
-import datetime
+from ciscoconfparse import CiscoConfParse
+from netaddr import EUI
+
 from netwalk.interface import Interface
 from netwalk.libs import interface_name_expander
+
 
 class Device():
     "Device type"
@@ -76,17 +76,17 @@ class Device():
         self.interfaces[intobject.name] = intobject
 
         if type(self) == Switch:
-            for k, v in self.interfaces.items():
+            for _, v in self.interfaces.items():
                 v.parse_config(second_pass=True)
 
     def promote_to_switch(self):
         self.__class__ = Switch
-        self.__init__(mgmt_address = self.mgmt_address,
-                      hostname = self.hostname,
-                      interfaces = self.interfaces,
-                      discovery_status = self.discovery_status,
-                      fabric = self.fabric,
-                      facts = self.facts)
+        self.__init__(mgmt_address=self.mgmt_address,
+                      hostname=self.hostname,
+                      interfaces=self.interfaces,
+                      discovery_status=self.discovery_status,
+                      fabric=self.fabric,
+                      facts=self.facts)
 
 
 class Switch(Device):
@@ -211,7 +211,7 @@ class Switch(Device):
 
         # Find trunk interfaces with no neighbors
         noneightrunks = []
-        for intname, intdata in self.interfaces.items():
+        for intdata in self.interfaces.values():
             if intdata.mode == "trunk":
                 try:
                     assert not isinstance(intdata.neighbors[0], Interface)
@@ -223,14 +223,14 @@ class Switch(Device):
 
                 # Find if interface has mac addresses
                 activevlans = set()
-                for mac, macdata in self.mac_table.items():
+                for macdata in self.mac_table.values():
                     if macdata['interface'] == intdata:
                         activevlans.add(macdata['vlan'])
 
                 vlans = vlans.union(activevlans)
 
         # Add vlans with layer3 configured
-        for intname, intdata in self.interfaces.items():
+        for intdata in self.interfaces.values():
             if "vlan" in intdata.name.lower():
                 if intdata.is_enabled:
                     vlanid = int(intdata.name.lower().replace("vlan", ""))
@@ -312,13 +312,14 @@ class Switch(Device):
         self.facts = self.session.get_facts()
 
         try:
-            self.hostname = self.facts['fqdn'].replace(".not set","") if self.facts['fqdn'] != 'Unknown' else self.facts['hostname']
+            self.hostname = self.facts['fqdn'].replace(
+                ".not set", "") if self.facts['fqdn'] != 'Unknown' else self.facts['hostname']
         except KeyError:
             pass
 
-        self.init_time = dt.datetime.now()
+        self.init_time = datetime.datetime.now()
 
-        self.config = self.session.get_config(retrieve="running")['running']        
+        self.config = self.session.get_config(retrieve="running")['running']
 
         self._parse_config()
 
@@ -343,10 +344,11 @@ class Switch(Device):
 
                 try:
                     # some interfaces have diFFeRenT capitalization across outputs
-                    v['interface'] = {k.lower(): v for k, v in self.interfaces.items()}[v['interface'].lower()]
+                    v['interface'] = {k.lower(): v for k, v in self.interfaces.items()}[
+                        v['interface'].lower()]
                     self.mac_table[k] = v
                 except KeyError:
-                    #print("Interface {} not found".format(v['interface']))
+                    # print("Interface {} not found".format(v['interface']))
                     continue
 
             # Count macs per interface
@@ -431,32 +433,36 @@ class Switch(Device):
                 self.logger.error("Show interface parsing failed %s", e)
                 return None
 
-
         for intf in fsm_results:
             if intf['name'] in self.interfaces:
                 for k, v in intf.items():
                     if k in ('last_in', 'last_out', 'last_out_hang', 'last_clearing'):
-                        val= self._cisco_time_to_dt(v)
+                        val = self._cisco_time_to_dt(v)
                         setattr(self.interfaces[intf['name']], k, val)
-                        self.logger.debug("Set attribute %s to %s for %s", k, val, intf['name'])
+                        self.logger.debug(
+                            "Set attribute %s to %s for %s", k, val, intf['name'])
                     elif k == 'is_enabled':
                         val = False if 'administratively' in v else True
                         setattr(self.interfaces[intf['name']], k, val)
-                        self.logger.debug("Set attribute %s to %s, parsed value: %s for %s", k, val, v, intf['name'])
+                        self.logger.debug(
+                            "Set attribute %s to %s, parsed value: %s for %s", k, val, v, intf['name'])
                     elif k == 'is_up':
                         val = True if 'up' in v else False
                         setattr(self.interfaces[intf['name']], k, val)
                         setattr(
                             self.interfaces[intf['name']], 'protocol_status', v)
-                        self.logger.debug("Set attribute %s to %s, parsed value: %s for %s", k, val, v, intf['name'])
+                        self.logger.debug(
+                            "Set attribute %s to %s, parsed value: %s for %s", k, val, v, intf['name'])
                     else:
                         setattr(self.interfaces[intf['name']], k, v)
-                        self.logger.debug("Set attribute %s to %s for %s", k, v, intf['name'])
+                        self.logger.debug(
+                            "Set attribute %s to %s for %s", k, v, intf['name'])
             else:
                 # Sometimes multi-type interfaces appear in one command and not in another
                 newint = Interface(name=intf['name'])
                 self.add_interface(newint)
-                self.logger.info("Creating new interface %s not found previously", intf['name'])
+                self.logger.info(
+                    "Creating new interface %s not found previously", intf['name'])
 
     def _parse_cdp_neighbors(self):
         """Ask for and parse CDP neighbors"""
@@ -483,7 +489,7 @@ class Switch(Device):
                 address = ipaddress.ip_address(nei['mgmt_ip'])
             except ValueError:
                 address = None
-            
+
             neigh_data = {'hostname': nei['dest_host'],
                           'ip': address,
                           'platform': nei['platform'],
@@ -522,7 +528,7 @@ class Switch(Device):
 
             if nei['local_port'] == '':
                 continue
-            
+
             # No hostname
             if nei['neighbor'] == '':
                 continue
@@ -533,10 +539,10 @@ class Switch(Device):
                           'remote_int': nei['remote_port_id']
                           }
 
+            self.interfaces[interface_name_expander(
+                nei['local_port'])].neighbors.append(neigh_data)
 
-            self.interfaces[interface_name_expander(nei['local_port'])].neighbors.append(neigh_data)
-
-    def _cisco_time_to_dt(self, time: str) -> dt.datetime:
+    def _cisco_time_to_dt(self, time: str) -> datetime.datetime:
         """Converts time from now to absolute, starting when Switch object was initialised
 
         :param time: Cisco diff time (e.g. '00:00:01' or '5w4d')
@@ -553,7 +559,7 @@ class Switch(Device):
 
         if time == 'never' or time == '':
             # TODO: return uptime
-            return dt.datetime(1970, 1, 1, 0, 0, 0)
+            return datetime.datetime(1970, 1, 1, 0, 0, 0)
 
         if ':' in time:
             hours, minutes, seconds = time.split(':')
@@ -586,7 +592,7 @@ class Switch(Device):
             weeks = int(weeks)
             days = int(days)
 
-        delta = dt.timedelta(weeks=weeks, days=days, hours=hours,
+        delta = datetime.timedelta(weeks=weeks, days=days, hours=hours,
                              minutes=minutes, seconds=seconds)
 
         return self.init_time - delta
