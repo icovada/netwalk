@@ -142,8 +142,8 @@ class Switch(Device):
     def retrieve_data(self,
                       username: str,
                       password: str,
-                      napalm_optional_args: dict = {},
-                      scan_options: dict = {}):
+                      napalm_optional_args: dict = None,
+                      scan_options: dict = None):
         """
         One-stop function to get data from switch.
 
@@ -157,7 +157,8 @@ class Switch(Device):
         :type scan_options: dict(str, list(str))
         """
 
-        self.napalm_optional_args = napalm_optional_args
+        self.napalm_optional_args = {} if napalm_optional_args is None else napalm_optional_args
+        scan_options = {} if scan_options is None else scan_options
 
         self.connect(username, password, napalm_optional_args)
         try:
