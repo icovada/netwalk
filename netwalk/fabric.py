@@ -185,8 +185,8 @@ class Fabric():
                     except Exception as exc:
                         # raise exc
 
-                        self.logger.error('%r generated an exception: %s' %
-                                          (hostname, exc))
+                        self.logger.error(
+                            '%r generated an exception: %s', hostname, exc)
                         self.discovery_status[hostname] = "Failed"
 
                         if hostname == "":
